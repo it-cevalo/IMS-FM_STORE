@@ -1,0 +1,94 @@
+@extends('layouts.admin')
+
+@section('content')
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Master Data UOM</h6>
+        <a href="{{ route('product_unit.create') }}" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i> Add</a>
+    </div>
+
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="productUnitTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th class="text-center align-middle">No</th>
+                        <th class="text-center align-middle">Name</th>
+                        <th class="text-center align-middle">Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadProductUnitData() {
+        $('#productUnitTable').DataTable({
+            processing: true,
+            serverSide: true,
+            destroy: true,
+            ajax: '{{ route('product_unit.data') }}',
+            columns: [
+                { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: "text-center" },
+                { data: 'nama_unit', name: 'nama_unit' },
+                { data: 'action', name: 'action', orderable: false, searchable: false, className: "text-center" }
+            ]
+        });
+    }
+
+    $(document).ready(function () {
+        loadProductUnitData();
+
+        // Auto close alert
+        setTimeout(() => $('.alert').fadeOut(), 5000);
+
+        // Event delete (delegation, untuk tombol delete dinamis dari DataTables)
+        $(document).on('click', '.btnDeleteProductUnit', function (e) {
+            e.preventDefault();
+
+            let form = $(this).closest('form');
+            let deleteUrl = form.attr('action');
+
+            Swal.fire({
+                title: 'Are you sure you want to delete this?',
+                text: "This UOM data cannot be recovered once deleted.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Delete it!',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: deleteUrl,
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            _method: 'DELETE'
+                        },
+                        success: function (res) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: res.message
+                            });
+                            $('#productUnitTable').DataTable().ajax.reload();
+                        },
+                        error: function (xhr) {
+                            let res = xhr.responseJSON;
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: res && res.message ? res.message : 'An error occurred while deleting the data.'
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    });
+</script>
+@endsection

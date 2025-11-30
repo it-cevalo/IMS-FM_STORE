@@ -1,0 +1,132 @@
+@extends('layouts.admin')
+
+@section('content')
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Add Warehouse Data</h6>
+    </div>
+    <div class="card-body">
+
+        <form id="formWarehouseCreate" method="POST" action="{{ route('warehouses.store') }}">
+            @csrf
+            <div class="mb-3">
+                <label>Store</label>
+                <select class="form-control select2" name="id_store" required>
+                    <option value="">...</option>
+                    @foreach($stores as $s)
+                        <option value="{{ $s->id }}">{{ $s->nama_store }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label>Warehouse Code</label>
+                <input class="form-control" name="code_wh" type="text">
+            </div>
+
+            <div class="mb-3">
+                <label>Warehouse Name</label>
+                <input class="form-control" name="nama_wh" type="text">
+            </div>
+
+            <div class="mb-3">
+                <label>Warehouse Phone</label>
+                <input class="form-control" name="phone" type="number" min="0">
+            </div>
+
+            <div class="mb-3">
+                <label>Warehouse Email</label>
+                <input class="form-control" name="email" type="email">
+            </div>
+
+            <div class="mb-3">
+                <label>Warehouse Address</label>
+                <input class="form-control" name="address" type="text">
+            </div>
+
+            <button type="button" class="btn btn-primary" id="btnCreateWarehouse">Submit</button>
+            <a href="{{ route('warehouses.index') }}" class="btn btn-dark">Cancel</a>
+        </form>
+
+    </div>
+</div>
+
+<script>
+$(document).ready(function () {
+    $('.select2').select2({
+        placeholder: "-- Select Store --",
+        allowClear: true
+    });
+
+    $('#btnCreateWarehouse').on('click', function () {
+        let form = $('#formWarehouseCreate')[0];
+        let formData = new FormData(form);
+        let storeUrl = $('#formWarehouseCreate').attr('action');
+
+        $.ajax({
+            url: storeUrl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            beforeSend: function () {
+                $('#btnCreateWarehouse').prop('disabled', true).text('Saving...');
+            },
+            success: function (res) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: res.message
+                }).then(() => {
+                    window.location.href = "{{ route('warehouses.index') }}";
+                });
+            },
+            error: function (xhr) {
+                $('#btnCreateWarehouse').prop('disabled', false).text('Submit');
+                let res = xhr.responseJSON;
+
+                if (xhr.status === 422) {
+                    // Laravel returns nested errors (object of arrays), flatten them safely
+                    let errorList = '<ul style="text-align:left;">';
+
+                    if (res && res.errors && typeof res.errors === 'object') {
+                        $.each(res.errors, function (field, messages) {
+                            if (Array.isArray(messages)) {
+                                messages.forEach(msg => {
+                                    errorList += `<li>${msg}</li>`;
+                                });
+                            } else if (typeof messages === 'string') {
+                                errorList += `<li>${messages}</li>`;
+                            }
+                        });
+                    } else if (typeof res.message === 'string') {
+                        errorList += `<li>${res.message}</li>`;
+                    } else {
+                        errorList += `<li>Invalid input. Please check your data.</li>`;
+                    }
+
+                    errorList += '</ul>';
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Invalid input',
+                        html: errorList
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: res && res.message
+                            ? res.message
+                            : 'An unexpected system error occurred. Please try again later.'
+                    });
+                }
+            }
+        });
+    });
+});
+</script>
+@endsection
