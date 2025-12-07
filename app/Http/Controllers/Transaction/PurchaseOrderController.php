@@ -37,13 +37,13 @@ class PurchaseOrderController extends Controller
                 ->addColumn('id', fn($row) => $row->id)
                 ->addColumn('action', function($row) {
                     $btn = '<a href="'.route('purchase_order.show', $row->id).'" class="btn btn-success btn-sm"><i class="fa fa-eye"></i></a> ';
-                    if($row->flag_approve === 'Y'){
-                        // Tombol Print PDF
-                        $btn .= '<a href="'.route('purchase_order.print', $row->id).'" target="_blank" 
-                        class="btn btn-secondary btn-sm" title="Print PDF">
-                        <i class="fa fa-print"></i>
-                        </a> ';
-                    }
+                    // if($row->flag_approve === 'Y'){
+                    //     // Tombol Print PDF
+                    //     $btn .= '<a href="'.route('purchase_order.print', $row->id).'" target="_blank" 
+                    //     class="btn btn-secondary btn-sm" title="Print PDF">
+                    //     <i class="fa fa-print"></i>
+                    //     </a> ';
+                    // }
                     
                     if (Auth::user()->position === 'SUPERADMIN' && ($row->flag_approve === 'N' || empty($row->flag_approve))) {
                         $btn .= '<a href="#" onclick="approveOrder('.$row->id.')" class="btn btn-primary btn-sm" title="Approve Order">
