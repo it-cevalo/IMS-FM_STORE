@@ -11,9 +11,9 @@
 
     <div class="card-header py-3">
         @if(Auth::user()->position=='SUPERADMIN')
-        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target=".modalBesar1">
+        {{-- <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target=".modalBesar1">
             <i class="fa fa-upload"></i> Upload File DO
-        </button>
+        </button> --}}
         <a href="{{route('delivery_order.create')}}" class="btn btn-primary btn-flat btn-sm">
             <i class="fa fa-plus"></i> Add
         </a>
@@ -21,9 +21,9 @@
             <i class="fa fa-archive"></i> See Archive
         </a>
         @elseif(Auth::user()->position=='WAREHOUSE')
-        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target=".modalBesar1">
+        {{-- <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target=".modalBesar1">
             <i class="fa fa-upload"></i> Upload File DO
-        </button>
+        </button> --}}
         <a href="{{route('delivery_order.create')}}" class="btn btn-primary btn-flat btn-sm">
             <i class="fa fa-plus"></i> Add
         </a>
@@ -49,10 +49,10 @@
                         <th>PO Number</th>
                         <th>DO Number</th>
                         <th>Shipping Via</th>
-                        <th>File</th>
+                        {{-- <th>File</th>
                         <th>Upload Date</th>
-                        <th>Attachment Status</th>
-                        <th>Reason</th>
+                        <th>Attachment Status</th> --}}
+                        <th>Note</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -63,7 +63,7 @@
 </div>
 
 {{-- Modal Upload DO File --}}
-<div class="modal fade modalBesar1" tabindex="-1" role="dialog" aria-hidden="true">
+{{-- <div class="modal fade modalBesar1" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -94,7 +94,7 @@
             </form>
         </div>
     </div>
-</div>
+</div> --}}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -131,26 +131,20 @@ function loadDeliveryOrderData() {
                     return `<a href="${baseUrl}/purchase_order/${row.po_id}" class="text-primary font-weight-bold">${data}</a>`;
                 }
             },
-
-            // Klik No DO ke halaman DO.show
-            { 
+            {
                 data: 'no_do', 
-                name: 'no_do', 
-                render: function(data, type, row) {
-                    return `<a href="${baseUrl}/delivery_order/${row.id}" class="text-success font-weight-bold">${data}</a>`;
-                }
+                name: 'no_do',
             },
-
             { data: 'shipping_via', name: 'shipping_via' },
-            { 
-                data: 'file', 
-                name: 'file', 
-                render: (data) => data 
-                    ? `<a href="/storage/${data}" target="_blank">${data}</a>` 
-                    : 'No Document'
-            },
-            { data: 'upload_date_at', name: 'upload_date_at' },
-            { data: 'status_lmpr_do', name: 'status_lmpr_do' },
+            // { 
+            //     data: 'file', 
+            //     name: 'file', 
+            //     render: (data) => data 
+            //         ? `<a href="/storage/${data}" target="_blank">${data}</a>` 
+            //         : 'No Document'
+            // },
+            // { data: 'upload_date_at', name: 'upload_date_at' },
+            // { data: 'status_lmpr_do', name: 'status_lmpr_do' },
             { data: 'reason_do', name: 'reason_do' },
             { 
                 data: 'action', 

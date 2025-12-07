@@ -110,9 +110,10 @@ Route::group(['middleware' => ['auth']], function() {
     Route::delete('delete-po/{purchase_order}',[PurchaseOrderController::class, 'delete'])->name('purchase_order.delete');
     Route::get('/bin-po',[PurchaseOrderController::class, 'bin'])->name('purchase_order.bin');
     Route::post('/rollback-po', [PurchaseOrderController::class, 'rollback'])->name('purchase_order.rollback');
-    // Route::get('purchase_order/{id}/print-qrcode', [PurchaseOrderController::class, 'printQrCode'])->name('purchase_order.print_qrcode');
-    Route::post('purchase_order/scan', [PurchaseOrderController::class, 'scanQr'])->name('purchase_order.scan');Route::get('/po/{id}/qr/pdf', [PurchaseOrderController::class, 'generateQRPDF']);
+    // Route::post('purchase_order/scan', [PurchaseOrderController::class, 'scanQr'])->name('purchase_order.scan');Route::get('/po/{id}/qr/pdf', [PurchaseOrderController::class, 'generateQRPDF']);
     Route::get('/po/{id}/qr/pdf', [PurchaseOrderController::class, 'generateQRPDF'])->name('purchase_order.print');
+    Route::post('/purchase_order/{id}/qr/custom-print', [PurchaseOrderController::class, 'generateQRSelected'])->name('purchase_order.custom_print');
+    Route::get('/qr/sequence/{id}', [PurchaseOrderController::class, 'getSequence'])->name('qr.sequence');
 
     Route::get('/delivery-order/data', [DeliveryOrderController::class, 'data'])->name('delivery_order.data');
     Route::resource('delivery_order', DeliveryOrderController::class);
@@ -126,6 +127,7 @@ Route::group(['middleware' => ['auth']], function() {
     Route::get('/bin-do',[DeliveryOrderController::class, 'bin2'])->name('delivery_order.bin');
     Route::get('/bin-do-data', [DeliveryOrderController::class, 'bin2Data'])->name('delivery_order.bin2.data');
     Route::post('/rollback-do', [DeliveryOrderController::class, 'rollbackPost'])->name('delivery_order.rollback.post');
+    Route::get('/delivery-order/autogen', [DeliveryOrderController::class, 'autoGenerate']);
 
     Route::get('/invoice/getdata', [InvoiceController::class, 'getData'])->name('invoice.getdata');
     Route::resource('invoice', InvoiceController::class);    

@@ -34,11 +34,10 @@
                 <thead>
                     <tr>
                         <th class="text-center">Date</th>
-                        <th class="text-center">Supplier Code</th>
-                        <th class="text-center">Supplier Name</th>
+                        <th class="text-center">Supplier</th>
                         <th class="text-center">PO Number</th>
                         <th class="text-center">Status</th>
-                        <th class="text-center">Reason</th>
+                        <th class="text-center">Note</th>
                         <th class="text-center">Action</th>
                     </tr>
                 </thead>
@@ -99,19 +98,22 @@
             destroy: true,
             ajax: '{{ route('purchase_order.data') }}',
             columns: [
-                { data: 'tgl_po', name: 'tgl_po' },
-                { data: 'code_spl', name: 'code_spl' },
-                { data: 'nama_spl', name: 'nama_spl' },
-                {
-                    data: 'no_po',
-                    name: 'no_po',
-                    render: function (data, type, row) {
-                        // Ambil base URL dari .env (Laravel otomatis ganti jadi nilai APP_URL)
-                        const baseUrl = "{{ env('APP_URL') }}";
-                        const showUrl = `${baseUrl}/purchase_order/${row.id}`;
-                        return `<a href="${showUrl}" class="text-primary font-weight-bold">${data}</a>`;
+                { 
+                    data: 'tgl_po', 
+                    name: 'tgl_po',
+                    render: function(data) {
+                        if (!data) return '';
+                        return data.split(' ')[0];
                     }
                 },
+                {
+                    data: null,
+                    name: 'supplier',
+                    render: function (data) {
+                        return `${data.code_spl} - ${data.nama_spl}`;
+                    }
+                },
+                { data: 'no_po', name: 'no_po' },
                 {
                     data: 'status_po',
                     name: 'status_po',
@@ -121,7 +123,7 @@
 
                         if (!data) {
                             if (row.flag_approve === 'N') {
-                                statusText = 'Open';
+                                statusText = 'Waiting Approval';
                                 badgeClass = 'badge badge-secondary';
                             } else if (row.flag_approve === 'Y') {
                                 statusText = 'Approved';

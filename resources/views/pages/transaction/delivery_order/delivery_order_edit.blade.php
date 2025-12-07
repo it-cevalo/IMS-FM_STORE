@@ -24,7 +24,7 @@
         <form action="{{route('delivery_order.update',$delivery_order->id)}}" method="POST">
             @csrf
             @method('PUT')
-            <div class="mb-3">
+            {{-- <div class="mb-3">
                 <label for="exampleFormControlInput1">Purchase Order</label>
                 <div class="input-group">
                     <select class="form-control" name="id_po" value="{{old('id_po')}}" readonly="readonly">
@@ -39,7 +39,7 @@
             <div class="validation"></div>
             @error('id_po')
             <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
+            @enderror --}}
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Date</label>
                 <input class="form-control" id="exampleFormControlInput1" name="tgl_do"
@@ -59,7 +59,7 @@
             @error('no_do')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
-            <div class="mb-3">
+            {{-- <div class="mb-3">
                 <label for="exampleFormControlInput1">Attachment Status</label>
                 <select class="form-control" name="status_lmpr_do" required>
                     @foreach($status_lmpr_do as $k => $v)
@@ -74,7 +74,7 @@
             <div class="validation"></div>
             @error('status_lmpr_do')
             <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
+            @enderror --}}
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Shipping Via</label>
                 <select class="form-control" name="shipping_via" required>
@@ -92,9 +92,9 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Reason</label>
+                <label for="exampleFormControlInput1">Note</label>
                 <textarea class="form-control" id="exampleFormControlInput1" name="reason_do"
-                    value="{{$delivery_order->reason_do}}" type="text" placeholder="Input Reason"
+                    value="{{$delivery_order->reason_do}}" type="text" placeholder="Input Note"
                     required>{{$delivery_order->reason_do}}</textarea>
             </div>
             <div class="validation"></div>

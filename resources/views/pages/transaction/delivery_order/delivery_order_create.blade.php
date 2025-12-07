@@ -23,7 +23,7 @@
         @endif
         <form action="{{route('delivery_order.store')}}" method="POST">
             @csrf
-            <div class="mb-3">
+            {{-- <div class="mb-3">
                 <label for="exampleFormControlInput1">Purchase Order</label>
                 <div class="input-group">
                     <select class="form-control" name="id_po" value="{{old('id_po')}}" required>
@@ -39,7 +39,7 @@
             <div class="validation"></div>
             @error('id_po')
             <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
+            @enderror --}}
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Date</label>
                 <input class="form-control" id="exampleFormControlInput1" name="tgl_do" type="date" required>
@@ -49,15 +49,21 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Number</label>
-                <input class="form-control" id="exampleFormControlInput1" name="no_do" type="text"
-                    placeholder="Input DO Number" required>
+                <label>Number</label>
+                <div class="input-group">
+                    <input class="form-control" id="no_do" name="no_do" type="text" placeholder="Input DO Number" required>
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <input type="checkbox" id="autoGenerate"> Auto
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="validation"></div>
             @error('no_do')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
-            <div class="mb-3">
+            {{-- <div class="mb-3">
                 <label for="exampleFormControlInput1">Attachment Status</label>
                 <select class="form-control" name="status_lmpr_do" value="{{old('status_lmpr_do')}}" required>
                     <option value="">....</option>
@@ -68,7 +74,7 @@
             <div class="validation"></div>
             @error('status_lmpr_do')
             <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
+            @enderror --}}
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Shipping Via</label>
                 <select class="form-control" name="shipping_via" value="{{old('shipping_via')}}" required>
@@ -82,9 +88,9 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Reason</label>
+                <label for="exampleFormControlInput1">Note</label>
                 <textarea class="form-control" id="exampleFormControlInput1" name="reason_do" type="text"
-                    placeholder="Input Reason" required></textarea>
+                    placeholder="Input Note" required></textarea>
             </div>
             <div class="validation"></div>
             @error('reason_do')
@@ -95,4 +101,29 @@
         </form>
     </div>
 </div>
+<script>
+    $(document).on('change', '#autoGenerate', function () {
+        if ($(this).is(':checked')) {
+    
+            let tgl = $('input[name="tgl_do"]').val();
+    
+            if (!tgl) {
+                alert("Please select DO Date first!");
+                $(this).prop('checked', false);
+                return;
+            }
+    
+            $.ajax({
+                url: '/delivery-order/autogen',
+                data: { tgl_do: tgl },
+                success: function(res) {
+                    $('#no_do').val(res.no_do);
+                }
+            });
+    
+        } else {
+            $('#no_do').val('');
+        }
+    });
+</script>    
 @endsection

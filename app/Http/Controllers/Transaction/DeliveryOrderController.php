@@ -35,7 +35,7 @@ class DeliveryOrderController extends Controller
             ->addColumn('file', fn($d) => $d->file ? '<a href="'.route('delivery_order.downloadDO', $d->id).'">'.$d->file.'</a>' : 'No File')
             ->addColumn('action', function ($d) {
                 return '
-                    <a href="'.route('delivery_order.history', $d->id).'" class="btn btn-sm btn-success"><i class="fa fa-history"></i></a>
+                    <a href="'.route('delivery_order.show', $d->id).'" class="btn btn-sm btn-success"><i class="fa fa-eye"></i></a>
                     <a href="'.route('delivery_order.edit', $d->id).'" class="btn btn-sm btn-warning"><i class="fa fa-edit"></i></a>
                     <!-- <a href="#" id="approveBtn'.$d->id.'" onclick="approveOrder('.$d->id.')" class="btn btn-sm btn-info"><i class="fa fa-check"></i></a> -->
                     <form method="POST" action="'.route('delivery_order.delete', $d->id).'" style="display:inline;">
@@ -403,6 +403,43 @@ class DeliveryOrderController extends Controller
         } catch (\Exception $e) {
             return response()->json(['message' => 'Gagal memulihkan data.'], 500);
         }
+    }
+    
+    public function autoGenerate(Request $request)
+    {
+        $tgl = $request->tgl_do; // format YYYY-MM-DD
+        $date = \Carbon\Carbon::parse($tgl);
+
+        $yy   = $date->format('y');
+        $day  = $date->format('d');
+
+        // Konversi bulan ke romawi
+        $romawi = [
+            1=>'I',2=>'II',3=>'III',4=>'IV',5=>'V',6=>'VI',
+            7=>'VII',8=>'VIII',9=>'IX',10=>'X',11=>'XI',12=>'XII'
+        ];
+        $bln_romawi = $romawi[$date->format('n')];
+
+        // Cari nomor terakhir
+        $prefix = "DO/{$yy}/{$bln_romawi}/{$day}/";
+
+        $last = Tdo::where('no_do', 'LIKE', $prefix . '%')
+                    ->orderBy('no_do', 'desc')
+                    ->first();
+
+        if ($last) {
+            // Ambil 4 digit nomor urut di belakang
+            $lastNumber = intval(substr($last->no_do, -4));
+            $next = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $next = "0001";
+        }
+
+        $generated = $prefix . $next;
+
+        return response()->json([
+            'no_do' => $generated
+        ]);
     }
 
     // public function destroy($id)

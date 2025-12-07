@@ -88,7 +88,7 @@
         <div class="alert alert-danger">{{ $message }}</div>
         @enderror
         <div class="mb-3">
-            <label for="exampleFormControlInput1">Reason</label>
+            <label for="exampleFormControlInput1">Note</label>
             <textarea class="form-control" id="exampleFormControlInput1" name="reason_do"
                 value="{{$delivery_order->reason_do}}" type="text" placeholder="Input Reason"
                 disabled>{{$delivery_order->reason_do}}</textarea>
@@ -144,7 +144,7 @@
                 </tfoot>
             </table>
         </div>
-        <a href="{{route('delivery_order.index')}}" class="btn btn-dark">Cancel</a>
+        <a href="{{route('delivery_order.index')}}" class="btn btn-dark">Back</a>
     </div>
 </div>
 @endsection
