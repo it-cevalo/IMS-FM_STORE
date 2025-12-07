@@ -23,7 +23,7 @@
             </div>
 
             <button type="button" class="btn btn-primary" id="btnSaveCourier">Submit</button>
-            <a href="{{ route('couriers.index') }}" class="btn btn-dark">Cancel</a>
+            <a href="{{ route('couriers.index') }}" class="btn btn-dark">Back</a>
         </form>
     </div>
 </div>

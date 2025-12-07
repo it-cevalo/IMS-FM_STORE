@@ -55,7 +55,7 @@ class PurchaseOrderController extends Controller
                         $btn .= '
                             <form method="POST" action="'.route('purchase_order.delete', $row->id).'" style="display:inline;">
                                 '.csrf_field().method_field('DELETE').'
-                                <button type="submit" class="btn btn-danger btn-sm show-alert-delete-box"><i class="fa fa-trash"></i></button>
+                                <button type="submit" class="btn btn-danger btn-sm show-alert-delete-box"><i class="fa fa-times-circle"></i>                                </button>
                             </form>';
                     }
 
@@ -154,8 +154,7 @@ class PurchaseOrderController extends Controller
                  'id_supplier'   => 'required',
                  'no_po'         => 'required',
                  'tgl_po'        => 'required',
-                 'reason_po'     => 'required',
-                 'grand_total'   => 'required'
+                 'reason_po'     => 'required'
              ]);
      
              $supplier = MSupplier::select('code_spl','nama_spl')
@@ -172,27 +171,36 @@ class PurchaseOrderController extends Controller
                  'no_po'         => $request->no_po,
                  'no_so'         => 0,
                  'tgl_po'        => $request->tgl_po,
-                 'status_po'     => '',
+                 'status_po'     => '0',
                  'reason_po'     => $request->reason_po,
-                 'grand_total'   => $request->grand_total,
+                 'grand_total'   => 0,
                  'flag_approve'  => 'N',
                  'approve_date'  => '1970-01-01',
                  'approve_by'    => ''
              ]);
-     
              $id_po = $purchase_order->id;
      
              // Detail PO
-             foreach($request->total as $key => $value) {
-                 TPO_Detail::create([
-                     'id_po'         => $id_po,
-                     'part_number'   => $request->kode_barang[$key],
-                     'product_name'  => $request->nama_barang[$key],
-                     'qty'           => $request->qty[$key],
-                     'price'         => $request->harga[$key],
-                     'total_price'   => $request->total[$key]
-                 ]);
-             }
+            //  foreach($request->total as $key => $value) {
+            //      TPO_Detail::create([
+            //          'id_po'         => $id_po,
+            //          'part_number'   => $request->kode_barang[$key],
+            //          'product_name'  => $request->nama_barang[$key],
+            //          'qty'           => $request->qty[$key],
+            //          'price'         => /*$request->harga[$key]*/0,
+            //          'total_price'   => /*$request->total[$key]*/0
+            //      ]);
+            //  }
+            foreach($request->kode_barang as $key => $kode) {
+                TPO_Detail::create([
+                    'id_po'         => $id_po,
+                    'part_number'   => $kode,
+                    'product_name'  => $request->nama_barang[$key],
+                    'qty'           => $request->qty[$key],
+                    'price'         => 0,
+                    'total_price'   => 0
+                ]);
+            }
      
              // History PO
              Hpo::create([
@@ -623,11 +631,15 @@ class PurchaseOrderController extends Controller
                 . "|" . $seqStr;
 
         // --- Ambil SKU ---
-        $sku = explode('-', $item->part_number)[0];
+        $kode_barang = explode('-', $item->part_number)[0];
         
         $id_product = DB::table('mproduct')
-                        ->where('SKU', $sku)
+                        ->where('kode_barang', $kode_barang)
                         ->value('id');
+                        
+        $sku = DB::table('mproduct')
+        ->where('kode_barang', $kode_barang)
+        ->value('SKU');
 
         // ===========================
         // 1. CEK APAKAH QR SUDAH ADA
@@ -670,7 +682,7 @@ class PurchaseOrderController extends Controller
             'id_po'        => $po->id,
             'id_po_detail' => $item->id,
             'id_product'   => $id_product,
-            'sku'          => $item->part_number,
+            'sku'          => $sku,
             'qr_code'      => $qrValue,
             'sequence_no'  => $seqStr,
             'nama_barang'  => $item->product_name,

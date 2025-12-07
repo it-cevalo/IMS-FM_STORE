@@ -16,7 +16,7 @@
             <div class="validation"></div>
 
             <button type="button" class="btn btn-primary" id="btnSaveProductUnit">Submit</button>
-            <a href="{{ route('product_unit.index') }}" class="btn btn-dark">Cancel</a>
+            <a href="{{ route('product_unit.index') }}" class="btn btn-dark">Back</a>
         </form>
 
     </div>

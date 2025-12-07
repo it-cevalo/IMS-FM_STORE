@@ -49,7 +49,7 @@
                 <input class="form-control" name="email_pic" type="email">
             </div>
             <button type="button" class="btn btn-primary" id="btnSubmitSupplier">Submit</button>
-            <a href="{{ route('suppliers.index') }}" class="btn btn-dark">Cancel</a>
+            <a href="{{ route('suppliers.index') }}" class="btn btn-dark">Back</a>
         </form>
     </div>
 </div>

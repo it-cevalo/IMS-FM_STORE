@@ -45,7 +45,7 @@
             </div>
 
             <button type="button" class="btn btn-primary" id="btnCreateWarehouse">Submit</button>
-            <a href="{{ route('warehouses.index') }}" class="btn btn-dark">Cancel</a>
+            <a href="{{ route('warehouses.index') }}" class="btn btn-dark">Back</a>
         </form>
 
     </div>

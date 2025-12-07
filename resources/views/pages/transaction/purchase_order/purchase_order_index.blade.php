@@ -17,8 +17,8 @@
         <a download="Template_po.xlsx" href="{{ Storage::url('tpl/template_po.xlsx') }}"
             class="btn btn-primary btn-flat btn-sm" title="Template_po.xlsx"><i class="fa fa-download"></i> Download
             Template Excel</a> --}}
-        <a href="{{route('purchase_order.bin')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-archive"></i>
-            See Archive</a><br />
+        <!-- <a href="{{route('purchase_order.bin')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-archive"></i>
+            See Archive</a><br /> -->
         @else
         @endif
     </div>
@@ -135,7 +135,7 @@
                         } else {
                             switch (data.toString()) {
                                 case '0':
-                                    statusText = 'Rejected';
+                                    statusText = 'Created';
                                     badgeClass = 'badge badge-danger';
                                     break;
                                 case '1':

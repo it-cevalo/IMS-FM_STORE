@@ -106,7 +106,7 @@
             </div>
 
             <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="{{route('purchase_order.index')}}" class="btn btn-dark">Cancel</a>
+            <a href="{{route('purchase_order.index')}}" class="btn btn-dark">Back</a>
         </form>
     </div>
 </div>

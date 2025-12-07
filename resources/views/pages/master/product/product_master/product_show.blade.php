@@ -108,7 +108,7 @@
         <div class="alert alert-danger">{{ $message }}</div>
         @enderror
         
-        <a href="{{route('product.index')}}" class="btn btn-dark">Cancel</a>
+        <a href="{{route('product.index')}}" class="btn btn-dark">Back</a>
         <!-- </form> -->
     </div>
 </div>
