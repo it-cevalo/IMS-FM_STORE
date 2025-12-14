@@ -59,6 +59,15 @@
             @error('no_do')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
+            <div class="mb-3">
+                <label for="exampleFormControlInput1">No Resi</label>
+                <input class="form-control" id="exampleFormControlInput1" name="no_resi" type="text"
+                    value="{{$delivery_order->no_resi}}" placeholder="Input No Resi" readonly="readonly">
+            </div>
+            <div class="validation"></div>
+            @error('no_resi')
+            <div class="alert alert-danger">{{ $message }}</div>
+            @enderror
             {{-- <div class="mb-3">
                 <label for="exampleFormControlInput1">Attachment Status</label>
                 <select class="form-control" name="status_lmpr_do" required>

@@ -63,33 +63,21 @@
                 disabled>
         </div>
         
-        <button type="button" class="btn btn-primary" id="btnPrintQR" data-toggle="modal" data-target="#modalNomorUrut">
-            <i class="fas fa-print"></i> Print QR
-        </button>
-
-        {{-- ===================== MODAL PILIH NOMOR URUT ===================== --}}
-        <div class="modal fade" id="modalNomorUrut" tabindex="-1" role="dialog">
-            <div class="modal-dialog">
-              <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                  <h5 class="modal-title">Pilih Nomor Urut</h5>
-                  <button type="button" class="close" data-dismiss="modal">&times;</button>
-                </div>
-          
-                <div class="modal-body">
-
-                    <div class="form-group">
-                        <label>Input nomor urut (contoh: 1-10 atau 3,7)</label>
-                        <input type="text" id="selectedSequence" class="form-control">
-                    </div>
-
-                </div>
-          
-                <div class="modal-footer">
-                  <button class="btn btn-primary" id="btnSubmitSequence">Print</button>
-                </div>
-              </div>
-            </div>
+        @if(!in_array($purchase_order->status_po, ['0', '1', '4']))
+            <button type="button" class="btn btn-primary" id="btnPrintQR">
+                <i class="fas fa-print"></i> Print QR
+            </button>
+        @endif
+        {{-- ===================== INPUT NOMOR URUT (INLINE) ===================== --}}
+        <div id="sequenceWrapper" class="mb-3 d-none">
+            <label class="font-weight-bold">
+                Nomor Urut
+                <small class="text-muted">(contoh: 1-10 atau 3,7)</small>
+            </label>
+            <input type="text"
+                id="selectedSequence"
+                class="form-control col-md-4"
+                placeholder="1-10 atau 3,7">
         </div>
 
         <div class="table-responsive mt-3">
@@ -149,50 +137,206 @@
         </div>
 
         <a href="{{route('purchase_order.index')}}" class="btn btn-dark mt-2">Back</a>
+        <!-- ===================== LOADING SPINNER ===================== -->
+        <div id="printLoading"
+            style="
+                display:none;
+                position:fixed;
+                z-index:9999;
+                inset:0;
+                background:rgba(0,0,0,.45);
+                align-items:center;
+                justify-content:center;
+            ">
+            <div class="bg-white p-4 rounded shadow text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="font-weight-bold">Menyiapkan Print QR...</div>
+                <small class="text-muted">Mohon tunggu sebentar</small>
+            </div>
+        </div>
+
+        <!-- ===================== HIDDEN IFRAME ===================== -->
+        <iframe id="printFrame" style="display:none;" width="0" height="0"></iframe>
 
     </div>
 </div>
 
 <script>
     $(document).ready(function(){
-    
+        const seqWrapper = $("#sequenceWrapper");
+        const seqInput   = $("#selectedSequence");
+
         // ===================== CHECK ALL =====================
         $("#checkAll").on("change", function(){
             const checked = $(this).is(":checked");
+
             $(".chkProduct").prop("checked", checked);
+
+            if(checked){
+                hideSequence();
+            }
         });
-    
+
+        // ===================== MANUAL CHECK =====================
+        $(".chkProduct").on("change", function(){
+
+            const total       = $(".chkProduct").length;
+            const checkedList = $(".chkProduct:checked").length;
+
+            // auto uncheck checkAll
+            if(checkedList < total){
+                $("#checkAll").prop("checked", false);
+            }
+
+            // show / hide nomor urut
+            if(checkedList === 1){
+                showSequence();
+            } else {
+                hideSequence();
+            }
+
+            // kalau semua dicentang manual
+            if(checkedList === total){
+                $("#checkAll").prop("checked", true);
+                hideSequence();
+            }
+        });
+
         // ===================== PRINT QR =====================
         $("#btnPrintQR").on("click", function(){
-            const selected = $(".chkProduct:checked");
-    
+            const selected   = $(".chkProduct:checked");
+            const totalItem  = $(".chkProduct").length;
+            const isCheckAll = $("#checkAll").is(":checked") && selected.length === totalItem;
+
             if(selected.length === 0){
-                alert("Pilih minimal 1 produk");
-                return;
-            }
-    
-            // ==== Jika hanya 1 produk → butuh input nomor urut ====
-            if(selected.length === 1){
-                const idDetail = selected.val();
-    
-                $.get(`/qr/sequence/${idDetail}`, function(res){
-    
-                    $("#btnSubmitSequence").off().on("click", function(){
-                        const nomor = $("#selectedSequence").val();
-                        window.location.href = `/po/{{ $purchase_order->id }}/qr/pdf?detail=${idDetail}&seq=${nomor}`;
-                    });
-    
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Oops',
+                    text: 'Pilih minimal 1 produk'
                 });
-    
                 return;
             }
-    
-            // ==== Jika multiple → langsung print tanpa modal ====
-            const ids = selected.map(function(){ return $(this).val(); }).get().join(",");
-    
-            window.location.href = `/po/{{ $purchase_order->id }}/qr/pdf?multi=${ids}`;
+
+            // ===================== CHECK ALL =====================
+            if(isCheckAll){
+                Swal.fire({
+                    title: 'Cetak QR Semua Produk?',
+                    text: 'QR akan digenerate untuk seluruh item dalam PO ini',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Cetak',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if(result.isConfirmed){
+                        printViaIframe(`/po/{{ $purchase_order->id }}/qr/pdf`);
+                    }
+                });
+                return;
+            }
+
+            // ===================== SINGLE =====================
+            if(selected.length === 1){
+
+                const idDetail = selected.val();
+                const seq = $("#selectedSequence").val();
+
+                if(!seq){
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Nomor urut wajib diisi',
+                        text: 'Silakan isi nomor urut terlebih dahulu'
+                    });
+                    $("#selectedSequence").focus();
+                    return;
+                }
+
+                printViaIframe(
+                    `/po/{{ $purchase_order->id }}/qr/pdf?detail=${idDetail}&seq=${seq}`
+                );
+                return;
+            }
+
+            // ===================== MULTIPLE =====================
+            const ids = selected.map(function(){
+                return $(this).val();
+            }).get().join(",");
+
+            Swal.fire({
+                title: 'Cetak QR Produk Terpilih?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Cetak',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if(result.isConfirmed){
+                    printViaIframe(
+                        `/po/{{ $purchase_order->id }}/qr/pdf?multi=${ids}`
+                    );
+                }
+            });
         });
-    
+
+        // ===================== HELPER =====================
+        function showSequence(){
+            seqWrapper.removeClass('d-none');
+            seqInput.focus();
+        }
+
+        function hideSequence(){
+            seqWrapper.addClass('d-none');
+            seqInput.val('');
+        }
+
+        function printViaIframe(url){
+
+            const iframe = document.getElementById('printFrame');
+            const loading = document.getElementById('printLoading');
+
+            // reset iframe
+            iframe.src = '';
+            iframe.onload = null;
+
+            // show loading
+            loading.style.display = 'flex';
+
+            iframe.src = url;
+
+            iframe.onload = function(){
+
+                const win = iframe.contentWindow;
+
+                // kecilkan delay biar PDF ke-render dulu
+                setTimeout(function(){
+
+                    win.focus();
+                    win.print();
+
+                    // ===================== AUTO CLOSE =====================
+                    let closed = false;
+
+                    const cleanup = () => {
+                        if (closed) return;
+                        closed = true;
+
+                        loading.style.display = 'none';
+                        iframe.src = '';
+                        window.removeEventListener('focus', onFocusBack);
+                    };
+
+                    // Chrome / Edge / Firefox (user close print dialog)
+                    const onFocusBack = () => {
+                        setTimeout(cleanup, 300);
+                    };
+
+                    window.addEventListener('focus', onFocusBack);
+
+                    // fallback safety (kalau browser gak trigger focus)
+                    setTimeout(cleanup, 15000);
+
+                }, 600);
+            };
+        }
+
     });
     </script>
 @endsection

@@ -239,9 +239,36 @@ class SKUController extends Controller
      */
     public function update(Request $request, $kode)
     {
-        // (You can add your update logic here)
+        // VALIDATION (simple + custom message)
+        $request->validate(
+            [
+                'nama' => 'required|string|max:150',
+            ],
+            [
+                'nama.required' => 'Nama SKU wajib diisi',
+                'nama.max'      => 'Nama SKU maksimal 150 karakter',
+            ]
+        );
+    
+        try {
+            $sku = MSku::findOrFail($kode);
+    
+            $sku->update([
+                'nama' => $request->nama,
+            ]);
+    
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Data SKU berhasil diperbarui'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal memperbarui data SKU'
+            ], 500);
+        }
     }
-
+    
     /**
      * Remove the specified SKU from storage.
      *

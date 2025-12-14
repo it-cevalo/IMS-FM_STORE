@@ -95,7 +95,7 @@
             @error('stock_minimum')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
-            <div class="mb-3">
+            {{-- <div class="mb-3">
                 <label for="exampleFormControlInput1">Buy Price</label>
                 <input class="form-control" id="exampleFormControlInput1" name="harga_beli" type="number" value="{{$products->harga_beli}}">
             </div>
@@ -110,7 +110,7 @@
             <div class="validation"></div>
             @error('harga_jual')
             <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
+            @enderror --}}
             {{-- <div class="mb-3">
                 <label for="exampleFormControlInput1">Average Price</label>
                 <input class="form-control" id="exampleFormControlInput1" name="harga_rata_rata" type="number"

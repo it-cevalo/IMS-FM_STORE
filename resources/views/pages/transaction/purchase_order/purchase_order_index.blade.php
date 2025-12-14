@@ -12,6 +12,12 @@
         Auth::user()->position=='PURCHASING')
         <a href="{{route('purchase_order.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i>
             Add</a>
+        <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#filterModal">
+            <i class="fa fa-filter"></i> Filter
+        </button>
+        <button class="btn btn-secondary btn-sm" id="btnRefresh">
+            <i class="fa fa-sync"></i> Refresh
+        </button>
         {{-- <a href="#" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal"><i
                 class="fa fa-upload"></i> Upload Excel</a>
         <a download="Template_po.xlsx" href="{{ Storage::url('tpl/template_po.xlsx') }}"
@@ -19,7 +25,6 @@
             Template Excel</a> --}}
         <!-- <a href="{{route('purchase_order.bin')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-archive"></i>
             See Archive</a><br /> -->
-        @else
         @endif
     </div>
     <div class="card-body">
@@ -46,57 +51,65 @@
         </div>        
     </div>
 </div>
-
-<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+<div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog">
         <div class="modal-content">
+
             <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Upload Excel Here</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
+                <h5 class="modal-title">Filter Purchase Order</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Date From</label>
+                    <input type="date" id="filter_date_from" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label>Date To</label>
+                    <input type="date" id="filter_date_to" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label>Status PO</label>
+                    <select id="filter_status" class="form-control">
+                        <option value="">-- All Status --</option>
+                        <option value="0">Created</option>
+                        <option value="1">Progress</option>
+                        <option value="2">Partial</option>
+                        <option value="3">Complete</option>
+                        <option value="4">Confirmed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="btnApplyFilter">
+                    Go
                 </button>
             </div>
-            <form method="post" action="{{route('purchase_order.upload')}}" enctype="multipart/form-data">
-                <!-- <div class="modal-content"> -->
-                <div class="modal-body">
 
-                    {{ csrf_field() }}
-
-                    <div class="form-group">
-                        <input type="file" name="file" required="required">
-                    </div>
-                    <!-- <div class="form-group">
-                            <ul>
-                                <h6>Tata Cara Mengisi Template</h6>
-                                <li>Kolom A untuk Tanggal PO dengan Format YYYY-MM-DD (Contoh : 2022-08-17)</li>
-                                <li>Kolom B untuk Kode Customer</li>
-                                <li>Kolom C untuk Nama Customer</li>
-                                <li>Kolom D untuk Nomor PO</li>
-                                <li>Kolom E untuk Nomor SO</li>
-                                <li>Kolom F untuk Status PO</li>
-                                <li>Kolom G untuk Reason PO</li>
-                                <img src="{{url('/assets/img/po.png')}}" alt="Image" class="img-fluid rounded mx-auto d-block" />
-                            </ul>
-                        </div> -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Import</button>
-                </div>
-                <!-- </div> -->
-            </form>
         </div>
     </div>
 </div>
-
 <script type="text/javascript">
-    function loadPurchaseOrderData() {
-        $('#purchaseOrderTable').DataTable({
+    let purchaseOrderTable;
+
+    function loadPurchaseOrderData(filters = {}) {
+        purchaseOrderTable = $('#purchaseOrderTable').DataTable({
             processing: true,
             serverSide: true,
             destroy: true,
-            ajax: '{{ route('purchase_order.data') }}',
+            ajax: {
+                url: '{{ route('purchase_order.data') }}',
+                data: function (d) {
+                    d.date_from = filters.date_from ?? '';
+                    d.date_to   = filters.date_to ?? '';
+                    d.status_po = filters.status_po ?? '';
+                }
+            },
             columns: [
                 { 
                     data: 'tgl_po', 
@@ -128,6 +141,9 @@
                             } else if (row.flag_approve === 'Y') {
                                 statusText = 'Approved';
                                 badgeClass = 'badge badge-success';
+                            } else if(row.flag_approve === 'C'){
+                                statusText = 'Confirmed';
+                                badgeClass = 'badge badge-light';
                             } else {
                                 statusText = '-';
                                 badgeClass = 'badge badge-light';
@@ -136,19 +152,38 @@
                             switch (data.toString()) {
                                 case '0':
                                     statusText = 'Created';
-                                    badgeClass = 'badge badge-danger';
+                                    badgeClass = 'badge badge-secondary'; 
+                                    // Netral → baru dibuat, belum diproses
                                     break;
+
                                 case '1':
                                     statusText = 'Progress';
                                     badgeClass = 'badge badge-warning';
+                                    // Kuning → sedang berjalan / butuh perhatian
                                     break;
+
                                 case '2':
                                     statusText = 'Partial';
                                     badgeClass = 'badge badge-info';
+                                    // Biru muda → sebagian selesai
                                     break;
+
                                 case '3':
                                     statusText = 'Complete';
+                                    badgeClass = 'badge badge-success';
+                                    // Hijau → selesai dengan baik
+                                    break;
+
+                                case '4':
+                                    statusText = 'Confirmed';
                                     badgeClass = 'badge badge-primary';
+                                    // Biru → sudah dikunci / resmi
+                                    break;
+
+                                case '5':
+                                    statusText = 'Canceled';
+                                    badgeClass = 'badge badge-danger';
+                                    // Merah → dibatalkan / terminasi
                                     break;
                                 default:
                                     statusText = data;
@@ -193,22 +228,96 @@
             });
         });
     }
+
+    function confirmOrder(orderId, poNumber) {
+        Swal.fire({
+            title: 'Konfirmasi PO',
+            text: `PO nomor ${poNumber} akan dikonfirmasi?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya',
+            cancelButtonText: 'Tidak',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: "{{ route('purchase_order.confirm', ':id') }}".replace(':id', orderId),
+                    type: 'GET',
+                    success: function (res) {
+                        if (res.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: 'PO berhasil dikonfirmasi'
+                            });
+
+                            // reload datatable
+                            purchaseOrderTable.ajax.reload(null, false);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: res.error ?? 'Konfirmasi gagal'
+                            });
+                        }
+                    },
+                    error: function () {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Terjadi kesalahan sistem'
+                        });
+                    }
+                });
+            }
+            // jika Tidak → swal otomatis tertutup
+        });
+    }
     
     function bindDeleteButtons() {
         $('.show-alert-delete-box').off('click').on('click', function (event) {
-            var form = $(this).closest("form");
             event.preventDefault();
+
+            let btn   = $(this);
+            let id    = btn.data('id');
+            let noPo  = btn.data('no-po');
+
             Swal.fire({
-                title: 'Yakin ingin hapus?',
-                text: 'Data akan dipindahkan ke arsip.',
+                title: 'Yakin ingin Cancel?',
+                html: `<strong>PO Number:</strong> ${noPo}`,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: 'Ya!',
+                confirmButtonText: 'Ya, Cancel',
                 cancelButtonText: 'Batal',
-                reverseButtons: false
+                reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
-                    form.submit();
+
+                    $.ajax({
+                        url: "{{ route('purchase_order.delete', ':id') }}".replace(':id', id),
+                        type: 'DELETE',
+                        data: {
+                            _token: "{{ csrf_token() }}"
+                        },
+                        success: function (res) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: res.message
+                            });
+
+                            // reload datatable TANPA reset page
+                            purchaseOrderTable.ajax.reload(null, false);
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: xhr.responseJSON?.message ?? 'Cancel gagal'
+                            });
+                        }
+                    });
+
                 }
             });
         });
@@ -239,6 +348,34 @@
     $(document).ready(function() {
         loadPurchaseOrderData();
     });
+
+    $('#btnApplyFilter').on('click', function () {
+        let filters = {
+            date_from: $('#filter_date_from').val(),
+            date_to: $('#filter_date_to').val(),
+            status_po: $('#filter_status').val()
+        };
+
+        purchaseOrderTable.destroy();
+        loadPurchaseOrderData(filters);
+
+        // hide modal safely
+        if ($.fn.modal) {
+            $('#filterModal').modal('hide');
+        } else {
+            document.getElementById('filterModal').classList.remove('show');
+            document.body.classList.remove('modal-open');
+            $('.modal-backdrop').remove();
+        }
+    });
     
+    $('#btnRefresh').on('click', function () {
+        // reset modal input
+        $('#filter_date_from').val('');
+        $('#filter_date_to').val('');
+        $('#filter_status').val('');
+        purchaseOrderTable.destroy();
+        loadPurchaseOrderData();
+    });
 </script>
 @endsection

@@ -9,5 +9,8 @@ class MSku extends Model
 {
     use HasFactory;
     protected $table   = 'msku';
+    protected $primaryKey = 'kode';   // ⬅️ PENTING
+    public $incrementing = false;      // ⬅️ BUKAN auto increment
+    protected $keyType = 'string';     // ⬅️ karena kode string
     protected $guarded = [];
 }

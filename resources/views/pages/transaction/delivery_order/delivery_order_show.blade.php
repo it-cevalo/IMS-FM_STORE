@@ -22,22 +22,6 @@
         </div>
         @endif
         <div class="mb-3">
-            <label for="exampleFormControlInput1">Purchase Order</label>
-            <div class="input-group">
-                <select class="form-control" name="id_po" value="{{old('id_po')}}" disabled>
-                    @foreach($po as $p)
-                    <option value="{{$p->id}}" @if ($delivery_order->id_po == $p->id) selected
-                        @endif>{{ \Carbon\Carbon::parse($p->tgl_po)->format('Y-m-d')}}/{{$p->no_po}}/{{$p->nama_spl}}
-                    </option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-        <div class="validation"></div>
-        @error('id_po')
-        <div class="alert alert-danger">{{ $message }}</div>
-        @enderror
-        <div class="mb-3">
             <label for="exampleFormControlInput1">Date</label>
             <input class="form-control" id="exampleFormControlInput1" name="tgl_do"
                 value="{{ \Carbon\Carbon::parse($delivery_order->tgl_do)->format('Y-m-d')}}" type="date" disabled>
@@ -56,19 +40,12 @@
         <div class="alert alert-danger">{{ $message }}</div>
         @enderror
         <div class="mb-3">
-            <label for="exampleFormControlInput1">Attachment Status</label>
-            <select class="form-control" name="status_lmpr_do" disabled>
-                @foreach($status_lmpr_do as $k => $v)
-                @if($delivery_order->status_lmpr_do == $k)
-                <option value="{{ $k }}" selected="">{{ $v }}</option>
-                @else
-                <option value="{{ $k }}">{{ $v }}</option>
-                @endif
-                @endforeach
-            </select>
+            <label for="exampleFormControlInput1">No Resi</label>
+            <input class="form-control" id="exampleFormControlInput1" name="no_resi" type="text"
+                value="{{$delivery_order->no_resi}}" placeholder="Input No Resi" disabled>
         </div>
         <div class="validation"></div>
-        @error('status_lmpr_do')
+        @error('no_resi')
         <div class="alert alert-danger">{{ $message }}</div>
         @enderror
         <div class="mb-3">

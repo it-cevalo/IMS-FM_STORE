@@ -14,7 +14,7 @@
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Kode</label>
                 <input class="form-control" id="exampleFormControlInput1" name="kode" type="text"
-                    value="{{ $sku->kode }}" placeholder="Input Kode">
+                    value="{{ $sku->kode }}" placeholder="Input Kode" readonly>
             </div>
             <div class="validation"></div>
 

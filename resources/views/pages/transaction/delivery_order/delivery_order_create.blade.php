@@ -63,6 +63,16 @@
             @error('no_do')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
+            <div class="mb-3">
+                <label>No Resi</label>
+                <div class="input-group">
+                    <input class="form-control" id="no_resi" name="no_resi" type="text" placeholder="Input No Resi" required>
+                </div>
+            </div>
+            <div class="validation"></div>
+            @error('no_resi')
+            <div class="alert alert-danger">{{ $message }}</div>
+            @enderror
             {{-- <div class="mb-3">
                 <label for="exampleFormControlInput1">Attachment Status</label>
                 <select class="form-control" name="status_lmpr_do" value="{{old('status_lmpr_do')}}" required>

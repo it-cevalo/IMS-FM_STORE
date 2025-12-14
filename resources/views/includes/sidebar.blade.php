@@ -70,7 +70,7 @@
             <div class="bg-white py-2 collapse-inner rounded">
                 <a class="collapse-item" href="{{route('purchase_order.index')}}">Purchase Order</a>
                 <a class="collapse-item" href="{{route('delivery_order.index')}}">Delivery Order</a>
-                {{-- <a class="collapse-item" href="{{route('product_transfer.index')}}">Product Transfer</a> --}}
+                <a class="collapse-item" href="{{route('product_inbound.index')}}">Product Inbound</a>
                 <div class="collapse-divider"></div>
             </div>
         </div>

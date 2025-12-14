@@ -64,8 +64,7 @@ $(document).ready(function () {
     $(document).on('click', '.btnDeleteWarehouse', function (e) {
         e.preventDefault();
 
-        let form = $(this).closest('form');
-        let deleteUrl = form.attr('action');
+        let deleteUrl = $(this).data('url');
 
         Swal.fire({
             title: 'Yakin ingin menghapus?',
@@ -80,10 +79,9 @@ $(document).ready(function () {
             if (result.isConfirmed) {
                 $.ajax({
                     url: deleteUrl,
-                    method: 'POST',
-                    data: {
-                        _token: '{{ csrf_token() }}',
-                        _method: 'DELETE'
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     success: function (res) {
                         Swal.fire({

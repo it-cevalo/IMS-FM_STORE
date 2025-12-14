@@ -32,31 +32,42 @@ class PurchaseOrderController extends Controller
     {
         if ($request->ajax()) {
             $query = Tpo::orderByDesc('tgl_po');
+            // Filter Date
+            if ($request->filled('date_from') && $request->filled('date_to')) {
+                $query->whereBetween('tgl_po', [
+                    $request->date_from,
+                    $request->date_to
+                ]);
+            }
+
+            // Filter Status
+            if ($request->filled('status_po')) {
+                $query->where('status_po', $request->status_po);
+            }
 
             return DataTables::of($query)
                 ->addColumn('id', fn($row) => $row->id)
                 ->addColumn('action', function($row) {
                     $btn = '<a href="'.route('purchase_order.show', $row->id).'" class="btn btn-success btn-sm"><i class="fa fa-eye"></i></a> ';
-                    // if($row->flag_approve === 'Y'){
-                    //     // Tombol Print PDF
-                    //     $btn .= '<a href="'.route('purchase_order.print', $row->id).'" target="_blank" 
-                    //     class="btn btn-secondary btn-sm" title="Print PDF">
-                    //     <i class="fa fa-print"></i>
-                    //     </a> ';
-                    // }
-                    
-                    if (Auth::user()->position === 'SUPERADMIN' && ($row->flag_approve === 'N' || empty($row->flag_approve))) {
-                        $btn .= '<a href="#" onclick="approveOrder('.$row->id.')" class="btn btn-primary btn-sm" title="Approve Order">
-                                    <i class="fa fa-check"></i>
-                                 </a> ';
+                    if (Auth::user()->position === 'SUPERADMIN' && ($row->status_po == 0)) {
+                        $btn .= '<a href="javascript:void(0)" 
+                            onclick="confirmOrder('.$row->id.', \''.$row->no_po.'\')" 
+                            class="btn btn-primary btn-sm" 
+                            title="Confirm Order">
+                            <i class="fa fa-check"></i>
+                        </a> ';
                     }
 
-                    if($row->status_po == ''){
+                    if (!in_array($row->status_po, [2, 3])) {
                         $btn .= '
-                            <form method="POST" action="'.route('purchase_order.delete', $row->id).'" style="display:inline;">
-                                '.csrf_field().method_field('DELETE').'
-                                <button type="submit" class="btn btn-danger btn-sm show-alert-delete-box"><i class="fa fa-times-circle"></i>                                </button>
-                            </form>';
+                            <button 
+                                type="button"
+                                class="btn btn-danger btn-sm show-alert-delete-box"
+                                data-id="'.$row->id.'"
+                                data-no-po="'.$row->no_po.'">
+                                <i class="fa fa-times-circle"></i>
+                            </button>
+                        ';
                     }
 
                     return $btn;
@@ -305,6 +316,34 @@ class PurchaseOrderController extends Controller
             return response()->json(['error' => 'approval failed: ' . $e->getMessage()]);
         }
     }
+    
+    public function confirm(Request $request, $id)
+    {
+        $confirm = Tpo::find($id);
+    
+        if (!$confirm) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Purchase Order tidak ditemukan'
+            ]);
+        }
+    
+        try {
+            $confirm->confirm_by   = Auth::user()->username;
+            $confirm->confirm_date = date('Y-m-d');
+            $confirm->status_po = '4';
+            $confirm->save();
+    
+            return response()->json([
+                'success' => true
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
      
     public function update(Request $request, $id)
     {
@@ -376,11 +415,33 @@ class PurchaseOrderController extends Controller
      * @return \Illuminate\Http\Response
      */
     
+    // public function delete($id)
+    // {
+    //     $data = Tpo::find($id);
+    //     $data->delete();
+    //     return redirect()->route('purchase_order.index');
+    // }
     public function delete($id)
     {
-        $data = Tpo::find($id);
-        $data->delete();
-        return redirect()->route('purchase_order.index');
+        $po = Tpo::findOrFail($id);
+
+        // safety check (backend tetap wajib)
+        if (in_array($po->status_po, [2, 3])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'PO tidak bisa dibatalkan'
+            ], 422);
+        }
+
+        // contoh: status_po = 9 artinya CANCEL
+        $po->status_po  = 5;
+        $po->reason_po  = 'Canceled by user'; // opsional
+        $po->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'PO berhasil dibatalkan'
+        ]);
     }
 
     public function bin()
@@ -544,7 +605,7 @@ class PurchaseOrderController extends Controller
             'qrList' => $qrList
         ])->setPaper('A4', 'portrait');
 
-        return $pdf->stream("QR_PO_{$po->no_po}.pdf");
+        return $pdf->stream("QR_{$po->no_po}.pdf");
     }
     
     private function parseSequenceInput(string $text): array

@@ -17,9 +17,9 @@
         <a href="{{route('delivery_order.create')}}" class="btn btn-primary btn-flat btn-sm">
             <i class="fa fa-plus"></i> Add
         </a>
-        <a href="{{route('delivery_order.bin')}}" class="btn btn-primary btn-flat btn-sm">
+        {{-- <a href="{{route('delivery_order.bin')}}" class="btn btn-primary btn-flat btn-sm">
             <i class="fa fa-archive"></i> See Archive
-        </a>
+        </a> --}}
         @elseif(Auth::user()->position=='WAREHOUSE')
         {{-- <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target=".modalBesar1">
             <i class="fa fa-upload"></i> Upload File DO
@@ -27,9 +27,9 @@
         <a href="{{route('delivery_order.create')}}" class="btn btn-primary btn-flat btn-sm">
             <i class="fa fa-plus"></i> Add
         </a>
-        <a href="{{route('delivery_order.bin')}}" class="btn btn-primary btn-flat btn-sm">
+        {{-- <a href="{{route('delivery_order.bin')}}" class="btn btn-primary btn-flat btn-sm">
             <i class="fa fa-archive"></i> See Archive
-        </a>
+        </a> --}}
         @endif
     </div>
 
@@ -45,8 +45,8 @@
                 <thead>
                     <tr>
                         <th>Date</th>
-                        <th>Supplier</th> {{-- ✅ Gabungan Supplier Code + Name --}}
-                        <th>PO Number</th>
+                        {{-- <th>Supplier</th> --}}
+                        {{-- <th>PO Number</th> --}}
                         <th>DO Number</th>
                         <th>Shipping Via</th>
                         {{-- <th>File</th>
@@ -112,25 +112,25 @@ function loadDeliveryOrderData() {
             { data: 'tgl_do', name: 'tgl_do' },
 
             // ✅ Gabungan Supplier Code + Name
-            { 
-                data: null, 
-                name: 'supplier',
-                render: function(data, type, row) {
-                    let code = row.po?.code_spl || '-';
-                    let name = row.po?.nama_spl || '-';
-                    return `${code} - ${name}`;
-                }
-            },
+            // { 
+            //     data: null, 
+            //     name: 'supplier',
+            //     render: function(data, type, row) {
+            //         let code = row.po?.code_spl || '-';
+            //         let name = row.po?.nama_spl || '-';
+            //         return `${code} - ${name}`;
+            //     }
+            // },
 
             // Klik No PO ke halaman PO.show
-            { 
-                data: 'no_po', 
-                name: 'no_po',
-                render: function(data, type, row) {
-                    if (!data || !row.po_id) return data || '-';
-                    return `<a href="${baseUrl}/purchase_order/${row.po_id}" class="text-primary font-weight-bold">${data}</a>`;
-                }
-            },
+            // { 
+            //     data: 'no_po', 
+            //     name: 'no_po',
+            //     render: function(data, type, row) {
+            //         if (!data || !row.po_id) return data || '-';
+            //         return `<a href="${baseUrl}/purchase_order/${row.po_id}" class="text-primary font-weight-bold">${data}</a>`;
+            //     }
+            // },
             {
                 data: 'no_do', 
                 name: 'no_do',

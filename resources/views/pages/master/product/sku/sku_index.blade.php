@@ -174,8 +174,7 @@
         $(document).on('click', '.btnDeleteSku', function (e) {
             e.preventDefault();
 
-            let form = $(this).closest('form');
-            let deleteUrl = form.attr('action');
+            let deleteUrl = $(this).data('url');
 
             Swal.fire({
                 title: 'Yakin ingin menghapus?',
@@ -190,10 +189,9 @@
                 if (result.isConfirmed) {
                     $.ajax({
                         url: deleteUrl,
-                        method: 'POST',
-                        data: {
-                            _token: '{{ csrf_token() }}',
-                            _method: 'DELETE'
+                        type: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
                         },
                         success: function (res) {
                             Swal.fire({
@@ -201,14 +199,14 @@
                                 title: 'Berhasil!',
                                 text: res.message
                             });
-                            $('#skuTable').DataTable().ajax.reload();
+
+                            $('#skuTable').DataTable().ajax.reload(null, false);
                         },
                         error: function (xhr) {
-                            let res = xhr.responseJSON;
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Gagal',
-                                text: res && res.message ? res.message : 'Terjadi kesalahan saat menghapus data.'
+                                text: xhr.responseJSON?.message ?? 'Terjadi kesalahan saat menghapus data.'
                             });
                         }
                     });

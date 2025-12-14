@@ -66,7 +66,7 @@ class SupplierController extends Controller
             $this->validate($request, [
                 'code_spl'      => 'required|unique:m_suppliers,code_spl',
                 'nama_spl'      => 'required',
-                'npwp_spl'      => 'required|max:16',
+                'npwp_spl'      => 'required|max:20',
                 'address_spl'   => 'required',
                 'address_npwp'  => 'required',
                 'phone'         => 'required|max:13',

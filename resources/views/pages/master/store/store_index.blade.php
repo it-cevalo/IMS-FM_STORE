@@ -61,48 +61,48 @@ $(document).ready(function () {
 
     // Event delete (delegation)
     $(document).on('click', '.btnDeleteStore', function (e) {
-        e.preventDefault();
-        let form = $(this).closest('form');
-        let deleteUrl = form.attr('action');
+    e.preventDefault();
 
-        Swal.fire({
-            title: 'Yakin ingin menghapus?',
-            text: 'Data toko ini tidak dapat dikembalikan setelah dihapus.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Ya, Hapus!',
-            cancelButtonText: 'Batal',
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#6c757d',
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: deleteUrl,
-                    method: 'POST',
-                    data: {
-                        _token: '{{ csrf_token() }}',
-                        _method: 'DELETE'
-                    },
-                    success: function (res) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil!',
-                            text: res.message
-                        });
-                        $('#storeTable').DataTable().ajax.reload();
-                    },
-                    error: function (xhr) {
-                        let res = xhr.responseJSON;
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Gagal',
-                            text: res && res.message ? res.message : 'Terjadi kesalahan saat menghapus data.'
-                        });
-                    }
-                });
-            }
-        });
+    let deleteUrl = $(this).data('url');
+
+    Swal.fire({
+        title: 'Yakin ingin menghapus?',
+        text: 'Data toko ini tidak dapat dikembalikan setelah dihapus.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: deleteUrl,
+                type: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                success: function (res) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: res.message
+                    });
+
+                    $('#storeTable').DataTable().ajax.reload(null, false);
+                },
+                error: function (xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: xhr.responseJSON?.message ?? 'Terjadi kesalahan saat menghapus data.'
+                    });
+                }
+            });
+        }
     });
+});
+
 });
 </script>
 @endsection

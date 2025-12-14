@@ -26,7 +26,14 @@
             </div>
             <div class="mb-3">
                 <label>Supplier NPWP</label>
-                <input class="form-control" name="npwp_spl" type="text">
+                <input
+                    class="form-control"
+                    name="npwp_spl"
+                    type="text"
+                    maxlength="20"
+                    placeholder="NPWP / NIK"
+                    oninput="formatNPWP(this)"
+                >
             </div>
             <div class="mb-3">
                 <label>Supplier Address</label>
@@ -54,6 +61,10 @@
     </div>
 </div>
 <script>
+    function formatNPWP(el) {
+        // Hanya angka, titik, dan strip
+        el.value = el.value.replace(/[^0-9.-]/g, '');
+    }
     $('#btnSubmitSupplier').on('click', function () {
         let form = $('#formSupplierStore')[0];
         let formData = new FormData(form);

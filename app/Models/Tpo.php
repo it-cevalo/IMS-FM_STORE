@@ -13,7 +13,7 @@ class Tpo extends Model
     protected $dates = ['deleted_at'];
 
     protected $fillable = [
-        'id','id_cust','id_supplier','tgl_po','code_cust','nama_cust','code_spl','nama_spl','no_po','no_so','status_po','grand_total','reason_po', 'deleted_at','flag_approve','approve_by','approve_date'
+        'id','id_cust','id_supplier','tgl_po','code_cust','nama_cust','code_spl','nama_spl','no_po','no_so','status_po','grand_total','reason_po', 'deleted_at','flag_approve','approve_by','approve_date','confirm_by','confirm_date'
     ];
 
     public function customer()
