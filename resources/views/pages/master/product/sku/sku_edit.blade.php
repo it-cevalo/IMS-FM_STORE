@@ -18,12 +18,12 @@
             </div>
             <div class="validation"></div>
 
-            <div class="mb-3">
+            {{-- <div class="mb-3">
                 <label for="exampleFormControlInput1">Name</label>
                 <input class="form-control" id="exampleFormControlInput1" name="nama" type="text"
                     value="{{ $sku->nama }}" placeholder="Input  Name">
             </div>
-            <div class="validation"></div>
+            <div class="validation"></div> --}}
 
             <button type="button" class="btn btn-primary" id="btnUpdateSKU">Submit</button>
             <a href="{{ route('sku.index') }}" class="btn btn-dark">Back</a>

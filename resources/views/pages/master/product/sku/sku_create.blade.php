@@ -16,12 +16,12 @@
             </div>
             <div class="validation"></div>
             
-            <div class="mb-3">
+            {{-- <div class="mb-3">
                 <label for="exampleFormControlInput1">Nama </label>
                 <input class="form-control" id="exampleFormControlInput1" name="nama" type="text"
                     placeholder="Input nama">
             </div>
-            <div class="validation"></div>
+            <div class="validation"></div> --}}
 
             <button type="button" class="btn btn-primary" id="btnSaveType">Submit</button>
             <a href="{{ route('sku.index') }}" class="btn btn-dark">Back</a>

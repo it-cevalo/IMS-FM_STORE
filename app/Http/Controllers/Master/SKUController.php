@@ -78,16 +78,16 @@ class SKUController extends Controller
     {
         try {
             $this->validate($request, [
-                'nama' => 'required',
+                // 'nama' => 'required',
                 'kode' => 'required|unique:msku,kode',
             ], [
-                'nama.required' => 'SKU name is required.',
+                // 'nama.required' => 'SKU name is required.',
                 'kode.required' => 'SKU is required.',
                 'kode.unique'   => 'SKU already exists. Please use another SKU.'
             ]);
     
             $sku = MSku::create([
-                'nama' => $request->nama,
+                'nama' => $request->nama ?? '-',
                 'kode' => $request->kode
             ]);
     
@@ -133,7 +133,7 @@ class SKUController extends Controller
 
         // Header
         $sheet->setCellValue('A1', 'Kode');
-        $sheet->setCellValue('B1', 'Keterangan');
+        // $sheet->setCellValue('B1', 'Keterangan');
 
         // Style header
         $headerStyle = [
@@ -141,9 +141,9 @@ class SKUController extends Controller
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
             'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
         ];
-        $sheet->getStyle('A1:B1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1')->applyFromArray($headerStyle);
         $sheet->getColumnDimension('A')->setWidth(25);
-        $sheet->getColumnDimension('B')->setWidth(40);
+        // $sheet->getColumnDimension('B')->setWidth(40);
 
         // Output file
         $writer = new Xlsx($spreadsheet);
@@ -175,16 +175,16 @@ class SKUController extends Controller
             foreach ($rows as $index => $row) {
                 if ($index == 0) continue; // skip header
                 $kode = trim($row[0] ?? '');
-                $nama = trim($row[1] ?? '');
+                // $nama = trim($row[1] ?? '');
 
-                if ($kode == '' || $nama == '') continue;
+                if ($kode == '') continue;
 
                 // Cek duplikat
                 $exists = MSku::where('kode', $kode)->exists();
                 if (!$exists) {
                     MSku::create([
                         'kode' => $kode,
-                        'nama' => $nama,
+                        // 'nama' => $nama,
                     ]);
                     $inserted++;
                 }

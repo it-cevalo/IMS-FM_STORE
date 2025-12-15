@@ -30,7 +30,7 @@
                     <tr>
                         <th class="text-center align-middle">No</th>
                         <th class="text-center align-middle">SKU Code</th>
-                        <th class="text-center align-middle">Name</th>
+                        {{-- <th class="text-center align-middle">Name</th> --}}
                         <th class="text-center align-middle">Action</th>
                     </tr>
                 </thead>
@@ -79,7 +79,7 @@
             columns: [
                 { data: 'DT_RowIndex', orderable: false, searchable: false, className: "text-center" },
                 { data: 'kode', name: 'kode' },
-                { data: 'nama', name: 'nama' },
+                // { data: 'nama', name: 'nama' },
                 { data: 'action', orderable: false, searchable: false, className: "text-center" }
             ]
         });
