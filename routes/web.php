@@ -217,7 +217,7 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/delivery-order/data', [DeliveryOrderController::class, 'data'])->name('delivery_order.data');
-    Route::get('/delivery-order/autogen', [DeliveryOrderController::class, 'autoGenerate']);
+    Route::get('/delivery-order/autogen', [DeliveryOrderController::class, 'autoGenerate'])->name('delivery_order.autoGenerate');
     Route::get('delivery_order/{delivery_order}/history', [DeliveryOrderController::class, 'history'])->name('delivery_order.history');
     Route::get('delivery_order/{delivery_order}/approve', [DeliveryOrderController::class, 'approve'])->name('delivery_order.approve');
     Route::get('/cari', [DeliveryOrderController::class, 'search'])->name('delivery_order.search');
@@ -228,6 +228,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/bin-do', [DeliveryOrderController::class, 'bin2'])->name('delivery_order.bin');
     Route::get('/bin-do-data', [DeliveryOrderController::class, 'bin2Data'])->name('delivery_order.bin2.data');
     Route::post('/rollback-do', [DeliveryOrderController::class, 'rollbackPost'])->name('delivery_order.rollback.post');
+    Route::get('/delivery-order/stock', [DeliveryOrderController::class,'getStock']);
     Route::resource('delivery_order', DeliveryOrderController::class);
 
     Route::get('/product_transfer-data', [DeliveryOrderTransferController::class, 'getData'])->name('product_transfer.getData');

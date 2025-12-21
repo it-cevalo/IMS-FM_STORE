@@ -53,6 +53,7 @@
                         <th>Upload Date</th>
                         <th>Attachment Status</th> --}}
                         <th>Note</th>
+                        <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -108,8 +109,8 @@ function loadDeliveryOrderData() {
         serverSide: true,
         destroy: true,
         ajax: '{{ route('delivery_order.data') }}',
-        columns: [
-            { data: 'tgl_do', name: 'tgl_do' },
+        columns: [            
+            { data: 'tgl_do', render: data => data ? data.split(' ')[0] : '' },
 
             // ✅ Gabungan Supplier Code + Name
             // { 
@@ -146,6 +147,15 @@ function loadDeliveryOrderData() {
             // { data: 'upload_date_at', name: 'upload_date_at' },
             // { data: 'status_lmpr_do', name: 'status_lmpr_do' },
             { data: 'reason_do', name: 'reason_do' },
+            {
+                data: 'flag_approve',
+                render: function(data) {
+                    if (data === 'Y') {
+                        return `<span class="badge badge-success">Approved</span>`;
+                    }
+                    return `<span class="badge badge-secondary">Created</span>`;
+                }
+            },
             { 
                 data: 'action', 
                 name: 'action', 
@@ -156,6 +166,67 @@ function loadDeliveryOrderData() {
                 }
             }
         ]
+    });
+}
+
+function approveDO(id, noDo) {
+    Swal.fire({
+        title: 'Approve Delivery Order?',
+        html: `<b>DO Number:</b> ${noDo}`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Approve',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.get(
+                "{{ route('delivery_order.approve', ':id') }}".replace(':id', id),
+                function () {
+                    Swal.fire('Success', 'Delivery Order berhasil di-approve', 'success');
+                    $('#deliveryOrderTable').DataTable().ajax.reload(null, false);
+                }
+            ).fail(err => {
+                Swal.fire(
+                    'Error',
+                    err.responseJSON?.error || 'Approve gagal',
+                    'error'
+                );
+            });
+        }
+    });
+}
+
+function deleteDO(id, noDo) {
+    Swal.fire({
+        title: 'Delete Delivery Order?',
+        html: `<b>DO Number:</b> ${noDo}<br><span class="text-danger">Data akan dihapus permanen</span>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Delete',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "{{ route('delivery_order.delete', ':id') }}".replace(':id', id),
+                type: 'DELETE',
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
+                success: function (res) {
+                    Swal.fire('Deleted!', res.message, 'success');
+                    $('#deliveryOrderTable').DataTable().ajax.reload(null, false);
+                },
+                error: function (xhr) {
+                    Swal.fire(
+                        'Error',
+                        xhr.responseJSON?.message || 'Delete gagal',
+                        'error'
+                    );
+                }
+            });
+        }
     });
 }
 

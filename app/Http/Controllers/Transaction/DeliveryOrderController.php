@@ -9,7 +9,7 @@ use App\Models\Tpo;
 use App\Models\Tpo_Detail;
 use App\Models\Hdo;
 use App\Imports\DeliveryOrderImport;
-use Storage, Excel, Response, Auth;
+use Storage, Excel, Response, Auth, DB;
 use Yajra\DataTables\Facades\DataTables;
 
 class DeliveryOrderController extends Controller
@@ -20,6 +20,7 @@ class DeliveryOrderController extends Controller
         return view('pages.transaction.delivery_order.delivery_order_index',compact('delivery_order'))
             ->with('i', (request()->input('page', 1) - 1) * 5);
     }
+    
     public function data(Request $request)
     {
         if (Auth::user()->position !== 'SUPERADMIN') {
@@ -34,15 +35,47 @@ class DeliveryOrderController extends Controller
             ->addColumn('nama_spl', fn($d) => $d->po->nama_spl ?? '-')
             ->addColumn('file', fn($d) => $d->file ? '<a href="'.route('delivery_order.downloadDO', $d->id).'">'.$d->file.'</a>' : 'No File')
             ->addColumn('action', function ($d) {
-                return '
-                    <a href="'.route('delivery_order.show', $d->id).'" class="btn btn-sm btn-success"><i class="fa fa-eye"></i></a>
-                    <a href="'.route('delivery_order.edit', $d->id).'" class="btn btn-sm btn-warning"><i class="fa fa-edit"></i></a>
-                    <!-- <a href="#" id="approveBtn'.$d->id.'" onclick="approveOrder('.$d->id.')" class="btn btn-sm btn-info"><i class="fa fa-check"></i></a> -->
-                    <form method="POST" action="'.route('delivery_order.delete', $d->id).'" style="display:inline;">
-                        '.csrf_field().method_field('DELETE').'
-                        <button type="submit" class="btn btn-sm btn-danger show-alert-delete-box"><i class="fa fa-trash"></i></button>
-                    </form>
+
+                $btn = '
+                    <a href="'.route('delivery_order.show', $d->id).'" 
+                       class="btn btn-sm btn-success">
+                       <i class="fa fa-eye"></i>
+                    </a>
                 ';
+                
+                $btn .= '
+                    <a href="'.route('delivery_order.edit', $d->id).'"
+                    class="btn btn-sm btn-warning"
+                    title="Edit DO">
+                    <i class="fa fa-edit"></i>
+                    </a>
+                ';
+            
+                // APPROVE (final)
+                if ($d->flag_approve === 'N' && Auth::user()->position === 'SUPERADMIN') {
+                    $btn .= '
+                        <a href="javascript:void(0)"
+                           onclick="approveDO('.$d->id.', \''.$d->no_do.'\')"
+                           class="btn btn-sm btn-primary"
+                           title="Approve DO">
+                           <i class="fa fa-check"></i>
+                        </a>
+                    ';
+                }
+            
+                // DELETE hanya jika belum approve
+                if ($d->flag_approve !== 'Y') {
+                    $btn .= '
+                        <button 
+                            class="btn btn-sm btn-danger"
+                            onclick="deleteDO('.$d->id.', \''.$d->no_do.'\')"
+                            title="Delete DO">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    ';
+                }
+            
+                return $btn;
             })
             ->rawColumns(['file', 'action'])
             ->make(true);
@@ -145,10 +178,32 @@ class DeliveryOrderController extends Controller
      */
     public function create()
     {
-        $po = Tpo::get();
-        return view('pages.transaction.delivery_order.delivery_order_create',compact('po'));
-    }
+        $products = \DB::table('mproduct')
+            ->select(['SKU','kode_barang','nama_barang'])
+            ->get();
 
+        $shipping_via = ['....'=>'....','HANDCARRY'=>'HANDCARRY','EKSPEDISI'=>'EKSPEDISI'];
+
+        return view('pages.transaction.delivery_order.delivery_order_create', compact('products','shipping_via'));
+    }
+    
+    // Endpoint AJAX untuk qty tersedia
+    public function getStock(Request $request)
+    {
+        $kode = $request->kode_barang;
+        // dd($kode);
+
+        $stock = \DB::table('t_stock_opname as s')
+            ->join('mproduct as p','p.id','=','s.id_product')
+            ->where('p.kode_barang',$kode)
+            ->selectRaw('qty_last as qty_tersedia')
+            ->first();
+
+        return response()->json([
+            'qty_tersedia' => $stock->qty_tersedia ?? 0
+        ]);
+    }
+    
     /**
      * Store a newly created resource in storage.
      *
@@ -157,80 +212,131 @@ class DeliveryOrderController extends Controller
      */
     public function store(Request $request)
     {
-        $this->validate($request, [
-            'id_po'             => 'required',
-            'status_lmpr_do'    => 'required',
-            'tgl_do'            => 'required',
-            'no_do'             => 'required|unique:tdos,no_do|regex:/(^([a-zA-Z0-9_\-\s]+)(\d+)?$)/u',
-            'reason_do'         => 'required|regex:/(^([a-zA-Z0-9_\-\s]+)(\d+)?$)/u',
-            'shipping_via'      => 'required'
-        ],[
-            'id_po.required' => 'Please Select PO',
-            'status_lmpr_do.required' => 'Please Select Attachment Status',
-            'tgl_do.required' => 'Please Select Date',
-            'no_do.required' => 'Please Fill DO Number',
-            'no_do.unique' => 'This Number has been taken! Please Input with another DO Number',
-            'no_do.regex' => 'Character input is not allowed! Please input without symbol ',
-            'reason_do.required' => 'Please Input Reason',
-            'reason_do.regex' => 'Character input is not allowed! Please input without symbol ',
-            'shipping_via.required' => 'Please Select Shipping Via',
+        $request->validate([
+            'tgl_do'        => 'required',
+            'no_do'         => 'required|unique:tdos,no_do',
+            'reason_do'     => 'required',
+            'shipping_via'  => 'required'
         ]);
 
-        $po = Tpo::select([/*'code_cust','nama_cust',*/'tgl_po','no_so','no_po', 'id_supplier'])->where('id',$request->id_po)->first();
-        // $code_cust  = $po->code_cust;
-        // $nama_cust  = $po->nama_cust;
-        $id_spl     = $po->id_supplier;
-        $tgl_po     = $po->tgl_po;
-        $no_po      = $po->no_po;
-        $no_so      = $po->no_so;
+        DB::beginTransaction();
+        try {
+            // Buat DO header
+            $do = Tdo::create([
+                'no_do'        => $request->no_do,
+                'tgl_do'       => $request->tgl_do,
+                'reason_do'    => $request->reason_do,
+                'shipping_via' => $request->shipping_via,
+                'flag_approve' => 'N',
+                'approve_date' => '1970-01-01',
+                'approve_by'   => ''
+            ]);
 
-        $do = Tdo::create([
-            'id_po'             => $request->id_po,
-            'id_supplier'       => $request->id_spl,
-            'code_cust'         => /*$code_cust*/ '',
-            'nama_cust'         => /*$nama_cust*/ '',
-            'tgl_po'            => $tgl_po,
-            'no_po'             => $no_po,
-            'no_so'             => $no_so,
-            'no_do'             => $request->no_do,
-            'tgl_do'            => $request->tgl_do,
-            'status_lmpr_do'    => $request->status_lmpr_do,
-            'reason_do'         => $request->reason_do,
-            'shipping_via'      => $request->shipping_via,
-            'flag_approve'      => 'N',
-            'approve_date'      => '1970-01-01',
-            'approve_by'        => ''
-        ]);
-
-        $do = Tdo::select('id')->latest()->first();
-        $id_do = $do->id;
-
-        $do_his = Hdo::create([
-            'id_supplier'        => $id_spl,
-            'id_do'              => $id_do,
-            'id_po'              => $request->id_po,
-            'code_cust'          => /*$code_cust*/ '',
-            'nama_cust'          => /*$nama_cust*/ '',
-            'no_do'              => $request->no_do,
-            'tgl_do'             => $request->tgl_do,
-            'reason_do'          => $request->reason_do
-        ]);
-
-        if ($do && $do_his) {
-            return redirect()
-                ->route('delivery_order.index')
-                ->with([
-                    'success' => 'New DO has been created successfully'
+            // FIFO sequence untuk detail DO (format 1,2,3,...)
+            $sequence = 1;
+            foreach($request->kode_barang as $i => $kode_barang){
+                \DB::table('tdo_detail')->insert([
+                    'id_do'         => $do->id,
+                    'sku'           => $request->sku[$i] ?? '',
+                    'kode_barang'   => $kode_barang,
+                    'qty'           => $request->qty[$i],
+                    'seq'           => str_pad($sequence++, 4, '0', STR_PAD_LEFT), // 0001, 0002, 0003...
+                    'created_at'    => now(),
+                    'updated_at'    => now()
                 ]);
-        } else {
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with([
-                    'error' => 'Some problem occurred, please try again'
-                ]);
+            }
+
+            DB::commit();
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Delivery Order berhasil dibuat'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage()
+            ]);
         }
     }
+    
+    public function approve(Request $request, $id)
+    {
+        $do = Tdo::find($id);
+
+        if (!$do) {
+            return response()->json(['error' => 'Delivery Order tidak ditemukan'], 404);
+        }
+
+        // safety: tidak boleh approve ulang
+        if ($do->flag_approve === 'Y') {
+            return response()->json([
+                'error' => 'Delivery Order sudah di-approve'
+            ], 422);
+        }
+
+        $do->update([
+            'approve_by'   => Auth::user()->username,
+            'approve_date' => now()->format('Y-m-d'),
+            'flag_approve' => 'Y'
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    // public function store(Request $request)
+    // {
+    //     $request->validate([
+    //         'tgl_do'            => 'required',
+    //         'no_do'             => 'required|unique:tdos,no_do',
+    //         'reason_do'         => 'required',
+    //         'shipping_via'      => 'required',
+    //         'kode_barang'       => 'required|array',
+    //         'qty'               => 'required|array'
+    //     ]);
+    
+    //     DB::beginTransaction();
+    //     try {
+    //         // Buat DO header tanpa PO
+    //         $do = Tdo::create([
+    //             'no_do'         => $request->no_do,
+    //             'tgl_do'        => $request->tgl_do,
+    //             'reason_do'     => $request->reason_do,
+    //             'shipping_via'  => $request->shipping_via,
+    //             'flag_approve'  => 'N',
+    //             'approve_date'  => '1970-01-01',
+    //             'approve_by'    => ''
+    //         ]);
+    
+    //         // FIFO sequence untuk detail DO (format 3 digit)
+    //         $sequence = 1;
+    //         foreach($request->kode_barang as $i => $kode_barang){
+    //             Hdo::create([
+    //                 'id_do'         => $do->id,
+    //                 'no_do'         => $request->no_do,
+    //                 'tgl_do'        => $request->tgl_do,
+    //                 'kode_barang'   => $kode_barang,
+    //                 'reason_do'     => $request->reason_do,
+    //                 'qty'           => $request->qty[$i],
+    //                 'sequence'      => str_pad($sequence++, 4, '0', STR_PAD_LEFT) // 0001, 0002, 0003...
+    //             ]);
+    //         }
+    
+    //         DB::commit();
+    //         return response()->json([
+    //             'status'  => 'success',
+    //             'message' => 'Delivery Order berhasil dibuat'
+    //         ]);
+    
+    //     } catch (\Exception $e) {
+    //         DB::rollback();
+    //         return response()->json([
+    //             'status'  => 'error',
+    //             'message' => $e->getMessage()
+    //         ]);
+    //     }
+    // }
 
     /**
      * Display the specified resource.
@@ -241,21 +347,26 @@ class DeliveryOrderController extends Controller
     public function show($id)
     {
         $delivery_order = Tdo::findOrFail($id);
-        $po             = Tpo::get();
-        $purchase_order = Tdo::select('id_po')->where('id',$id)->first();
-        $id_po          = $purchase_order->id_po;
-        $po_dtl         = Tpo_Detail::where('id_po',$id_po)->get();
-        $status_lmpr_do = [
-            '....' => '....',
-            'OK' => 'OK',
-            'HOLD' => 'HOLD'
-        ];
+    
+        $tdo_detail = \DB::table('tdo_detail as d')
+        ->leftJoin('mproduct as p', function($join) {
+            $join->on(\DB::raw("d.kode_barang COLLATE utf8mb4_unicode_ci"), '=', 'p.kode_barang');
+        })
+        ->where('d.id_do', $id)
+        ->orderBy('d.seq', 'asc')
+        ->select('d.*', 'p.nama_barang', 'p.SKU')
+        ->get();
+    
         $shipping_via = [
-            '....' => '....',
+            '....'      => '....',
             'HANDCARRY' => 'HANDCARRY',
             'EKSPEDISI' => 'EKSPEDISI'
         ];
-        return view('pages.transaction.delivery_order.delivery_order_show',compact('delivery_order','po','po_dtl','status_lmpr_do', 'shipping_via'));
+    
+        return view(
+            'pages.transaction.delivery_order.delivery_order_show',
+            compact('delivery_order', 'tdo_detail', 'shipping_via')
+        );
     }
 
     /**
@@ -264,50 +375,40 @@ class DeliveryOrderController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
+    
     public function edit($id)
     {
         $delivery_order = Tdo::findOrFail($id);
-        $po = Tpo::get();
-        $status_lmpr_do = [
-            '....' => '....',
-            'OK' => 'OK',
-            'HOLD' => 'HOLD'
-        ];
+
+        // DETAIL PRODUK DO
+        $tdo_detail = DB::table('tdo_detail as d')
+            ->leftJoin('mproduct as p', function($join) {
+                $join->on(
+                    DB::raw("d.kode_barang COLLATE utf8mb4_unicode_ci"),
+                    '=',
+                    'p.kode_barang'
+                );
+            })
+            ->where('d.id_do', $id)
+            ->orderBy('d.seq', 'asc')
+            ->select('d.*', 'p.nama_barang', 'p.SKU')
+            ->get();
+
+        // MASTER PRODUCT (untuk ganti product)
+        $products = DB::table('mproduct')
+            ->select(['SKU','kode_barang','nama_barang'])
+            ->get();
+
         $shipping_via = [
-            '....' => '....',
+            '....'      => '....',
             'HANDCARRY' => 'HANDCARRY',
             'EKSPEDISI' => 'EKSPEDISI'
         ];
-        return view('pages.transaction.delivery_order.delivery_order_edit',compact('delivery_order','po','status_lmpr_do', 'shipping_via'));
 
-    }
-
-    public function approve(Request $request, $id)
-    {
-        $approve_by = Auth::user()->username;
-        // dd($approve_by);
-        
-        $approve = Tdo::find($id);
-        
-        if (!$approve) {
-            return response()->json(['error' => 'delivery order not found']);
-        }
-
-        try {
-            $approve->approve_by = $approve_by;
-            $approve->approve_date = date('Y-m-d');
-            $approve->flag_approve = "Y";
-            
-            $updated = $approve->save();
-            
-            if ($updated) {
-                return response()->json(['success' => true]);
-            } else {
-                return response()->json(['error' => 'approval failed']);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'approval failed: ' . $e->getMessage()]);
-        }
+        return view(
+            'pages.transaction.delivery_order.delivery_order_edit',
+            compact('delivery_order','tdo_detail','products','shipping_via')
+        );
     }
 
     /**
@@ -317,39 +418,83 @@ class DeliveryOrderController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
+    
     public function update(Request $request, $id)
     {
-        $validatedData = $request->validate([
-            'status_lmpr_do'    => 'required',
-            'shipping_via'      => 'required',
-            'reason_do'         => 'required'
-        ],[
-            'status_lmpr_do.required'   => 'Please Fill Attachment Status',
-            'reason_do.required'        => 'Please Fill Reason DO',
-            'shipping_via.required'     => 'Please Fill Shipping Via'
+        $do = Tdo::findOrFail($id);
+
+        /**
+         * ==================================
+         * CASE 1: SUDAH APPROVED
+         * ==================================
+         * HANYA BOLEH UPDATE NO_RESI
+         */
+        if ($do->flag_approve === 'Y') {
+
+            $request->validate([
+                'no_resi' => 'required|string|max:100'
+            ]);
+
+            $do->update([
+                'no_resi' => $request->no_resi
+            ]);
+
+            return redirect()
+                ->back()
+                ->with('success', 'No Resi berhasil diperbarui');
+        }
+
+        /**
+         * ==================================
+         * CASE 2: BELUM APPROVED
+         * ==================================
+         * BOLEH UPDATE SEMUA + DETAIL PRODUK
+         */
+        $request->validate([
+            'shipping_via' => 'required',
+            'reason_do'    => 'required',
+            'kode_barang'  => 'required|array',
+            'qty'          => 'required|array'
         ]);
 
-        Tdo::whereId($id)->update($validatedData);
+        DB::beginTransaction();
+        try {
 
-        $po = Tpo::select(['code_cust','nama_cust'])->where('id',$request->id_po)->first();
-        $code_cust  = $po->code_cust;
-        $nama_cust  = $po->nama_cust;
-        
-        $delivery_order = Tdo::select('id')->where('code_cust',$code_cust)->latest()->first();
-        $id_do          = $delivery_order->id;
-        // dd($id_po);exit();
+            // UPDATE HEADER
+            $do->update([
+                'shipping_via' => $request->shipping_via,
+                'reason_do'    => $request->reason_do
+            ]);
 
-        $delivery_order_his = Hdo::create([
-            'id_do'              => $id_do,
-            'id_po'              => $request->id_po,
-            'code_cust'          => /*$code_cust*/ '',
-            'nama_cust'          => /*$nama_cust*/ '',
-            'no_do'              => $request->no_do,
-            'tgl_do'             => $request->tgl_do,
-            'reason_do'          => $request->reason_do
-        ]);
+            // HAPUS DETAIL LAMA
+            DB::table('tdo_detail')->where('id_do', $id)->delete();
 
-        return redirect('/delivery_order')->with('success', 'Delivery Order is successfully updated');
+            // INSERT DETAIL BARU
+            $seq = 1;
+            foreach ($request->kode_barang as $i => $kode) {
+                DB::table('tdo_detail')->insert([
+                    'id_do'       => $id,
+                    'kode_barang' => $kode,
+                    'qty'         => $request->qty[$i],
+                    'seq'         => str_pad($seq++, 4, '0', STR_PAD_LEFT),
+                    'created_at'  => now(),
+                    'updated_at'  => now()
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()
+                ->route('delivery_order.index')
+                ->with('success', 'Delivery Order berhasil diperbarui');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return redirect()
+                ->back()
+                ->with('error', $e->getMessage());
+        }
     }
 
     /**

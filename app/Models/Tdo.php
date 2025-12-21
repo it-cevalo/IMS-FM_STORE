@@ -13,7 +13,7 @@ class Tdo extends Model
     protected $dates = ['deleted_at'];
 
     protected $fillable = [
-        'id','id_po','id_supplier','tgl_do','tgl_po','code_cust','nama_cust','no_po','no_so','no_do','shipping_via','status_lmpr_do','reason_do','flag_approve','approve_by','approve_date','no_resi'
+        'id','id_po','id_supplier','tgl_do','tgl_po','code_cust','nama_cust','no_po','no_so','no_do','shipping_via','status_do','reason_do','flag_approve','approve_by','approve_date','no_resi'
     ];
 
     public function po()

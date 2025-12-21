@@ -1,118 +1,155 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $isApproved = $delivery_order->flag_approve === 'Y';
+@endphp
+
 <div class="card shadow mb-4">
     <div class="card-header py-3">
         <h6 class="m-0 font-weight-bold text-primary">Delivery Order</h6>
     </div>
+
     <div class="card-body">
+        {{-- ALERT --}}
         @if(\Session::has('error'))
-        <div class="alert alert-danger">
-            <span>{{ \Session::get('error') }}</span>
-            <button type="button" class="close" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
+            <div class="alert alert-danger">{{ \Session::get('error') }}</div>
         @elseif(\Session::has('success'))
-        <div class="alert alert-success">
-            <span>{{ \Session::get('success') }}</span>
-            <button type="button" class="close" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
+            <div class="alert alert-success">{{ \Session::get('success') }}</div>
         @endif
-        <form action="{{route('delivery_order.update',$delivery_order->id)}}" method="POST">
+
+        <form action="{{ route('delivery_order.update',$delivery_order->id) }}" method="POST">
             @csrf
             @method('PUT')
-            {{-- <div class="mb-3">
-                <label for="exampleFormControlInput1">Purchase Order</label>
-                <div class="input-group">
-                    <select class="form-control" name="id_po" value="{{old('id_po')}}" readonly="readonly">
-                        @foreach($po as $p)
-                        <option value="{{$p->id}}" @if ($delivery_order->id_po == $p->id) selected
-                            @endif>{{ \Carbon\Carbon::parse($p->tgl_po)->format('Y-m-d')}}/{{$p->no_po}}/{{$p->nama_spl}}
-                        </option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-            <div class="validation"></div>
-            @error('id_po')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror --}}
+
+            {{-- DATE --}}
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Date</label>
-                <input class="form-control" id="exampleFormControlInput1" name="tgl_do"
-                    value="{{ \Carbon\Carbon::parse($delivery_order->tgl_do)->format('Y-m-d')}}" type="date"
-                    readonly="readonly">
+                <label>Date</label>
+                <input class="form-control"
+                       type="date"
+                       value="{{ \Carbon\Carbon::parse($delivery_order->tgl_do)->format('Y-m-d') }}"
+                       readonly>
             </div>
-            <div class="validation"></div>
-            @error('tgl_do')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
+
+            {{-- NUMBER --}}
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Number</label>
-                <input class="form-control" id="exampleFormControlInput1" name="no_do" type="text"
-                    value="{{$delivery_order->no_do}}" placeholder="Input DO Number" readonly="readonly">
+                <label>DO Number</label>
+                <input class="form-control"
+                       type="text"
+                       value="{{ $delivery_order->no_do }}"
+                       readonly>
             </div>
-            <div class="validation"></div>
-            @error('no_do')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
+
+            {{-- NO RESI (SATU-SATUNYA YANG BISA EDIT SETELAH APPROVE) --}}
             <div class="mb-3">
-                <label for="exampleFormControlInput1">No Resi</label>
-                <input class="form-control" id="exampleFormControlInput1" name="no_resi" type="text"
-                    value="{{$delivery_order->no_resi}}" placeholder="Input No Resi" readonly="readonly">
+                <label>No Resi</label>
+                <input class="form-control"
+                       name="no_resi"
+                       value="{{ $delivery_order->no_resi }}"
+                       {{ !$isApproved ? 'readonly' : '' }}>
             </div>
-            <div class="validation"></div>
-            @error('no_resi')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
-            {{-- <div class="mb-3">
-                <label for="exampleFormControlInput1">Attachment Status</label>
-                <select class="form-control" name="status_lmpr_do" required>
-                    @foreach($status_lmpr_do as $k => $v)
-                    @if($delivery_order->status_lmpr_do == $k)
-                    <option value="{{ $k }}" selected="">{{ $v }}</option>
-                    @else
-                    <option value="{{ $k }}">{{ $v }}</option>
-                    @endif
-                    @endforeach
-                </select>
-            </div>
-            <div class="validation"></div>
-            @error('status_lmpr_do')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror --}}
+
+            {{-- SHIPPING VIA --}}
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Shipping Via</label>
-                <select class="form-control" name="shipping_via" required>
+                <label>Shipping Via</label>
+                <select class="form-control"
+                        name="shipping_via"
+                        {{ $isApproved ? 'disabled' : '' }}>
                     @foreach($shipping_via as $k => $v)
-                    @if($delivery_order->shipping_via == $k)
-                    <option value="{{ $k }}" selected="">{{ $v }}</option>
-                    @else
-                    <option value="{{ $k }}">{{ $v }}</option>
-                    @endif
+                        <option value="{{ $k }}" {{ $delivery_order->shipping_via == $k ? 'selected' : '' }}>
+                            {{ $v }}
+                        </option>
                     @endforeach
                 </select>
             </div>
-            <div class="validation"></div>
-            @error('shipping_via')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
+
+            {{-- supaya value tetap terkirim kalau disabled --}}
+            @if($isApproved)
+                <input type="hidden" name="shipping_via" value="{{ $delivery_order->shipping_via }}">
+            @endif
+
+            {{-- NOTE --}}
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Note</label>
-                <textarea class="form-control" id="exampleFormControlInput1" name="reason_do"
-                    value="{{$delivery_order->reason_do}}" type="text" placeholder="Input Note"
-                    required>{{$delivery_order->reason_do}}</textarea>
+                <label>Note</label>
+                <textarea class="form-control"
+                          name="reason_do"
+                          {{ $isApproved ? 'readonly' : '' }}>{{ $delivery_order->reason_do }}</textarea>
             </div>
-            <div class="validation"></div>
-            @error('reason_do')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
-            <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="{{route('delivery_order.index')}}" class="btn btn-dark">Back</a>
+
+            {{-- ===================== --}}
+            {{-- DETAIL PRODUK --}}
+            {{-- ===================== --}}
+            <hr>
+            <h6 class="font-weight-bold">Product Detail</h6>
+
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>Nama Barang</th>
+                            <th width="120">Qty</th>
+                            @if(!$isApproved)
+                                <th width="80">Action</th>
+                            @endif
+                        </tr>
+                    </thead>
+                    <tbody id="productBody">
+                        @foreach($tdo_detail as $d)
+                        <tr>
+                            <td>{{ $d->SKU }}</td>
+                            <td>{{ $d->nama_barang }}</td>
+                            <td>
+                                <input type="number"
+                                       name="qty[]"
+                                       class="form-control"
+                                       value="{{ $d->qty }}"
+                                       min="1"
+                                       {{ $isApproved ? 'readonly' : '' }}>
+                                <input type="hidden"
+                                       name="kode_barang[]"
+                                       value="{{ $d->kode_barang }}">
+                            </td>
+                            @if(!$isApproved)
+                            <td class="text-center">
+                                <button type="button" class="btn btn-danger btn-sm btn-remove">
+                                    <i class="fa fa-minus"></i>
+                                </button>
+                            </td>
+                            @endif
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- ADD PRODUCT (HANYA JIKA BELUM APPROVE) --}}
+            @if(!$isApproved)
+                <button type="button" class="btn btn-primary btn-sm" id="addRow">
+                    <i class="fa fa-plus"></i> Add Product
+                </button>
+            @endif
+
+            <hr>
+
+            <button type="submit" class="btn btn-primary">
+                Submit
+            </button>
+            <a href="{{ route('delivery_order.index') }}" class="btn btn-dark">
+                Back
+            </a>
         </form>
     </div>
 </div>
+
+{{-- JS HANYA AKTIF JIKA BELUM APPROVE --}}
+@if(!$isApproved)
+<script>
+document.addEventListener('click', function(e){
+    if(e.target.closest('.btn-remove')){
+        e.target.closest('tr').remove();
+    }
+});
+</script>
+@endif
 @endsection
