@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Tdo;
 use App\Models\Tpo;
+use App\Models\Mproduct;
 use App\Models\Tpo_Detail;
 use App\Models\Hdo;
 use App\Imports\DeliveryOrderImport;
@@ -263,27 +264,80 @@ class DeliveryOrderController extends Controller
     
     public function approve(Request $request, $id)
     {
-        $do = Tdo::find($id);
-
+        $do = Tdo::with('do_detail')->find($id);
+    
         if (!$do) {
             return response()->json(['error' => 'Delivery Order tidak ditemukan'], 404);
         }
-
-        // safety: tidak boleh approve ulang
+    
         if ($do->flag_approve === 'Y') {
-            return response()->json([
-                'error' => 'Delivery Order sudah di-approve'
-            ], 422);
+            return response()->json(['error' => 'Delivery Order sudah di-approve'], 422);
         }
+    
+        DB::transaction(function() use ($do) {
+            // 1. Update DO
+            $do->update([
+                'approve_by' => Auth::user()->username,
+                'approve_date' => now(),
+                'flag_approve' => 'Y',
+            ]);
+    
+            // 2. Assign product QR ke DO berdasarkan id_product
+            foreach ($do->do_detail as $detail) {
+                $qtyNeeded      = $detail->qty; // qty dari DO Detail
+                $product        = Mproduct::where('kode_barang',$detail->kode_barang)->first();
+                $idProduct      = $product->id;
+                $sequence_no    = str_pad( $detail->seq, 4, '0', STR_PAD_LEFT); // hasil: 0001
+    
+                // 3. Ambil product QR berdasarkan FIFO per id_product
+                $productQRs = DB::table('tproduct_qr')
+                ->where('id_product', $idProduct)
+                ->where('sequence_no', $sequence_no)
+                ->get();
 
-        $do->update([
-            'approve_by'   => Auth::user()->username,
-            'approve_date' => now()->format('Y-m-d'),
-            'flag_approve' => 'Y'
-        ]);
-
+                // dd($productQRs->count(). ' - '. $qtyNeeded);
+                
+                if ($productQRs->count() < $qtyNeeded) {
+                    throw new \Exception("Stock untuk product ID {$idProduct} tidak cukup.");
+                }
+    
+                foreach ($productQRs as $qr) {
+                    DB::table('tproduct_qr')->where('id', $qr->id)->update([
+                        'id_do' => $do->id,
+                        'id_do_detail' => $detail->id,
+                        'used_for' => 'OUT',
+                        'out_at' => now(),
+                    ]);
+                }
+            }
+        });
+    
         return response()->json(['success' => true]);
     }
+
+    // public function approve(Request $request, $id)
+    // {
+    //     $do = Tdo::find($id);
+
+    //     if (!$do) {
+    //         return response()->json(['error' => 'Delivery Order tidak ditemukan'], 404);
+    //     }
+
+    //     // safety: tidak boleh approve ulang
+    //     if ($do->flag_approve === 'Y') {
+    //         return response()->json([
+    //             'error' => 'Delivery Order sudah di-approve'
+    //         ], 422);
+    //     }
+
+    //     $do->update([
+    //         'approve_by'   => Auth::user()->username,
+    //         'approve_date' => now()->format('Y-m-d'),
+    //         'flag_approve' => 'Y'
+    //     ]);
+
+    //     return response()->json(['success' => true]);
+    // }
 
     // public function store(Request $request)
     // {

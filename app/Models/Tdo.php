@@ -20,6 +20,11 @@ class Tdo extends Model
     {
     	return $this->hasOne('App\Models\Tpo', 'id', 'id_po');
     }
+
+    public function do_detail()
+    {
+        return $this->hasMany('App\Models\Tdo_Detail','id_do','id');
+    }
     
     public function supplier()
     {
