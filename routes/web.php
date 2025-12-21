@@ -196,9 +196,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/purchase_order/{id}/print', [PurchaseOrderController::class, 'printPO'])->name('purchase_order.print_po');
     Route::get('/qr/sequence/{id}', [PurchaseOrderController::class, 'getSequence'])->name('qr.sequence');
     Route::post('/qr/reprint/request', [PurchaseOrderController::class, 'requestReprint']);
-    Route::get('/qr/reprint/list', [PurchaseOrderController::class, 'listReprint']);
-    Route::post('/qr/reprint/approve', [PurchaseOrderController::class, 'approveReprint']);
-    Route::post('/qr/reprint/reject', [PurchaseOrderController::class, 'rejectReprint']);
+    Route::get('/qr/reprint/list/{id}', [PurchaseOrderController::class, 'reprintList'])->name('purchase_order.reprint_list');
+    Route::get('/qr/reprint/list', [PurchaseOrderController::class, 'listReprint'])->name('reprint.list');
+    Route::post('/qr/reprint/approve', [PurchaseOrderController::class, 'approveReprint'])->name('reprint.approve');
+    Route::post('/qr/reprint/reject', [PurchaseOrderController::class, 'rejectReprint'])->name('reprint.reject');
     
     /*
     |--------------------------------------------------------------------------

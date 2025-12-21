@@ -56,6 +56,7 @@ class PurchaseOrderController extends Controller
                         title="Print PO">
                         <i class="fa fa-print"></i>
                     </a> ';
+                    
                     if (Auth::user()->position === 'SUPERADMIN' && ($row->status_po == 0)) {
                         $btn .= '<a href="javascript:void(0)" 
                             onclick="confirmOrder('.$row->id.', \''.$row->no_po.'\')" 
@@ -82,6 +83,12 @@ class PurchaseOrderController extends Controller
                         title="Edit PO">
                         <i class="fa fa-edit"></i>
                         </a> ';
+                    $btn .= '<a href="'.route('purchase_order.reprint_list', $row->id).'" 
+                        class="btn btn-info btn-sm" 
+                        title="Request Reprint">
+                        <i class="fa fa-file-alt"></i>
+                        Reprint
+                    </a> ';
 
                     return $btn;
                 })
@@ -950,38 +957,57 @@ class PurchaseOrderController extends Controller
         ];
     }
 
-    public function listReprint()
+    // public function listReprint()
+    // {
+
+    //     return view('pages.transaction.purchase_order.purchase_order_reprint', compact('requestsGrouped'));
+    // }
+    
+    public function reprintList($id)
     {
-        return DB::table('tqr_reprint_request')
-            ->where('status','PENDING')
-            ->orderByDesc('requested_at')
+
+        // Ambil semua request reprint, join ke PO dan detailnya
+        $requests = DB::table('tqr_reprint_request as r')
+            ->join('tpos as po', 'r.id_po', '=', 'po.id')
+            ->join('tpo_detail as d', 'r.id_po_detail', '=', 'd.id')
+            ->select(
+                'r.id as request_id',
+                'po.no_po',
+                'po.tgl_po',
+                'd.part_number',
+                'd.product_name',
+                'r.sequence_no',
+                'r.reason',
+                'r.status'
+            )
+            ->orderBy('po.tgl_po', 'desc')
+            ->orderBy('r.id', 'asc')
+            ->where('r.id_po',$id)
             ->get();
+
+        // Group per PO
+        $requestsGrouped = $requests->groupBy('no_po');
+        return view('pages.transaction.purchase_order.purchase_order_reprint', compact('requestsGrouped'));
     }
 
-    public function approveReprint(Request $r)
+    public function approveReprint(Request $request)
     {
+        $reqIds = $request->ids ?? [];
         DB::table('tqr_reprint_request')
-            ->where('id',$r->id)
-            ->update([
-                'status'=>'APPROVED',
-                'approved_by'=>Auth::user()->username,
-                'approved_at'=>now()
-            ]);
-
-        return response()->json(['success'=>true]);
+            ->whereIn('id', $reqIds)
+            ->update(['status' => 'APPROVED', 'approved_by' => Auth::user()->username, 'approved_at' => now()]);
+    
+        return response()->json(['success' => true]);
     }
-
-    public function rejectReprint(Request $r)
+    
+    public function rejectReprint(Request $request)
     {
+        $reqIds = $request->ids ?? [];
         DB::table('tqr_reprint_request')
-            ->where('id',$r->id)
-            ->update([
-                'status'=>'REJECTED',
-                'approved_by'=>Auth::user()->username,
-                'approved_at'=>now()
-            ]);
-
-        return response()->json(['success'=>true]);
+            ->whereIn('id', $reqIds)
+            ->update(['status' => 'REJECTED', 'approved_by' => Auth::user()->username, 'approved_at' => now()]);
+    
+        return response()->json(['success' => true]);
     }
     
     public function requestReprint(Request $r)
