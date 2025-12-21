@@ -18,6 +18,10 @@
         <button class="btn btn-secondary btn-sm" id="btnRefresh">
             <i class="fa fa-sync"></i> Refresh
         </button>
+        <button class="btn btn-warning btn-sm" id="btnReprintRequest">
+            <i class="fa fa-print"></i> Request Reprint
+            (<span id="totalReq">0</span>)
+        </button>
         {{-- <a href="#" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal"><i
                 class="fa fa-upload"></i> Upload Excel</a>
         <a download="Template_po.xlsx" href="{{ Storage::url('tpl/template_po.xlsx') }}"
@@ -91,6 +95,31 @@
                 </button>
             </div>
 
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalReprintList">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5>Request Reprint QR</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>PO</th>
+                            <th>Detail</th>
+                            <th>No Urut</th>
+                            <th>Alasan</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reqBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -377,5 +406,53 @@
         purchaseOrderTable.destroy();
         loadPurchaseOrderData();
     });
+    
+    $("#btnReprintRequest").on("click", function(){
+        $("#modalReprintList").modal('show');
+        loadReprintRequest();
+    });
+
+    function loadReprintRequest(){
+        $.get('/qr/reprint/list', function(res){
+
+            $("#totalReq").text(res.length);
+
+            let html = '';
+            res.forEach(r => {
+                html += `
+                <tr>
+                    <td>${r.created_at}</td>
+                    <td>${r.no_po}</td>
+                    <td>${r.id_po_detail}</td>
+                    <td>${r.sequence_no}</td>
+                    <td>${r.reason}</td>
+                    <td>
+                        <button class="btn btn-success btn-sm" onclick="approveReq(${r.id})">Approve</button>
+                        <button class="btn btn-danger btn-sm" onclick="rejectReq(${r.id})">Reject</button>
+                    </td>
+                </tr>`;
+            });
+
+            $("#reqBody").html(html);
+        });
+    }
+
+    function approveReq(id){
+        $.post('/qr/reprint/approve',{
+            id:id,
+            _token:'{{ csrf_token() }}'
+        }, function(){
+            loadReprintRequest();
+        });
+    }
+
+    function rejectReq(id){
+        $.post('/qr/reprint/reject',{
+            id:id,
+            _token:'{{ csrf_token() }}'
+        }, function(){
+            loadReprintRequest();
+        });
+    }
 </script>
 @endsection

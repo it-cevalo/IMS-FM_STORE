@@ -192,8 +192,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('purchase_order/upload', [PurchaseOrderController::class, 'upload'])->name('purchase_order.upload');
     Route::get('/po/{id}/qr/pdf', [PurchaseOrderController::class, 'generateQRPDF'])->name('purchase_order.print');
     Route::post('/purchase_order/{id}/qr/custom-print', [PurchaseOrderController::class, 'generateQRSelected'])->name('purchase_order.custom_print');
-    Route::get('/qr/sequence/{id}', [PurchaseOrderController::class, 'getSequence'])->name('qr.sequence');
     Route::resource('purchase_order', PurchaseOrderController::class);
+    Route::get('/purchase_order/{id}/print', [PurchaseOrderController::class, 'printPO'])->name('purchase_order.print_po');
+    Route::get('/qr/sequence/{id}', [PurchaseOrderController::class, 'getSequence'])->name('qr.sequence');
+    Route::post('/qr/reprint/request', [PurchaseOrderController::class, 'requestReprint']);
+    Route::get('/qr/reprint/list', [PurchaseOrderController::class, 'listReprint']);
+    Route::post('/qr/reprint/approve', [PurchaseOrderController::class, 'approveReprint']);
+    Route::post('/qr/reprint/reject', [PurchaseOrderController::class, 'rejectReprint']);
     
     /*
     |--------------------------------------------------------------------------
@@ -202,9 +207,9 @@ Route::middleware(['auth'])->group(function () {
     */
     Route::get('/product_inbound', [ProductInboundController::class, 'index'])->name('product_inbound.index');
     Route::get('/product_inbound/datatable', [ProductInboundController::class, 'datatable'])->name('product_inbound.datatable');
-    Route::get('/product_inbound/{id}/edit', [ProductInboundController::class, 'edit'])->name('product_inbound.edit');
-    Route::post('/product_inbound/{id}/confirm', [ProductInboundController::class, 'confirm'])->name('product_inbound.confirm');
-
+    Route::get('/product_inbound/{id}/edit', [ProductInboundController::class, 'edit'])->name('product_inbound.edit');    
+    Route::get('/product_inbound/detail/{tgl}', [ProductInboundController::class, 'detailByDate'])->name('product_inbound.detail');
+    Route::post('/product_inbound/confirm', [ProductInboundController::class, 'confirm'])->name('product_inbound.confirm');
     /*
     |--------------------------------------------------------------------------
     | TRANSACTION - DELIVERY ORDER & TRANSFER

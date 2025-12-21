@@ -49,6 +49,13 @@ class PurchaseOrderController extends Controller
                 ->addColumn('id', fn($row) => $row->id)
                 ->addColumn('action', function($row) {
                     $btn = '<a href="'.route('purchase_order.show', $row->id).'" class="btn btn-success btn-sm"><i class="fa fa-eye"></i></a> ';
+                    $btn .= '<a 
+                        href="'.route('purchase_order.print_po', $row->id).'" 
+                        target="_blank"
+                        class="btn btn-dark btn-sm"
+                        title="Print PO">
+                        <i class="fa fa-print"></i>
+                    </a> ';
                     if (Auth::user()->position === 'SUPERADMIN' && ($row->status_po == 0)) {
                         $btn .= '<a href="javascript:void(0)" 
                             onclick="confirmOrder('.$row->id.', \''.$row->no_po.'\')" 
@@ -69,6 +76,12 @@ class PurchaseOrderController extends Controller
                             </button>
                         ';
                     }
+                    $btn .= '<a 
+                        href="'.route('purchase_order.edit', $row->id).'" 
+                        class="btn btn-warning btn-sm"
+                        title="Edit PO">
+                        <i class="fa fa-edit"></i>
+                        </a> ';
 
                     return $btn;
                 })
@@ -146,7 +159,7 @@ class PurchaseOrderController extends Controller
     {
         $customers = MCustomer::get();
         $suppliers = MSupplier::get();
-        $products  = Mproduct::select('id', 'kode_barang', 'nama_barang', 'harga_beli')->whereNull('deleted_at')->get();
+        $products  = Mproduct::select('id', 'kode_barang', 'nama_barang', 'harga_beli', 'sku')->whereNull('deleted_at')->get();
 
         return view('pages.transaction.purchase_order.purchase_order_create', compact('customers', 'suppliers', 'products'));
     }
@@ -260,6 +273,26 @@ class PurchaseOrderController extends Controller
         return view('pages.transaction.purchase_order.purchase_order_show',compact('purchase_order','customers','suppliers', 'purchase_order_dtl', 'status_po'));
     }
 
+    public function printPO($id)
+    {
+        $po = Tpo::with(['supplier'])
+            ->findOrFail($id);
+
+        $details = Tpo_Detail::where('id_po', $id)
+            ->orderBy('id')
+            ->get();
+
+        $pdf = Pdf::loadView(
+            'pages.transaction.purchase_order.purchase_order_print',
+            [
+                'po'      => $po,
+                'details' => $details
+            ]
+        )->setPaper('A4', 'portrait');
+
+        return $pdf->stream("PO_{$po->no_po}.pdf");
+    }
+
     /**
      * Show the form for editing the specified resource.
      *
@@ -270,6 +303,7 @@ class PurchaseOrderController extends Controller
     {
         $purchase_order       = Tpo::findOrFail($id);
         $purchase_order_dtl   = Tpo_Detail::where('id_po',$id)->get();
+        $products  = Mproduct::select('id', 'kode_barang', 'nama_barang', 'harga_beli', 'sku')->whereNull('deleted_at')->get();
 
         $customers = MCustomer::get();
         $suppliers = MSupplier::get();
@@ -278,7 +312,7 @@ class PurchaseOrderController extends Controller
             'OK' => 'OK',
             'HOLD' => 'HOLD'
         ];
-        return view('pages.transaction.purchase_order.purchase_order_edit',compact('purchase_order','customers','suppliers', 'status_po','purchase_order_dtl'));
+        return view('pages.transaction.purchase_order.purchase_order_edit',compact('purchase_order','customers','suppliers', 'status_po','purchase_order_dtl','products'));
     }
 
     /**
@@ -347,65 +381,114 @@ class PurchaseOrderController extends Controller
      
     public function update(Request $request, $id)
     {
-        $validatedData = $request->validate([
-            // 'status_po' => 'required',
-            'reason_po' => 'required',
-            'grand_total'    => 'required'
-        ],[
-            // 'status_po.required' => 'Please Fill Status PO',
-            'reason_po.required' => 'Please Fill Reason PO',
-            'grand_total.required' => 'Grand Total is empty'
-        ]);
-
-        DB::beginTransaction();
-        try{
-            Tpo::whereId($id)->update($validatedData);
-
-            // $customers = MCustomer::select('code_cust','nama_cust')->where('id',$request->id_cust)->first();
-            // $code = $customers->code_cust;
-            // $name = $customers->nama_cust;
-            
-            $suppliers = MSupplier::select('code_spl','nama_spl')->where('id',$request->id_supplier)->first();
-            $code_spl = $suppliers->code_spl;
-            $name_spl = $suppliers->nama_spl;
-
-            $purchase_order = Tpo::select('id')->where('code_cust',$code)->latest()->first();
-            $id_po          = $purchase_order->id;
-            // dd($id_po);exit();
-
-            $dataUpdatePODetail = TPO_Detail::where('id_po',$id_po)->delete();
-            
-            $part_number = $request->part_number;
-
-            foreach($request->total_price as $key => $value){
-                $po_detail                  = new TPO_Detail;
-                $po_detail->id_po           = $id_po;
-                $po_detail->part_number     = $request->part_number[$key];
-                $po_detail->product_name    = $request->product_name[$key];
-                $po_detail->qty             = $request->qty[$key];
-                $po_detail->price           = $request->price[$key];
-                $po_detail->total_price     = $request->total_price[$key];
-                $purchase_order_dtl         = $po_detail->save();
-            }
-
-            $purchase_order_his = Hpo::create([
-                'id_po'              => $id_po,
-                'id_cust'            => /*$request->id_cust*/ 0,
-                'code_cust'          => '',
-                'nama_cust'          => '',
-                'code_spl'           => $code_spl,
-                'nama_spl'           => $nama_spl,
-                'no_po'              => $request->no_po,
-                'no_so'              => $request->no_so,
-                'tgl_po'             => $request->tgl_po,
-                'reason_po'          => $request->reason_po
-            ]);
-            DB::commit();
-        } catch (Exception $e) {
-            DB::rollback();
+        $po = Tpo::findOrFail($id);
+        $status = $po->status_po;
+    
+        // ===============================
+        // STATUS 3 = PARTIAL (LOCK TOTAL)
+        // ===============================
+        if ($status == 3) {
+            return redirect()
+                ->back()
+                ->with('error','PO sudah PARTIAL, tidak bisa diedit');
         }
-
-        return redirect('/purchase_order')->with('success', 'Purchase Order is successfully updated');
+    
+        DB::beginTransaction();
+        try {
+    
+            // ===============================
+            // UPDATE HEADER (STATUS 0 & 4)
+            // ===============================
+            if (in_array($status, [0,4])) {
+    
+                $request->validate([
+                    'id_supplier' => 'required',
+                    'tgl_po'      => 'required|date',
+                    'reason_po'   => 'required'
+                ]);
+    
+                $supplier = MSupplier::findOrFail($request->id_supplier);
+    
+                $po->update([
+                    'id_supplier' => $request->id_supplier,
+                    'code_spl'    => $supplier->code_spl,
+                    'nama_spl'    => $supplier->nama_spl,
+                    'tgl_po'      => $request->tgl_po,
+                    'reason_po'   => $request->reason_po,
+                ]);
+            }
+    
+            // ===============================
+            // UPDATE DETAIL (STATUS 0)
+            // ===============================
+            if ($status == 0) {
+    
+                $request->validate([
+                    'kode_barang.*' => 'required',
+                    'qty.*'         => 'required|integer|min:1'
+                ]);
+    
+                // hapus detail lama
+                Tpo_Detail::where('id_po', $po->id)->delete();
+    
+                foreach ($request->kode_barang as $i => $kode) {
+    
+                    $product = MProduct::where('kode_barang', $kode)->first();
+    
+                    Tpo_Detail::create([
+                        'id_po'        => $po->id,
+                        'part_number'  => $kode,
+                        'product_name' => $product->nama_barang ?? '',
+                        'qty'          => $request->qty[$i],
+                        'qty_extra'    => 0
+                    ]);
+                }
+            }
+    
+            // ===============================
+            // UPDATE QTY LEBIHAN (STATUS 2)
+            // ===============================
+            if ($status == 2) {
+    
+                $request->validate([
+                    'qty_extra.*' => 'nullable|integer|min:0'
+                ]);
+    
+                $details = Tpo_Detail::where('id_po', $po->id)->get();
+    
+                foreach ($details as $i => $dtl) {
+                    $dtl->update([
+                        'qty_extra' => $request->qty_extra[$i] ?? 0
+                    ]);
+                }
+            }
+    
+            // ===============================
+            // HISTORY
+            // ===============================
+            Hpo::create([
+                'id_po'     => $po->id,
+                'code_spl'  => $po->code_spl,
+                'nama_spl'  => $po->nama_spl,
+                'no_po'     => $po->no_po,
+                'tgl_po'    => $po->tgl_po,
+                'reason_po' => $po->reason_po,
+                'status_po' => $po->status_po
+            ]);
+    
+            DB::commit();
+    
+            return redirect()
+                ->route('purchase_order.index')
+                ->with('success','Purchase Order berhasil diupdate');
+    
+        } catch (\Exception $e) {
+            DB::rollBack();
+    
+            return redirect()
+                ->back()
+                ->with('error', $e->getMessage());
+        }
     }
 
     /**
@@ -536,76 +619,171 @@ class PurchaseOrderController extends Controller
         $range = $this->parseSequenceInput($seqText);
     
         $qrList = [];
-    
+        
         foreach ($range as $num) {
+
+            $seq = str_pad($num, 4, '0', STR_PAD_LEFT);
+            $conflict = $this->detectPrintedConflict($po->id, $detail->id, $seq);
+        
+            if ($conflict) {
+                return response()->json([
+                    'type' => 'SINGLE',
+                    'conflicts' => [$conflict]
+                ], 403);
+            }
+        
             $qrList[] = $this->createOrGetQR($po, $detail, $num);
         }
-    
+        
         return $this->printPDF($po, $qrList);
     }
     
     private function generateMultipleQR($po, $ids)
     {
-        $qrList = [];
-    
         foreach ($po->po_detail as $item) {
-    
+
             if (!in_array($item->id, $ids)) continue;
-    
+
             $existing = DB::table('tproduct_qr')
                 ->where('id_po', $po->id)
                 ->where('id_po_detail', $item->id)
-                ->orderBy('sequence_no')
-                ->pluck('sequence_no')
-                ->toArray();
-    
-            $usedNumbers = array_map('intval', $existing);
-    
-            $qty = intval($item->qty);
-            $nextSequence = count($usedNumbers) ? max($usedNumbers) + 1 : 1;
-    
-            for ($i = 1; $i <= $qty; $i++) {
-                $qrList[] = $this->createOrGetQR($po, $item, $nextSequence++);
+                ->first();
+
+            if ($existing) {
+                return response()->json([
+                    'message' => "Gagal print QR. Barang {$item->product_name} nomor {$existing->sequence_no} sudah pernah dicetak."
+                ], 409);
             }
         }
-    
+
+        // ===============================
+        // AMAN → GENERATE SEMUA
+        // ===============================
+        $qrList = [];
+
+        foreach ($po->po_detail as $item) {
+
+            if (!in_array($item->id, $ids)) continue;
+
+            for ($seq = 1; $seq <= intval($item->qty); $seq++) {
+                $qrList[] = $this->createOrGetQR($po, $item, $seq);
+            }
+        }
+
         return $this->printPDF($po, $qrList);
     }
     
     private function generateAllQR($po)
     {
+        $existing = DB::table('tproduct_qr')
+            ->where('id_po', $po->id)
+            ->orderBy('id_po_detail')
+            ->orderBy('sequence_no')
+            ->first();
+
+        // ❌ JIKA ADA SATU SAJA → GAGAL TOTAL
+        if ($existing) {
+            return response()->json([
+                'message' => "Gagal print QR. Barang sudah pernah dicetak (No {$existing->sequence_no})."
+            ], 409);
+        }
+
+        // ===============================
+        // BELUM ADA → PRINT SEMUA
+        // ===============================
         $qrList = [];
-    
+
         foreach ($po->po_detail as $item) {
-    
-            $existing = DB::table('tproduct_qr')
-                ->where('id_po', $po->id)
-                ->where('id_po_detail', $item->id)
-                ->orderBy('sequence_no')
-                ->pluck('sequence_no')
-                ->toArray();
-    
-            $usedNumbers = array_map('intval', $existing);
-    
-            $qty = intval($item->qty);
-            $nextSequence = count($usedNumbers) ? max($usedNumbers) + 1 : 1;
-    
-            for ($i = 1; $i <= $qty; $i++) {
-                $qrList[] = $this->createOrGetQR($po, $item, $nextSequence++);
+            for ($seq = 1; $seq <= intval($item->qty); $seq++) {
+                $qrList[] = $this->createOrGetQR($po, $item, $seq);
             }
         }
-    
+
         return $this->printPDF($po, $qrList);
     }
     
     private function printPDF($po, $qrList)
     {
-        $pdf = Pdf::loadView('pages.transaction.purchase_order.purchase_order_pdf', [
-            'po' => $po,
-            'qrList' => $qrList
-        ])->setPaper('A4', 'portrait');
+        if (!is_array($qrList) || count($qrList) === 0) {
+            abort(422, 'QR list kosong');
+        }
+        
+        /*
+        |--------------------------------------------------------------------------
+        | UKURAN LABEL (33 x 15 mm)
+        |--------------------------------------------------------------------------
+        | DomPDF menggunakan satuan POINT
+        | 1 mm = 2.83465 pt
+        */
+        $width  = 33 * 2.83465;
+        $height = 15 * 2.83465;
 
-        return $pdf->stream("QR_{$po->no_po}.pdf");
+        /*
+        |--------------------------------------------------------------------------
+        | GENERATE PDF
+        |--------------------------------------------------------------------------
+        | PDF adalah sumber kebenaran ukuran
+        | Browser tidak boleh override
+        */
+        $pdf = Pdf::loadView(
+            'pages.transaction.purchase_order.purchase_order_pdf',
+            [
+                'po'      => $po,
+                'qrList' => $qrList
+            ]
+        )->setPaper([0, 0, $width, $height], 'portrait');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | MODE AKTIF (WAJIB PRODUKSI)
+        |--------------------------------------------------------------------------
+        | Dibuka di NEW TAB sebagai PDF
+        | Print dilakukan dari PDF viewer
+        | Ukuran label PRESISI 33x15mm
+        */
+        return response($pdf->output(), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header(
+                'Content-Disposition',
+                'inline; filename="QR_'.$po->no_po.'.pdf"'
+            );
+
+        // $pdf = Pdf::loadView('pages.transaction.purchase_order.purchase_order_pdf', [
+        //     'po' => $po,
+        //     'qrList' => $qrList
+        // ])->setPaper('A4', 'portrait');
+
+        // return $pdf->stream("QR_{$po->no_po}.pdf");
+    }
+
+    private function detectPrintedConflict($poId, $detailId, $seq)
+    {
+        $qr = DB::table('tproduct_qr')
+            ->where([
+                'id_po'        => $poId,
+                'id_po_detail' => $detailId,
+                'sequence_no'  => $seq
+            ])->first();
+    
+        if (!$qr) return null;
+    
+        $approved = DB::table('tqr_reprint_request')
+            ->where([
+                'id_po'        => $poId,
+                'id_po_detail' => $detailId,
+                'sequence_no'  => $seq,
+                'status'       => 'APPROVED'
+            ])->exists();
+    
+        if ($approved) return null;
+    
+        return [
+            'id_product_qr' => $qr->id,
+            'id_product'    => $qr->id_product,
+            'product'       => $qr->nama_barang,
+            'sequence'      => $seq,
+        ];
     }
     
     private function parseSequenceInput(string $text): array
@@ -687,7 +865,7 @@ class PurchaseOrderController extends Controller
     {
         $seqStr = str_pad($seqNumber, 4, '0', STR_PAD_LEFT);
 
-        $qrValue = "PO" . str_pad($po->id, 4, '0', STR_PAD_LEFT)
+        $qrValue = $po->no_po
                 . "|" . $item->part_number
                 . "|" . $seqStr;
 
@@ -772,6 +950,155 @@ class PurchaseOrderController extends Controller
         ];
     }
 
+    public function listReprint()
+    {
+        return DB::table('tqr_reprint_request')
+            ->where('status','PENDING')
+            ->orderByDesc('requested_at')
+            ->get();
+    }
+
+    public function approveReprint(Request $r)
+    {
+        DB::table('tqr_reprint_request')
+            ->where('id',$r->id)
+            ->update([
+                'status'=>'APPROVED',
+                'approved_by'=>Auth::user()->username,
+                'approved_at'=>now()
+            ]);
+
+        return response()->json(['success'=>true]);
+    }
+
+    public function rejectReprint(Request $r)
+    {
+        DB::table('tqr_reprint_request')
+            ->where('id',$r->id)
+            ->update([
+                'status'=>'REJECTED',
+                'approved_by'=>Auth::user()->username,
+                'approved_at'=>now()
+            ]);
+
+        return response()->json(['success'=>true]);
+    }
+    
+    public function requestReprint(Request $r)
+    {
+        if (!is_array($r->items)) {
+            return response()->json(['message' => 'Invalid reprint payload'], 422);
+        }
+    
+        foreach ($r->items as $item) {
+    
+            // =========================
+            // Ambil id_product dari SKU
+            // =========================
+            $product = DB::table('mproduct')
+                ->where('kode_barang', $item['sku'])
+                ->first();
+    
+            if (!$product) {
+                return response()->json([
+                    'message' => 'Product tidak ditemukan untuk SKU '.$item['sku']
+                ], 422);
+            }
+    
+            // =========================
+            // Proses sequence_no
+            // =========================
+            $sequences = [];
+    
+            if (strpos($item['sequence'], '-') !== false) {
+                [$start, $end] = explode('-', $item['sequence']);
+                $start = intval($start);
+                $end   = intval($end);
+                for ($i = $start; $i <= $end; $i++) {
+                    $sequences[] = str_pad($i, 4, '0', STR_PAD_LEFT); // 0001, 0002
+                }
+            } elseif (strpos($item['sequence'], ',') !== false) {
+                $nums = explode(',', $item['sequence']);
+                foreach ($nums as $n) {
+                    $sequences[] = str_pad(intval($n), 4, '0', STR_PAD_LEFT);
+                }
+            } else {
+                $sequences[] = str_pad(intval($item['sequence']), 4, '0', STR_PAD_LEFT);
+            }
+    
+            // =========================
+            // Insert untuk setiap sequence
+            // =========================
+            foreach ($sequences as $seq_no) {
+                $productQr = DB::table('tproduct_qr')
+                    ->where('id_po', $r->id_po)
+                    ->where('id_po_detail', $item['id_po_detail'])
+                    ->where('id_product', $product->id) // pakai id_product dari mproduct
+                    ->where('sequence_no', $seq_no)
+                    ->first();
+    
+                if (!$productQr) {
+                    return response()->json([
+                        'message' => 'QR Product tidak ditemukan untuk SKU '.$item['sku'].' sequence '.$seq_no
+                    ], 422);
+                }
+    
+                DB::table('tqr_reprint_request')->insert([
+                    'id_po'         => $r->id_po,
+                    'id_po_detail'  => $item['id_po_detail'],
+                    'id_product'    => $product->id,
+                    'id_product_qr' => $productQr->id,
+                    'sequence_no'   => $seq_no,
+                    'reason'        => $r->reason,
+                    'status'        => 'PENDING',
+                    'requested_by'  => Auth::user()->username,
+                    'requested_at'  => now(),
+                ]);
+            }
+        }
+    
+        return response()->json(['success'=>true]);
+    }
+    
+    
+    // public function requestReprint(Request $r)
+    // {
+    //     foreach ($r->items as $item) {
+    //         DB::table('tqr_reprint_request')->insert([
+    //             'id_po'         => $r->id_po,
+    //             'id_po_detail'  => $item['id_po_detail'],
+    //             'id_product'    => $item['id_product'],
+    //             'id_product_qr' => $item['id_product_qr'],
+    //             'sequence_no'   => $item['sequence'],
+    //             'reason'        => $r->reason,
+    //             'status'        => 'PENDING',
+    //             'requested_by'  => Auth::user()->username,
+    //             'requested_at'  => now(),
+    //         ]);
+    //     }
+    
+    //     return response()->json(['success'=>true]);
+    // }
+
+    private function canPrintQR($poId, $detailId, $seq)
+    {
+        $printed = DB::table('tproduct_qr')
+            ->where('id_po', $poId)
+            ->where('id_po_detail', $detailId)
+            ->where('sequence_no', $seq)
+            ->exists();
+    
+        if (!$printed) return true;
+    
+        return DB::table('tqr_reprint_request')
+            ->where([
+                'id_po' => $poId,
+                'id_po_detail' => $detailId,
+                'sequence_no' => $seq,
+                'status' => 'APPROVED'
+            ])->exists();
+    }
+    
     // public function destroy($id)
     // {
     //     $courier = MCourier::findOrFail($id);

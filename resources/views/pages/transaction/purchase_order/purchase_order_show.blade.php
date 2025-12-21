@@ -43,7 +43,7 @@
                 disabled>
         </div>
 
-        <div class="mb-3">
+        {{-- <div class="mb-3">
             <label>Status</label>
             <select class="form-control form-control-sm" name="status_po" disabled>
                 @foreach($status_po as $k => $v)
@@ -52,7 +52,7 @@
                     </option>
                 @endforeach
             </select>
-        </div>
+        </div> --}}
 
         <div class="mb-3">
             <label>Note</label>
@@ -63,7 +63,7 @@
                 disabled>
         </div>
         
-        @if(!in_array($purchase_order->status_po, ['0', '1', '4']))
+        @if(!in_array($purchase_order->status_po, ['0']))
             <button type="button" class="btn btn-primary" id="btnPrintQR">
                 <i class="fas fa-print"></i> Print QR
             </button>
@@ -88,41 +88,79 @@
                         <th class="text-center">
                             <input type="checkbox" id="checkAll">
                         </th>
-                        <th class="text-center align-middle">Kode Barang</th>
+                        <th class="text-center align-middle">SKU</th>
+                        {{-- <th class="text-center align-middle">Kode Barang</th> --}}
                         <th class="text-center align-middle">Nama Barang</th>
-                        <th class="text-center align-middle">Qty</th>
+                        <th class="text-center align-middle">Qty Order</th>
+                        <th class="text-center align-middle">Qty Diterima</th>
+                        <th class="text-center align-middle">Qty Belum diterima</th>
                     </tr>
                 </thead>
-
                 <tbody id="append_akun">
                     @foreach($purchase_order_dtl as $val)
                     <tr class="row-akun">
+                    
                         <td class="text-center">
-                            <input type="checkbox" class="chkProduct" value="{{ $val->id }}" 
+                            <input type="checkbox"
+                                class="chkProduct"
+                                value="{{ $val->id }}"
                                 data-sku="{{ $val->part_number }}">
                         </td>
+                    
+                        {{-- SKU --}}
                         <td>
-                            <input type="text" class="form-control" disabled 
-                                value="{{ $val->part_number }}"/>
+                            <select class="form-control sku-select select2" disabled>
+                                <option value="">-- Pilih SKU --</option>
+                                <option value="{{ $val->part_number }}">
+                                    {{ $val->part_number }}
+                                </option>
+                            </select>
                         </td>
+                    
+                        {{-- Kode Barang --}}
+                        {{-- <td>
+                            <input type="text"
+                                class="form-control kode-barang"
+                                value="{{ $val->part_number }}"
+                                readonly>
+                        </td> --}}
+                    
+                        {{-- Nama Barang --}}
                         <td>
-                            <input type="text" class="form-control" disabled 
-                                value="{{ $val->product_name }}"/>
+                            <input type="text"
+                                class="form-control nama-barang"
+                                value="{{ $val->product_name }}"
+                                readonly>
                         </td>
+                    
+                        {{-- Qty --}}
                         <td>
-                            <input type="number" class="form-control text-right" disabled 
-                                value="{{ $val->qty }}">
+                            <input type="number"
+                                class="form-control text-right"
+                                value="{{ $val->qty }}"
+                                readonly>
+                        </td>
+                        
+                        {{-- Qty --}}
+                        <td>
+                            <input type="number"
+                                class="form-control text-right"
+                                value="{{ $val->qty_received }}"
+                                readonly>
                         </td>
 
-                        <!-- DINONAKTIFKAN -->
-                        <!--
-                        <td>...</td>
-                        <td>...</td>
-                        -->
+                        
+                        {{-- Qty --}}
+                        <td>
+                            <input type="number"
+                                class="form-control text-right"
+                                value="{{ $val->qty - $val->qty_received }}"
+                                readonly>
+                        </td>
+                    
                     </tr>
                     @endforeach
                 </tbody>
-
                 <tfoot>
                     <!-- DINONAKTIFKAN -->
                     <!--
@@ -163,180 +201,196 @@
 
 <script>
     $(document).ready(function(){
+    
+        /*
+        |--------------------------------------------------------------------------
+        | VARIABEL TAMBAHAN (REPRINT CONTEXT)
+        |--------------------------------------------------------------------------
+        | Dipakai hanya untuk request reprint
+        | Tidak mengganggu logic lama
+        */
+        let selectedDetailId = null;
+        let selectedSeq      = null;
+    
         const seqWrapper = $("#sequenceWrapper");
         const seqInput   = $("#selectedSequence");
+        
+        // ===================== INIT SKU SELECT =====================
+        $('.sku-select').each(function(){
+            const sku = $(this).find('option:eq(1)').val();
+
+            $(this)
+                .val(sku)
+                .trigger('change')
+                .select2({ width:'100%' });
+        });
 
         // ===================== CHECK ALL =====================
         $("#checkAll").on("change", function(){
             const checked = $(this).is(":checked");
-
             $(".chkProduct").prop("checked", checked);
-
-            if(checked){
-                hideSequence();
-            }
+            if(checked) hideSequence();
         });
-
+    
         // ===================== MANUAL CHECK =====================
         $(".chkProduct").on("change", function(){
-
             const total       = $(".chkProduct").length;
             const checkedList = $(".chkProduct:checked").length;
-
-            // auto uncheck checkAll
+    
             if(checkedList < total){
                 $("#checkAll").prop("checked", false);
             }
-
-            // show / hide nomor urut
+    
             if(checkedList === 1){
                 showSequence();
             } else {
                 hideSequence();
             }
-
-            // kalau semua dicentang manual
+    
             if(checkedList === total){
                 $("#checkAll").prop("checked", true);
                 hideSequence();
             }
         });
-
-        // ===================== PRINT QR =====================
+    
+        // ===================== PRINT QR (EXTENDED WITH REPRINT FLOW) =====================
         $("#btnPrintQR").on("click", function(){
+    
             const selected   = $(".chkProduct:checked");
             const totalItem  = $(".chkProduct").length;
             const isCheckAll = $("#checkAll").is(":checked") && selected.length === totalItem;
-
+    
             if(selected.length === 0){
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Oops',
-                    text: 'Pilih minimal 1 produk'
-                });
+                Swal.fire('Oops','Pilih minimal 1 produk','warning');
                 return;
             }
-
+    
+            let url = null;
+    
             // ===================== CHECK ALL =====================
             if(isCheckAll){
-                Swal.fire({
-                    title: 'Cetak QR Semua Produk?',
-                    text: 'QR akan digenerate untuk seluruh item dalam PO ini',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Ya, Cetak',
-                    cancelButtonText: 'Batal'
-                }).then((result) => {
-                    if(result.isConfirmed){
-                        printViaIframe(`/po/{{ $purchase_order->id }}/qr/pdf`);
-                    }
-                });
-                return;
+                url = `/po/{{ $purchase_order->id }}/qr/pdf`;
             }
-
+    
             // ===================== SINGLE =====================
-            if(selected.length === 1){
-
-                const idDetail = selected.val();
-                const seq = $("#selectedSequence").val();
-
-                if(!seq){
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Nomor urut wajib diisi',
-                        text: 'Silakan isi nomor urut terlebih dahulu'
-                    });
-                    $("#selectedSequence").focus();
+            else if(selected.length === 1){
+    
+                selectedDetailId = selected.val();   // 🔐 simpan context
+                selectedSeq      = seqInput.val();   // 🔐 simpan context
+    
+                if(!selectedSeq){
+                    Swal.fire('Wajib','Nomor urut harus diisi','warning');
                     return;
                 }
-
-                printViaIframe(
-                    `/po/{{ $purchase_order->id }}/qr/pdf?detail=${idDetail}&seq=${seq}`
-                );
-                return;
+    
+                url = `/po/{{ $purchase_order->id }}/qr/pdf?detail=${selectedDetailId}&seq=${selectedSeq}`;
             }
-
+    
             // ===================== MULTIPLE =====================
-            const ids = selected.map(function(){
-                return $(this).val();
-            }).get().join(",");
+            else {
+                const ids = selected.map(function(){
+                    return $(this).val();
+                }).get().join(",");
+    
+                url = `/po/{{ $purchase_order->id }}/qr/pdf?multi=${ids}`;
+            }
+    
+            $("#printLoading").css("display","flex");
+    
+            /*
+            |--------------------------------------------------------------------------
+            | AJAX PRINT
+            | Jika backend return 403 → trigger flow REPRINT
+            |--------------------------------------------------------------------------
+            */
+            $.ajax({
+                url: url,
+                method: 'GET',
+                xhrFields: { responseType: 'blob' },
+                success: function(blob){
+                    const fileURL = URL.createObjectURL(blob);
+                    window.open(fileURL, '_blank');
+                    $("#printLoading").hide();
+                },
+                error: function(xhr){
+                    $("#printLoading").hide();
+    
+                    if(xhr.status === 403){
+                        Swal.fire({
+                            title: 'QR Sudah Pernah Dicetak',
+                            text : 'Silakan isi alasan untuk reprint',
+                            icon : 'warning',
+                            input: 'textarea',
+                            inputPlaceholder: 'Contoh: QR rusak, label hilang, dll',
+                            inputAttributes: {
+                                'aria-label': 'Alasan Reprint'
+                            },
+                            showCancelButton: true,
+                            confirmButtonText: 'Ajukan Reprint',
+                            cancelButtonText: 'Batal',
+                            preConfirm: (reason) => {
+                                if (!reason) {
+                                    Swal.showValidationMessage('Alasan reprint wajib diisi');
+                                    return false;
+                                }
+                                return reason;
+                            }
+                        }).then((result) => {
 
-            Swal.fire({
-                title: 'Cetak QR Produk Terpilih?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Ya, Cetak',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if(result.isConfirmed){
-                    printViaIframe(
-                        `/po/{{ $purchase_order->id }}/qr/pdf?multi=${ids}`
-                    );
+                            if (!result.isConfirmed) return;
+
+                            $.post('/qr/reprint/request', {
+                                id_po  : {{ $purchase_order->id }},
+                                reason : result.value,
+                                _token       : '{{ csrf_token() }}',
+                                items  : selected.map(function(){
+                                    const productRow = $(this).closest('tr');
+                                    const sku = $(this).data('sku'); // ambil dari data-sku
+                                    const detailId = $(this).val();
+                                    const sequence_no = seqInput.val(); 
+
+                                    return {
+                                        id_po_detail: detailId,
+                                        sku: sku,                // kirim sku, bukan id_product
+                                        sequence: sequence_no
+                                    };
+                                }).get()
+                            })
+                            .done(() => {
+                                Swal.fire('Berhasil', 'Request reprint berhasil dikirim', 'success');
+                            })
+                            .fail(() => {
+                                Swal.fire('Error', 'Gagal mengirim request reprint', 'error');
+                            });
+                        });
+                    }
+
+                    // ===================== MULTIPLE / ALL =====================
+                    if (xhr.status === 409) {
+                        Swal.fire({
+                            title: 'Gagal Print QR',
+                            text : 'QR Code ada yang sudah terprint. Silakan ajukan request print per barang.',
+                            icon : 'error',
+                            confirmButtonText: 'OK'
+                        });
+
+                        return;
+                    }
                 }
             });
         });
-
-        // ===================== HELPER =====================
+    
+        // ===================== HELPER (EXISTING, TIDAK DIUBAH) =====================
         function showSequence(){
             seqWrapper.removeClass('d-none');
             seqInput.focus();
         }
-
+    
         function hideSequence(){
             seqWrapper.addClass('d-none');
             seqInput.val('');
         }
-
-        function printViaIframe(url){
-
-            const iframe = document.getElementById('printFrame');
-            const loading = document.getElementById('printLoading');
-
-            // reset iframe
-            iframe.src = '';
-            iframe.onload = null;
-
-            // show loading
-            loading.style.display = 'flex';
-
-            iframe.src = url;
-
-            iframe.onload = function(){
-
-                const win = iframe.contentWindow;
-
-                // kecilkan delay biar PDF ke-render dulu
-                setTimeout(function(){
-
-                    win.focus();
-                    win.print();
-
-                    // ===================== AUTO CLOSE =====================
-                    let closed = false;
-
-                    const cleanup = () => {
-                        if (closed) return;
-                        closed = true;
-
-                        loading.style.display = 'none';
-                        iframe.src = '';
-                        window.removeEventListener('focus', onFocusBack);
-                    };
-
-                    // Chrome / Edge / Firefox (user close print dialog)
-                    const onFocusBack = () => {
-                        setTimeout(cleanup, 300);
-                    };
-
-                    window.addEventListener('focus', onFocusBack);
-
-                    // fallback safety (kalau browser gak trigger focus)
-                    setTimeout(cleanup, 15000);
-
-                }, 600);
-            };
-        }
-
+    
     });
-    </script>
+</script> 
 @endsection

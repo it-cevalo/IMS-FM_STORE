@@ -16,25 +16,83 @@ class ProductInboundController extends Controller
     public function datatable()
     {
         $data = DB::table('tproduct_inbound as pi')
-            ->join('mproduct as p', 'p.id', '=', 'pi.id_product')
-            ->join('tpo_detail as pd', 'pd.id', '=', 'pi.id_po_detail')
             ->join('tpos as po', 'po.id', '=', 'pi.id_po')
             ->select(
-                'pi.id',
-                'pi.qr_code',
-                'p.SKU',
-                'p.nama_barang',
-                'pi.qty',
-                'pd.qty as po_qty',
-                'pd.qty_received',
-                'po.no_po',
-                'po.status_po',
-                'pi.created_at'
+                DB::raw('DATE(pi.received_at) as tgl_inbound'),
+                DB::raw('COUNT(pi.id) as total_barang'),
+                DB::raw('COUNT(DISTINCT pi.id_po) as jumlah_po'),
+                DB::raw('GROUP_CONCAT(DISTINCT po.no_po ORDER BY po.no_po SEPARATOR ", ") as daftar_po')
             )
-            ->orderByDesc('pi.id')
+            ->groupBy(DB::raw('DATE(pi.received_at)'))
+            ->orderByDesc('tgl_inbound')
+            ->get();
+    
+        return response()->json(['data' => $data]);
+    }
+    
+    // public function detail($tgl)
+    // {
+    //     $rows = DB::table('tproduct_inbound as pi')
+    //         ->join('mproduct as p', 'p.id', '=', 'pi.id_product')
+    //         ->join('tpo_detail as pd', 'pd.id', '=', 'pi.id_po_detail')
+    //         ->join('tpos as po', 'po.id', '=', 'pi.id_po')
+    //         ->whereDate('pi.received_at', $tgl)
+    //         ->select(
+    //             'pi.id',
+    //             'pi.qty',
+    //             'pi.id_product',
+    //             'pi.id_po',
+    //             'pi.id_po_detail',
+    //             'po.no_po',
+    //             'po.status_po',
+    //             'p.nama_barang',
+    //             'p.SKU'
+    //         )
+    //         ->orderBy('po.no_po')
+    //         ->get()
+    //         ->groupBy('id_po');
+
+    //     $warehouses = DB::table('m_warehouses')->get();
+
+    //     return view(
+    //         'pages.transaction.product_inbound.product_inbound_detail',
+    //         compact('rows', 'warehouses', 'tgl')
+    //     );
+    // }
+    public function detailByDate(Request $request, $tgl)
+    {
+        // ===============================
+        // WAREHOUSE
+        // ===============================
+        $warehouses = DB::table('m_warehouses')
+            ->orderBy('nama_wh')
             ->get();
 
-        return response()->json(['data' => $data]);
+        // ===============================
+        // INBOUND DATA (GROUP BY PO)
+        // ===============================
+        $rows = DB::table('tproduct_inbound as a')
+            ->join('tpos as po', 'a.id_po', '=', 'po.id')
+            ->join('mproduct as p', 'a.id_product', '=', 'p.id')
+            ->whereDate('a.received_at', $tgl)
+            ->select(
+                'a.id',
+                'a.id_po',
+                'po.no_po',
+                'a.qr_code',
+                'p.sku as SKU',
+                'p.nama_barang',
+                'a.qty'
+            )
+            ->orderBy('po.no_po')
+            ->get()
+            ->groupBy('id_po');
+
+        return view('pages.transaction.product_inbound.product_inbound_detail', compact(
+            'tgl',
+            'rows',
+            'warehouses'
+        ));
     }
     /**
      * EDIT
@@ -61,55 +119,85 @@ class ProductInboundController extends Controller
         return view('pages.transaction.product_inbound.product_inbound_edit', compact('inbound', 'warehouses'));
     }
     
-    public function confirm(Request $request, $id)
+    public function confirm(Request $request)
     {
+        $request->validate([
+            'id_warehouse' => 'required|integer',
+            'items'        => 'required|array|min:1'
+        ]);
+    
         DB::beginTransaction();
         try {
-
-            $inbound = DB::table('tproduct_inbound')->where('id', $id)->first();
-
-            /** 1️⃣ Update / Insert Stock Opname */
-            DB::table('t_stock_opname')->insert([
-                'id_warehouse' => $request->id_warehouse,
-                'id_product'   => $inbound->id_product,
-                'qty_in'       => $inbound->qty,
-                'qty_last'     => $inbound->qty,
-                'tgl_opname'   => now()->toDateString(),
-                'created_at'   => now(),
-            ]);
-
-            /** 2️⃣ Update qty_received di PO Detail */
-            DB::table('tpo_detail')
-                ->where('id', $inbound->id_po_detail)
-                ->increment('qty_received', $inbound->qty);
-
-            /** 3️⃣ Hitung Status PO */
-            $poDetails = DB::table('tpo_detail')
-                ->where('id_po', $inbound->id_po)
+    
+            /** Ambil semua inbound yang dipilih */
+            $inbounds = DB::table('tproduct_inbound')
+                ->whereIn('id', $request->items)
                 ->get();
-
-            $isComplete = true;
-
-            foreach ($poDetails as $d) {
-                if ($d->qty_received < $d->qty) {
-                    $isComplete = false;
-                    break;
-                }
+    
+            if ($inbounds->isEmpty()) {
+                throw new \Exception('Data inbound tidak ditemukan');
             }
-
-            DB::table('tpos')
-                ->where('id', $inbound->id_po)
-                ->update([
-                    'status_po'   => $isComplete ? 3 : 2,
-                    'updated_at'  => now()
+    
+            /** Simpan PO yang terlibat (biar update status 1x per PO) */
+            $poIds = [];
+    
+            foreach ($inbounds as $inbound) {
+    
+                /** 1️⃣ INSERT STOCK OPNAME */
+                DB::table('t_stock_opname')->insert([
+                    'id_warehouse' => $request->id_warehouse,
+                    'id_product'   => $inbound->id_product,
+                    'qty_in'       => $inbound->qty,
+                    'qty_last'     => $inbound->qty,
+                    'tgl_opname'   => now()->toDateString(),
+                    'created_at'   => now(),
                 ]);
-
+    
+                /** 2️⃣ UPDATE QTY RECEIVED PO DETAIL */
+                DB::table('tpo_detail')
+                    ->where('id', $inbound->id_po_detail)
+                    ->increment('qty_received', $inbound->qty);
+    
+                $poIds[] = $inbound->id_po;
+            }
+    
+            /** 3️⃣ UPDATE STATUS PO (PER PO, BUKAN PER ITEM) */
+            $poIds = array_unique($poIds);
+    
+            foreach ($poIds as $poId) {
+    
+                $details = DB::table('tpo_detail')
+                    ->where('id_po', $poId)
+                    ->get();
+    
+                $isComplete = true;
+    
+                foreach ($details as $d) {
+                    if ($d->qty_received < $d->qty) {
+                        $isComplete = false;
+                        break;
+                    }
+                }
+    
+                DB::table('tpos')
+                    ->where('id', $poId)
+                    ->update([
+                        'status_po'  => $isComplete ? 3 : 2, // 3 = COMPLETE, 2 = PROGRESS
+                        'updated_at' => now()
+                    ]);
+            }
+    
             DB::commit();
-            return response()->json(['message' => 'Inbound berhasil dikonfirmasi']);
-
+    
+            return response()->json([
+                'message' => 'Inbound berhasil dikonfirmasi'
+            ]);
+    
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => $e->getMessage()], 500);
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 500);
         }
-    }
+    }    
 }

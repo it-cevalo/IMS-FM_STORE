@@ -2,76 +2,99 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>QR Code PO</title>
+    <title>QR Label</title>
 
     <style>
-        @page { margin: 20px; }
+        @page {
+            size: 33mm 15mm;
+            margin: 0;
+        }
 
         body {
-            font-family: sans-serif;
-            font-size: 14px;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
         }
 
-        .page {
-            page-break-after: always;
-            padding: 20px;
-            border: 1px solid #ddd;
-        }
-
-        .qr-container {
-            display: flex;
-            align-items: center;
-            gap: 25px;
-        }
-
-        .qr-box img {
-            width: 180px;
-            height: 180px;
-            border: 1px solid #000;
-            padding: 5px;
-        }
-
-        .info-box {
-            font-size: 16px;
-            line-height: 1.5;
-        }
-
+        /* ================= LABEL ================= */
         .label {
-            font-weight: bold;
-            width: 130px;
-            display: inline-block;
+            position: relative;
+            width: 33mm;
+            height: 15mm;
+            overflow: hidden;
         }
 
-        .line {
-            display: flex;
+        /* ================= QR ================= */
+        .qr {
+            position: absolute;
+            top: 1mm;
+            left: 1mm;
+            width: 9mm;
+            height: 9mm;
+        }
+
+        .qr img {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* ================= TEXT ================= */
+        .name {
+            position: absolute;
+            top: 1.2mm;
+            left: 11.5mm;
+            right: 1mm;
+
+            font-size: 6px;
+            font-weight: bold;
+            line-height: 1; /* dari 1.05 → 1 */
+
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 🔽 AUTO SHRINK 10% */
+        .name.small {
+            font-size: 5.4px; /* 6px - 10% */
+        }
+
+        .seq {
+            position: absolute;
+            top: 5.4mm; /* 🔽 dinaikkan */
+            left: 11.5mm;
+
+            font-size: 5.5px;
+            line-height: 1;
+            white-space: nowrap;
         }
     </style>
 </head>
 <body>
 
-@foreach ($qrList as $i => $q)
+@foreach ($qrList as $q)
 
-<div class="page">
+    @php
+        // threshold aman utk 33mm label
+        $isLongName = mb_strlen($q['nama_barang']) > 22;
+    @endphp
 
-    <div class="qr-container">
-
-        <!-- QR CODE -->
-        <div class="qr-box">
+    <div class="label">
+        <div class="qr">
             <img src="data:image/png;base64, {!! base64_encode(
-                QrCode::size(500)->margin(1)->generate($q['qr_payload'])
+                QrCode::size(200)->margin(0)->generate($q['qr_payload'])
             ) !!}">
         </div>
 
-        <!-- INFO BARANG -->
-        <div class="info-box">
-            <div class="line"><span class="label">Nama Barang:</span> {{ $q['nama_barang'] }}</div>
-            <div class="line"><span class="label">Kode Barang:</span> {{ $q['kode_barang'] }}</div>
-            <div class="line"><span class="label">Nomor Urut:</span> {{ $q['nomor_urut'] }}</div>
+        <div class="name {{ $isLongName ? 'small' : '' }}">
+            {{ $q['nama_barang'] }}
         </div>
 
+        <div class="seq">
+            No: {{ $q['nomor_urut'] }}
+        </div>
     </div>
-
-</div>
 
 @endforeach
 
