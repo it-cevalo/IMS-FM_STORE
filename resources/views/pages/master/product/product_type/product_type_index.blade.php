@@ -50,5 +50,46 @@
         // Optional: auto hide alert after 5 seconds
         setTimeout(() => $('.alert').fadeOut(), 5000);
     });
+
+    $(document).on('click', '.btnDelete', function () {
+        let url = $(this).data('url');
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'This data will be permanently deleted!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: url,
+                    type: 'DELETE',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function (res) {
+                        Swal.fire(
+                            'Deleted!',
+                            res.message,
+                            'success'
+                        );
+
+                        $('#productTypeTable').DataTable().ajax.reload(null, false);
+                    },
+                    error: function (xhr) {
+                        Swal.fire(
+                            'Error!',
+                            xhr.responseJSON?.message || 'Something went wrong',
+                            'error'
+                        );
+                    }
+                });
+            }
+        });
+    });
 </script>
 @endsection

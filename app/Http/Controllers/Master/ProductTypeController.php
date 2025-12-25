@@ -28,15 +28,19 @@ class ProductTypeController extends Controller
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('action', function ($row) {
-                    $editUrl = route('product_type.edit', $row->id);
+                    $editUrl   = route('product_type.edit', $row->id);
                     $deleteUrl = route('product_type.destroy', $row->id);
-
+                
                     return '
-                        <form action="' . $deleteUrl . '" method="POST" class="formDelete" style="display:inline;">
-                            ' . csrf_field() . method_field('DELETE') . '
-                            <a href="' . $editUrl . '" class="btn btn-link btn-sm"><i class="fa fa-edit"></i></a>
-                            <button type="submit" class="btn btn-link text-danger"><i class="fa fa-trash"></i></button>
-                        </form>
+                        <a href="'.$editUrl.'" class="btn btn-link btn-sm">
+                            <i class="fa fa-edit"></i>
+                        </a>
+                        <button 
+                            type="button"
+                            class="btn btn-link text-danger btnDelete"
+                            data-url="'.$deleteUrl.'">
+                            <i class="fa fa-trash"></i>
+                        </button>
                     ';
                 })
                 ->rawColumns(['action'])
