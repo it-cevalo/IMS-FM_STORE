@@ -63,7 +63,6 @@
         </div>
     </div>
 </div>
-
 <script>
     function loadProductData() {
         $('#productTable').DataTable({
@@ -155,96 +154,4 @@
         });
     });
 </script>
-<script>
-    function loadProductData() {
-        $('#productTable').DataTable({
-            processing: true,
-            serverSide: true,
-            destroy: true,
-            ajax: '{{ route('product.data') }}',
-            columns: [
-                { data: 'DT_RowIndex', orderable: false },
-                { data: 'sku', name: 'sku' },
-                { data: 'nama_barang' },
-                { data: 'type' },
-                { data: 'uom' },
-                { data: 'flag_active' },
-                { data: 'action', orderable: false }
-            ]
-        });
-    }
-
-    $(document).ready(function () {
-        loadProductData();
-
-        // =========================
-        // AJAX IMPORT EXCEL
-        // =========================
-        $('#formImportExcel').on('submit', function (e) {
-            e.preventDefault();
-
-            let formData = new FormData(this);
-
-            Swal.fire({
-                title: 'Mengupload...',
-                text: 'Mohon tunggu, sistem sedang memproses file.',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-
-            $.ajax({
-                url: "{{ route('product.import') }}",
-                type: "POST",
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function (res) {
-
-                    // reload datatable
-                    $('#productTable').DataTable().ajax.reload(null, false);
-
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil!',
-                        text: res.message,
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        // =========================
-                        // AUTO CLOSE MODAL
-                        // =========================
-                        $('#modalImportExcel').modal('hide');
-                    });
-                },
-                error: function (xhr) {
-
-                    let msg = "Terjadi kesalahan saat import.";
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        msg = xhr.responseJSON.message;
-                    }
-
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Gagal!',
-                        text: msg
-                    });
-                }
-            });
-        });
-
-        // =========================
-        // RESET FORM SETELAH MODAL BENAR2 TERTUTUP
-        // =========================
-        $('#modalImportExcel').on('hidden.bs.modal', function () {
-            $('#formImportExcel')[0].reset();
-        });
-
-        // Auto hide alert
-        setTimeout(() => $('.alert').fadeOut(), 5000);
-        $('.alert button.close').on('click', function () {
-            $(this).closest('.alert').fadeOut();
-        });
-    });
-</script>
-
 @endsection

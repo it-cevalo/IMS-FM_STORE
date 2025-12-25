@@ -195,36 +195,68 @@ class ProductController extends Controller
             $rows = $sheet->toArray();
 
             DB::beginTransaction();
+
             $inserted = 0;
+            $duplicated = 0;
+            $errors = [];
 
             foreach ($rows as $index => $row) {
-                if ($index == 0) continue; // skip header
-                $SKU   = trim($row[0] ?? '');
-                $nama   = trim($row[1] ?? '');
-                // $SKU    = substr($kode, 4); // mulai dari index ke-4
+                if ($index === 0) continue; // skip header
 
-                // if ($SKU == '' || $nama == '') continue;
+                $rowNumber = $index + 1; // excel row number
+                $SKU  = trim($row[0] ?? '');
+                $nama = trim($row[1] ?? '');
 
-                // Cek duplikat
-                // $exists = Mproduct::where('sku', $SKU)->exists();
-                // if (!$exists) {
-                    Mproduct::create([
-                        'nama_barang'   => $nama,
-                        'id_unit'       => '1',
-                        'id_type'       => '1',
-                        'sku'           => $SKU,
-                        'flag_active'   => 'Y',
-                        'stock_minimum' => '1'
-                    ]);
-                    $inserted++;
-                // }
+                // =========================
+                // VALIDASI SKU WAJIB
+                // =========================
+                if ($SKU === '') {
+                    DB::rollBack();
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => "SKU wajib diisi. Cek baris ke-{$rowNumber}."
+                    ], 422);
+                }
+
+                // =========================
+                // CEK DUPLIKAT SKU
+                // =========================
+                $exists = Mproduct::where('sku', $SKU)->exists();
+                if ($exists) {
+                    $duplicated++;
+                    continue;
+                }
+
+                // =========================
+                // INSERT DATA
+                // =========================
+                Mproduct::create([
+                    'nama_barang'   => $nama,
+                    'id_unit'       => 1,
+                    'id_type'       => 1,
+                    'sku'           => $SKU,
+                    'flag_active'   => 'Y',
+                    'stock_minimum' => 1
+                ]);
+
+                $inserted++;
             }
 
             DB::commit();
 
+            // =========================
+            // RESPONSE SUKSES + INFO DUPLIKAT
+            // =========================
+            $msg = "Import selesai. {$inserted} produk berhasil ditambahkan.";
+            if ($duplicated > 0) {
+                $msg .= " {$duplicated} produk sudah terupload sebelumnya.";
+            }
+
             return response()->json([
                 'status' => 'success',
-                'message' => "Import berhasil. $inserted data Product ditambahkan."
+                'message' => $msg,
+                'inserted' => $inserted,
+                'duplicated' => $duplicated
             ]);
 
         } catch (\Exception $e) {
@@ -236,6 +268,7 @@ class ProductController extends Controller
             ], 500);
         }
     }
+
 
     /**
      * Display the specified resource.
