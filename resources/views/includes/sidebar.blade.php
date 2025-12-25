@@ -39,9 +39,9 @@
             <div class="bg-white py-2 collapse-inner rounded">
                 <a class="collapse-item" href="{{route('product_unit.index')}}">Unit of Measure (UOM)</a>
                 <a class="collapse-item" href="{{route('product_type.index')}}">Product Type</a>
-                <a class="collapse-item" href="{{route('sku.index')}}">SKU</a>
+                {{-- <a class="collapse-item" href="{{route('sku.index')}}">SKU</a> --}}
                 <a class="collapse-item" href="{{route('product.index')}}">Product</a>
-                {{-- <a class="collapse-item" href="{{route('customers.index')}}">Customer</a> --}}
+                <a class="collapse-item" href="{{route('customers.index')}}">Customer</a>
                 <a class="collapse-item" href="{{route('suppliers.index')}}">Supplier</a>
                 <a class="collapse-item" href="{{route('stores.index')}}">Store</a>
                 <a class="collapse-item" href="{{route('warehouses.index')}}">Warehouse</a>
@@ -71,6 +71,7 @@
                 <a class="collapse-item" href="{{route('purchase_order.index')}}">Purchase Order</a>
                 <a class="collapse-item" href="{{route('delivery_order.index')}}">Delivery Order</a>
                 <a class="collapse-item" href="{{route('product_inbound.index')}}">Barang Masuk</a>
+                <a class="collapse-item" href="{{route('product_outbound.index')}}">Barang Keluar</a>
                 <div class="collapse-divider"></div>
             </div>
         </div>

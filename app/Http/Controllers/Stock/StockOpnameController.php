@@ -44,7 +44,7 @@ class StockOpnameController extends Controller
                 ->addIndexColumn()
                 ->addColumn('warehouse_code', fn($row) => $row->warehouse->code_wh ?? '-')
                 ->addColumn('warehouse_name', fn($row) => $row->warehouse->nama_wh ?? '-')
-                ->addColumn('product_code', fn($row) => $row->product->kode_barang ?? '-')
+                ->addColumn('product_code', fn($row) => $row->product->sku ?? '-')
                 ->addColumn('product_name', fn($row) => $row->product->nama_barang ?? '-')
                 ->addColumn('qty_last', fn($row) => $row->qty_last)
                 ->addColumn('tgl_opname', fn($row) => $row->tgl_opname)

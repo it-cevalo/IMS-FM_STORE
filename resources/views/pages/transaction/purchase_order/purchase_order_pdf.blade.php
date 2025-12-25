@@ -42,17 +42,28 @@
         /* ================= TEXT ================= */
         .name {
             position: absolute;
-            top: 1.2mm;
+            top: 1.2mm;          /* jangan diubah (biar ga nyentuh QR) */
             left: 11.5mm;
             right: 1mm;
 
             font-size: 6px;
             font-weight: bold;
-            line-height: 1; /* dari 1.05 → 1 */
+            line-height: 1.05;
 
-            white-space: nowrap;
+            white-space: normal;
+            word-break: break-word;
+            max-height: 4mm;
             overflow: hidden;
-            text-overflow: ellipsis;
+        }
+        .sku {
+            position: absolute;
+            top: 5.0mm;          /* ⬆️ NAIK */
+            left: 11.5mm;
+            right: 1mm;
+
+            font-size: 5px;
+            line-height: 1;
+            white-space: nowrap;
         }
 
         /* 🔽 AUTO SHRINK 10% */
@@ -60,9 +71,18 @@
             font-size: 5.4px; /* 6px - 10% */
         }
 
+        /* .seq {
+            position: absolute;
+            top: 5.4mm;
+            left: 11.5mm;
+
+            font-size: 5.5px;
+            line-height: 1;
+            white-space: nowrap;
+        } */
         .seq {
             position: absolute;
-            top: 5.4mm; /* 🔽 dinaikkan */
+            top: 6.8mm;          /* 🔥 INI KUNCINYA */
             left: 11.5mm;
 
             font-size: 5.5px;
@@ -87,12 +107,16 @@
             ) !!}">
         </div>
 
-        <div class="name {{ $isLongName ? 'small' : '' }}">
+        <div class="name">
             {{ $q['nama_barang'] }}
         </div>
-
+        
+        <div class="sku">
+            {{ $q['sku'] }}
+        </div>
+        
         <div class="seq">
-            No: {{ $q['nomor_urut'] }}
+            {{ $q['nomor_urut'] }}
         </div>
     </div>
 

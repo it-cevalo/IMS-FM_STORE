@@ -83,12 +83,19 @@ class PurchaseOrderController extends Controller
                         title="Edit PO">
                         <i class="fa fa-edit"></i>
                         </a> ';
-                    $btn .= '<a href="'.route('purchase_order.reprint_list', $row->id).'" 
-                        class="btn btn-info btn-sm" 
-                        title="Request Reprint">
-                        <i class="fa fa-file-alt"></i>
-                        Reprint
-                    </a> ';
+                        
+                    $req = DB::table('tproduct_qr')
+                        ->where('id_po', $row->id)
+                        ->exists();
+                    
+                    if (!empty($row->confirm_by) && $req) {
+                        $btn .= '<a href="'.route('purchase_order.reprint_list', $row->id).'" 
+                            class="btn btn-info btn-sm" 
+                            title="Request Reprint">
+                            <i class="fa fa-file-alt"></i>
+                            Reprint
+                        </a> ';
+                    }
 
                     return $btn;
                 })
@@ -166,7 +173,7 @@ class PurchaseOrderController extends Controller
     {
         $customers = MCustomer::get();
         $suppliers = MSupplier::get();
-        $products  = Mproduct::select('id', 'kode_barang', 'nama_barang', 'harga_beli', 'sku')->whereNull('deleted_at')->get();
+        $products  = Mproduct::select('id', 'nama_barang', 'harga_beli', 'sku')->whereNull('deleted_at')->get();
 
         return view('pages.transaction.purchase_order.purchase_order_create', compact('customers', 'suppliers', 'products'));
     }
@@ -222,7 +229,7 @@ class PurchaseOrderController extends Controller
             //          'total_price'   => /*$request->total[$key]*/0
             //      ]);
             //  }
-            foreach($request->kode_barang as $key => $kode) {
+            foreach($request->sku as $key => $kode) {
                 TPO_Detail::create([
                     'id_po'         => $id_po,
                     'part_number'   => $kode,
@@ -876,16 +883,15 @@ class PurchaseOrderController extends Controller
                 . "|" . $item->part_number
                 . "|" . $seqStr;
 
-        // --- Ambil SKU ---
-        $kode_barang = explode('-', $item->part_number)[0];
+        $sku = $item->part_number;
         
         $id_product = DB::table('mproduct')
-                        ->where('kode_barang', $kode_barang)
+                        ->where('sku', $sku)
                         ->value('id');
                         
         $sku = DB::table('mproduct')
-        ->where('kode_barang', $kode_barang)
-        ->value('SKU');
+        ->where('sku', $sku)
+        ->value('sku');
 
         // ===========================
         // 1. CEK APAKAH QR SUDAH ADA
@@ -915,7 +921,7 @@ class PurchaseOrderController extends Controller
 
             return [
                 'nama_barang' => $item->product_name,
-                'kode_barang' => $item->part_number,
+                'sku' => $item->part_number,
                 'nomor_urut'  => $seqStr,
                 'qr_payload'  => $qrValue,
             ];
@@ -951,7 +957,7 @@ class PurchaseOrderController extends Controller
 
         return [
             'nama_barang' => $item->product_name,
-            'kode_barang' => $item->part_number,
+            'sku' => $item->part_number,
             'nomor_urut'  => $seqStr,
             'qr_payload'  => $qrValue,
         ];

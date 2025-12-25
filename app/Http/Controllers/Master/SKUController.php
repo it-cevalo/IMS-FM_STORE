@@ -132,7 +132,7 @@ class SKUController extends Controller
         $sheet->setTitle('Template SKU');
 
         // Header
-        $sheet->setCellValue('A1', 'Kode');
+        $sheet->setCellValue('A1', 'SKU');
         // $sheet->setCellValue('B1', 'Keterangan');
 
         // Style header

@@ -59,7 +59,6 @@
                 <thead>
                     <tr>
                         <th class="text-center">SKU</th>
-                        <th class="text-center">Kode Barang</th>
                         <th class="text-center">Nama Barang</th>
                         <th class="text-center">Qty</th>
                     </tr>
@@ -69,9 +68,6 @@
                         <tr>
                             <td>
                                 <input type="text" class="form-control" value="{{ $detail->SKU }}" disabled>
-                            </td>
-                            <td>
-                                <input type="text" class="form-control" value="{{ $detail->kode_barang }}" disabled>
                             </td>
                             <td>
                                 <input type="text" class="form-control" value="{{ $detail->nama_barang }}" disabled>

@@ -55,11 +55,10 @@
                     <thead>
                         <tr>
                             <th>SKU</th>
-                            <th>Kode Barang</th>
                             <th>Nama Barang</th>
                             <th>Qty</th>
                             <th>Qty Tersedia</th> <!-- kolom baru -->
-                            <th>
+                            <th style="width:60px" class="text-center align-middle">
                                 <a class="btn btn-primary btn-sm" id="addrow">
                                     <i class="fa fa-plus"></i>
                                 </a>
@@ -123,8 +122,8 @@ $(document).ready(function(){
         PRODUCTS.forEach(p => {
             if (!except.includes(p.SKU)) {
                 opt += `<option 
-                    value="${p.kode_barang}" 
-                    data-kode="${p.kode_barang}" 
+                    value="${p.sku}" 
+                    data-kode="${p.sku}" 
                     data-nama="${p.nama_barang}">${p.SKU}</option>`;
             }
         });
@@ -151,16 +150,17 @@ $(document).ready(function(){
 
         let row = `<tr>
             <td>
-                <select class="form-control select2 sku" name="kode_barang[]" required>
+                <select class="form-control select2 sku" name="sku[]" required>
                     ${getSkuOptions(usedSku)}
                 </select>
             </td>
-            <td><input type="text" class="form-control kode_barang" name="kode_barang_display[]" readonly></td>
             <td><input type="text" class="form-control nama_barang" name="nama_barang[]" readonly></td>
             <td><input type="number" class="form-control qty text-right" name="qty[]" min="1" required></td>
             <td><input type="number" class="form-control qty_tersedia text-right" readonly></td>
-            <td class="text-center">
-                <a class="btn btn-danger btn-sm btn-remove"><i class="fa fa-minus"></i></a>
+            <td class="text-center align-middle">
+                <a class="btn btn-danger btn-sm btn-remove">
+                    <i class="fa fa-minus"></i>
+                </a>
             </td>
         </tr>`;
 
@@ -173,14 +173,14 @@ $(document).ready(function(){
         let row = $(this).closest('tr');
         let opt = $(this).find(':selected');
         let kode = opt.data('kode') || '';
-        row.find('.kode_barang').val(kode);
+        row.find('.sku').val(kode);
         row.find('.nama_barang').val(opt.data('nama') || '');
         
         // Ambil qty tersedia via AJAX
         if(kode){
             $.ajax({
                 url: '/delivery-order/stock', // endpoint baru
-                data: { kode_barang: kode },
+                data: { sku: kode },
                 success: function(res){
                     row.find('.qty_tersedia').val(res.qty_tersedia || 0);
                 },

@@ -179,23 +179,78 @@ function approveDO(id, noDo) {
         cancelButtonText: 'Cancel',
         reverseButtons: true
     }).then((result) => {
+
         if (result.isConfirmed) {
-            $.get(
-                "{{ route('delivery_order.approve', ':id') }}".replace(':id', id),
-                function () {
-                    Swal.fire('Success', 'Delivery Order berhasil di-approve', 'success');
-                    $('#deliveryOrderTable').DataTable().ajax.reload(null, false);
+
+            // 🔄 Loading
+            Swal.fire({
+                title: 'Memproses...',
+                text: 'Mohon tunggu',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
                 }
-            ).fail(err => {
-                Swal.fire(
-                    'Error',
-                    err.responseJSON?.error || 'Approve gagal',
-                    'error'
-                );
+            });
+
+            $.ajax({
+                url: "{{ route('delivery_order.approve', ':id') }}".replace(':id', id),
+                type: 'POST',
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
+                success: function (res) {
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: res.message || 'Delivery Order berhasil di-approve'
+                    });
+
+                    $('#deliveryOrderTable')
+                        .DataTable()
+                        .ajax.reload(null, false);
+                },
+                error: function (xhr) {
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: xhr.responseJSON?.error || 'Approve gagal'
+                    });
+                }
             });
         }
     });
 }
+
+// function approveDO(id, noDo) {
+//     Swal.fire({
+//         title: 'Approve Delivery Order?',
+//         html: `<b>DO Number:</b> ${noDo}`,
+//         icon: 'warning',
+//         showCancelButton: true,
+//         confirmButtonText: 'Yes, Approve',
+//         cancelButtonText: 'Cancel',
+//         reverseButtons: true
+//     }).then((result) => {
+//         if (result.isConfirmed) {
+//             $.get(
+//                 "{{ route('delivery_order.approve', ':id') }}".replace(':id', id),
+//                 function () {
+//                     Swal.fire('Success', 'Delivery Order berhasil di-approve', 'success');
+//                     $('#deliveryOrderTable').DataTable().ajax.reload(null, false);
+//                 }
+//             ).fail(err => {
+//                 Swal.fire(
+//                     'Error',
+//                     err.responseJSON?.error || 'Approve gagal',
+//                     'error'
+//                 );
+//             });
+//         }
+//     });
+// }
 
 function deleteDO(id, noDo) {
     Swal.fire({

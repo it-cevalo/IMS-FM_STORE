@@ -71,7 +71,7 @@ class DeliveryOrderController extends Controller
                             class="btn btn-sm btn-danger"
                             onclick="deleteDO('.$d->id.', \''.$d->no_do.'\')"
                             title="Delete DO">
-                            <i class="fa fa-trash"></i>
+                            <i class="fa fa-times-circle"></i>
                         </button>
                     ';
                 }
@@ -180,7 +180,7 @@ class DeliveryOrderController extends Controller
     public function create()
     {
         $products = \DB::table('mproduct')
-            ->select(['SKU','kode_barang','nama_barang'])
+            ->select(['SKU','sku','nama_barang'])
             ->get();
 
         $shipping_via = ['....'=>'....','HANDCARRY'=>'HANDCARRY','EKSPEDISI'=>'EKSPEDISI'];
@@ -191,12 +191,12 @@ class DeliveryOrderController extends Controller
     // Endpoint AJAX untuk qty tersedia
     public function getStock(Request $request)
     {
-        $kode = $request->kode_barang;
+        $kode = $request->sku;
         // dd($kode);
 
         $stock = \DB::table('t_stock_opname as s')
             ->join('mproduct as p','p.id','=','s.id_product')
-            ->where('p.kode_barang',$kode)
+            ->where('p.sku',$kode)
             ->selectRaw('qty_last as qty_tersedia')
             ->first();
 
@@ -235,11 +235,11 @@ class DeliveryOrderController extends Controller
 
             // FIFO sequence untuk detail DO (format 1,2,3,...)
             $sequence = 1;
-            foreach($request->kode_barang as $i => $kode_barang){
+            foreach($request->sku as $i => $sku){
                 \DB::table('tdo_detail')->insert([
                     'id_do'         => $do->id,
                     'sku'           => $request->sku[$i] ?? '',
-                    'kode_barang'   => $kode_barang,
+                    'sku'   => $sku,
                     'qty'           => $request->qty[$i],
                     'seq'           => str_pad($sequence++, 4, '0', STR_PAD_LEFT), // 0001, 0002, 0003...
                     'created_at'    => now(),
@@ -264,56 +264,92 @@ class DeliveryOrderController extends Controller
     
     public function approve(Request $request, $id)
     {
-        $do = Tdo::with('do_detail')->find($id);
+        DB::beginTransaction();
     
-        if (!$do) {
-            return response()->json(['error' => 'Delivery Order tidak ditemukan'], 404);
-        }
+        try {
     
-        if ($do->flag_approve === 'Y') {
-            return response()->json(['error' => 'Delivery Order sudah di-approve'], 422);
-        }
+            $do = Tdo::with('do_detail')->find($id);
     
-        DB::transaction(function() use ($do) {
-            // 1. Update DO
+            if (!$do) {
+                return response()->json([
+                    'error' => 'Delivery Order tidak ditemukan'
+                ], 404);
+            }
+    
+            if ($do->flag_approve === 'Y') {
+                return response()->json([
+                    'error' => 'Delivery Order sudah di-approve'
+                ], 422);
+            }
+    
+            // 1. Update header DO
             $do->update([
-                'approve_by' => Auth::user()->username,
-                'approve_date' => now(),
-                'flag_approve' => 'Y',
+                'approve_by'   => Auth::user()->username,
+                'approve_date'=> now(),
+                'flag_approve'=> 'Y',
             ]);
     
-            // 2. Assign product QR ke DO berdasarkan id_product
+            // 2. Loop detail DO
             foreach ($do->do_detail as $detail) {
-                $qtyNeeded      = $detail->qty; // qty dari DO Detail
-                $product        = Mproduct::where('kode_barang',$detail->kode_barang)->first();
-                $idProduct      = $product->id;
-                $sequence_no    = str_pad( $detail->seq, 4, '0', STR_PAD_LEFT); // hasil: 0001
     
-                // 3. Ambil product QR berdasarkan FIFO per id_product
-                $productQRs = DB::table('tproduct_qr')
-                ->where('id_product', $idProduct)
-                ->where('sequence_no', $sequence_no)
-                ->get();
-
-                // dd($productQRs->count(). ' - '. $qtyNeeded);
-                
-                if ($productQRs->count() < $qtyNeeded) {
-                    throw new \Exception("Stock untuk product ID {$idProduct} tidak cukup.");
+                $qtyNeeded = (int) $detail->qty;
+    
+                $product = Mproduct::where('sku', $detail->sku)->first();
+    
+                if (!$product) {
+                    throw new \Exception("Product dengan kode {$detail->sku} tidak ditemukan.");
                 }
     
+                $idProduct   = $product->id;
+                $sequence_no = str_pad($detail->seq, 4, '0', STR_PAD_LEFT);
+    
+                // 3. Ambil QR FIFO (limit sesuai qty needed)
+                $productQRs = DB::table('tproduct_qr')
+                    ->where('id_product', $idProduct)
+                    ->where('sequence_no', $sequence_no)
+                    ->whereNull('id_do') // pastikan belum dipakai
+                    ->orderBy('id', 'asc')
+                    ->limit($qtyNeeded)
+                    ->get();
+    
+                $available = (int) $productQRs->count();
+    
+                if ($available < $qtyNeeded) {
+                    throw new \Exception(
+                        "Stock tidak cukup untuk produk {$detail->sku}. 
+                         Dibutuhkan {$qtyNeeded}, tersedia {$available}."
+                    );
+                }
+    
+                // 4. Assign QR ke DO
                 foreach ($productQRs as $qr) {
-                    DB::table('tproduct_qr')->where('id', $qr->id)->update([
-                        'id_do' => $do->id,
-                        'id_do_detail' => $detail->id,
-                        'used_for' => 'OUT',
-                        'out_at' => now(),
-                    ]);
+                    DB::table('tproduct_qr')
+                        ->where('id', $qr->id)
+                        ->update([
+                            'id_do'        => $do->id,
+                            'id_do_detail' => $detail->id,
+                            'used_for'     => 'OUT',
+                            'out_at'       => now(),
+                        ]);
                 }
             }
-        });
     
-        return response()->json(['success' => true]);
-    }
+            DB::commit();
+    
+            return response()->json([
+                'success' => true,
+                'message' => 'Delivery Order berhasil di-approve'
+            ]);
+    
+        } catch (\Throwable $e) {
+    
+            DB::rollBack();
+    
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }    
 
     // public function approve(Request $request, $id)
     // {
@@ -346,7 +382,7 @@ class DeliveryOrderController extends Controller
     //         'no_do'             => 'required|unique:tdos,no_do',
     //         'reason_do'         => 'required',
     //         'shipping_via'      => 'required',
-    //         'kode_barang'       => 'required|array',
+    //         'sku'       => 'required|array',
     //         'qty'               => 'required|array'
     //     ]);
     
@@ -365,12 +401,12 @@ class DeliveryOrderController extends Controller
     
     //         // FIFO sequence untuk detail DO (format 3 digit)
     //         $sequence = 1;
-    //         foreach($request->kode_barang as $i => $kode_barang){
+    //         foreach($request->sku as $i => $sku){
     //             Hdo::create([
     //                 'id_do'         => $do->id,
     //                 'no_do'         => $request->no_do,
     //                 'tgl_do'        => $request->tgl_do,
-    //                 'kode_barang'   => $kode_barang,
+    //                 'sku'   => $sku,
     //                 'reason_do'     => $request->reason_do,
     //                 'qty'           => $request->qty[$i],
     //                 'sequence'      => str_pad($sequence++, 4, '0', STR_PAD_LEFT) // 0001, 0002, 0003...
@@ -404,7 +440,7 @@ class DeliveryOrderController extends Controller
     
         $tdo_detail = \DB::table('tdo_detail as d')
         ->leftJoin('mproduct as p', function($join) {
-            $join->on(\DB::raw("d.kode_barang COLLATE utf8mb4_unicode_ci"), '=', 'p.kode_barang');
+            $join->on(\DB::raw("d.sku COLLATE utf8mb4_unicode_ci"), '=', 'p.sku');
         })
         ->where('d.id_do', $id)
         ->orderBy('d.seq', 'asc')
@@ -438,9 +474,9 @@ class DeliveryOrderController extends Controller
         $tdo_detail = DB::table('tdo_detail as d')
             ->leftJoin('mproduct as p', function($join) {
                 $join->on(
-                    DB::raw("d.kode_barang COLLATE utf8mb4_unicode_ci"),
+                    DB::raw("d.sku COLLATE utf8mb4_unicode_ci"),
                     '=',
-                    'p.kode_barang'
+                    'p.sku'
                 );
             })
             ->where('d.id_do', $id)
@@ -450,7 +486,7 @@ class DeliveryOrderController extends Controller
 
         // MASTER PRODUCT (untuk ganti product)
         $products = DB::table('mproduct')
-            ->select(['SKU','kode_barang','nama_barang'])
+            ->select(['SKU','sku','nama_barang'])
             ->get();
 
         $shipping_via = [
@@ -507,7 +543,7 @@ class DeliveryOrderController extends Controller
         $request->validate([
             'shipping_via' => 'required',
             'reason_do'    => 'required',
-            'kode_barang'  => 'required|array',
+            'sku'  => 'required|array',
             'qty'          => 'required|array'
         ]);
 
@@ -525,10 +561,10 @@ class DeliveryOrderController extends Controller
 
             // INSERT DETAIL BARU
             $seq = 1;
-            foreach ($request->kode_barang as $i => $kode) {
+            foreach ($request->sku as $i => $kode) {
                 DB::table('tdo_detail')->insert([
                     'id_do'       => $id,
-                    'kode_barang' => $kode,
+                    'sku' => $kode,
                     'qty'         => $request->qty[$i],
                     'seq'         => str_pad($seq++, 4, '0', STR_PAD_LEFT),
                     'created_at'  => now(),

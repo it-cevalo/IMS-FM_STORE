@@ -29,36 +29,37 @@ class ProductController extends Controller
     {
         if ($request->ajax()) {
             $query = Mproduct::with(['product_type', 'product_unit'])->select('mproduct.*');
-    
+
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('kode_barang', function ($row) {
-                    $baseUrl = config('app.url'); // from APP_URL in .env
-                    $url = $baseUrl . '/product/' . $row->id;
-    
-                    // clickable link to the product detail page
-                    return '<a href="' . $url . '" class="text-primary fw-bold">' . e($row->kode_barang) . '</a>';
+
+                // 👉 CODE = kode
+                ->addColumn('kode', function ($row) {
+                    $url = config('app.url') . '/product/' . $row->id;
+                    return '<a href="'.$url.'" class="text-primary fw-bold">'.$row->kode.'</a>';
                 })
+
+                // 👉 SKU = sku
+                ->addColumn('sku', fn($row) => $row->sku ?? '-')
                 ->addColumn('type', fn($row) => $row->product_type->nama_tipe ?? '-')
                 ->addColumn('uom', fn($row) => $row->product_unit->nama_unit ?? '-')
-                ->addColumn('action', function($row) {
+
+                ->addColumn('action', function ($row) {
                     $role = auth()->user()->position;
                     $btn = '';
-    
-                    // show edit button only for specific roles
+
                     if (in_array($role, ['MANAGER', 'SUPERADMIN', 'PURCHASING'])) {
-                        $btn .= '<a href="' . route('product.edit', $row->id) . '" class="btn btn-warning btn-sm">
+                        $btn .= '<a href="'.route('product.edit', $row->id).'" class="btn btn-warning btn-sm">
                                     <i class="fa fa-edit"></i>
                                  </a>';
                     }
-    
                     return $btn;
                 })
-                ->rawColumns(['kode_barang', 'action'])
+                ->rawColumns(['kode','action'])
                 ->make(true);
         }
-    
-        return abort(403, 'Unauthorized access.');
+
+        abort(403);
     }
     
     /**
@@ -84,8 +85,7 @@ class ProductController extends Controller
         try {
             // Validate user input
             $this->validate($request, [
-                'SKU'               => 'required',
-                'kode_barang'       => 'required|unique:mproduct,kode_barang',
+                'sku'               => 'required|unique:mproduct,sku',
                 'nama_barang'       => 'required',
                 'id_type'           => 'required',
                 'id_unit'           => 'required',
@@ -94,9 +94,8 @@ class ProductController extends Controller
                 'stock_minimum'     => 'required',
                 'flag_active'       => 'required'
             ],[
-                'SKU.required'              => 'Product SKU is required.',
-                'kode_barang.required'      => 'Product code is required.',
-                'kode_barang.unique'        => 'Product code already exists. Please use another code.',
+                'sku.required'              => 'SKU is required.',
+                'sku.unique'                => 'SKU already exists. Please use another code.',
                 'nama_barang.required'      => 'Product name is required.',
                 'id_type.required'          => 'Product type must be selected.',
                 'id_unit.required'          => 'Product unit must be selected.',
@@ -108,9 +107,8 @@ class ProductController extends Controller
 
             // Save product to the database
             $product = Mproduct::create([
-                'SKU'               => $request->SKU,
+                'sku'               => $request->SKU,
                 'nama_barang'       => $request->nama_barang,
-                'kode_barang'       => $request->kode_barang,
                 'id_type'           => $request->id_type,
                 'id_unit'           => $request->id_unit,
                 'harga_beli'        => $request->harga_beli,
@@ -162,7 +160,7 @@ class ProductController extends Controller
         $sheet->setTitle('Template Product');
 
         // Header
-        $sheet->setCellValue('A1', 'KODE BARANG');
+        $sheet->setCellValue('A1', 'SKU');
         $sheet->setCellValue('B1', 'NAMA PRODUK');
 
         // Style header
@@ -205,26 +203,25 @@ class ProductController extends Controller
 
             foreach ($rows as $index => $row) {
                 if ($index == 0) continue; // skip header
-                $kode   = trim($row[0] ?? '');
+                $SKU   = trim($row[0] ?? '');
                 $nama   = trim($row[1] ?? '');
-                $SKU    = substr($kode, 4); // mulai dari index ke-4
+                // $SKU    = substr($kode, 4); // mulai dari index ke-4
 
-                if ($kode == '' || $nama == '') continue;
+                // if ($SKU == '' || $nama == '') continue;
 
                 // Cek duplikat
-                $exists = Mproduct::where('kode_barang', $kode)->exists();
-                if (!$exists) {
+                // $exists = Mproduct::where('sku', $SKU)->exists();
+                // if (!$exists) {
                     Mproduct::create([
-                        'kode_barang'   => $kode,
                         'nama_barang'   => $nama,
                         'id_unit'       => '1',
                         'id_type'       => '1',
-                        'SKU'           => $SKU,
+                        'sku'           => $SKU,
                         'flag_active'   => 'Y',
                         'stock_minimum' => '1'
                     ]);
                     $inserted++;
-                }
+                // }
             }
 
             DB::commit();

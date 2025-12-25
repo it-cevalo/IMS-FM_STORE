@@ -256,7 +256,49 @@ $(document).ready(function() {
     window.rejectReq = function(id){
         $.post('/qr/reprint/reject', { id:id, _token:'{{ csrf_token() }}' }, loadReprintRequest);
     }
+    
+    window.confirmOrder = function (id, noPo) {
+        Swal.fire({
+            title: 'Konfirmasi Purchase Order',
+            html: `
+                <p>Apakah Anda yakin ingin <b>Confirm</b> PO berikut?</p>
+                <p><strong>PO Number:</strong> ${noPo}</p>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Confirm',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `{{ route('purchase_order.confirm', ':id') }}`.replace(':id', id),
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function (res) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: res.message || 'PO berhasil dikonfirmasi'
+                        });
 
+                        $('#purchaseOrderTable')
+                            .DataTable()
+                            .ajax.reload(null, false);
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: xhr.responseJSON?.message || 'Confirm PO gagal'
+                        });
+                    }
+                });
+            }
+        });
+    }
 });
 </script>
 @endsection

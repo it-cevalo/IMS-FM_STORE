@@ -24,7 +24,6 @@
                     <tr>
                         <th>No</th>
                         <th>SKU</th>
-                        <th>Code</th>
                         <th>Name</th>
                         <th>Type</th>
                         <th>UOM</th>
@@ -73,14 +72,13 @@
             destroy: true,
             ajax: '{{ route('product.data') }}',
             columns: [
-                { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                { data: 'SKU', name: 'SKU' },
-                { data: 'kode_barang', name: 'kode_barang' },
-                { data: 'nama_barang', name: 'nama_barang' },
-                { data: 'type', name: 'type' },
-                { data: 'uom', name: 'uom' },
-                { data: 'flag_active', name: 'flag_active' },
-                { data: 'action', name: 'action', orderable: false, searchable: false },
+                { data: 'DT_RowIndex', orderable: false },
+                { data: 'sku', name: 'sku' },       // ✅ SKU
+                { data: 'nama_barang' },
+                { data: 'type' },
+                { data: 'uom' },
+                { data: 'flag_active' },
+                { data: 'action', orderable: false }
             ]
         });
     }

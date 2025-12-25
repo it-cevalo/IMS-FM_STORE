@@ -47,11 +47,10 @@
                 <table class="table table-bordered">
                     <thead>
                         <tr>
-                            <th style="width:180px">SKU</th>
-                            <th>Kode Barang</th>
+                            <th>SKU</th>
                             <th>Nama Barang</th>
                             <th style="width:90px">Qty</th>
-                            <th>
+                            <th style="width:60px" class="text-center align-middle">
                                 <a class="btn btn-primary btn-sm" id="addrow">
                                     <i class="fa fa-plus"></i>
                                 </a>
@@ -83,9 +82,8 @@ $(document).ready(function(){
     const PRODUCTS = @json(
         $products->map(function($p){
             return [
-                'sku'         => $p->sku,
-                'kode_barang' => $p->kode_barang,
-                'nama'        => $p->nama_barang
+                'sku' => $p->sku,
+                'nama_barang' => $p->nama_barang
             ];
         })
     );
@@ -95,17 +93,19 @@ $(document).ready(function(){
     // ============================
     function getSkuOptions(except = []) {
         let opt = `<option value="">-- Pilih SKU --</option>`;
+
         PRODUCTS.forEach(p => {
             if (!except.includes(p.sku)) {
                 opt += `
                     <option 
-                        value="${p.kode_barang}"
-                        data-kode="${p.kode_barang}"
-                        data-nama="${p.nama}">
+                        value="${p.sku}"
+                        data-kode="${p.sku}"
+                        data-nama="${p.nama_barang}">
                         ${p.sku}
                     </option>`;
             }
         });
+
         return opt;
     }
 
@@ -115,34 +115,31 @@ $(document).ready(function(){
     $('#addrow').click(function(e){
         e.preventDefault();
 
-        let usedSku = [];
-        $('.sku').each(function(){
-            if ($(this).val()) usedSku.push($(this).val());
+        let usedKodeBarang = [];
+        $('.sku_select').each(function(){
+            if ($(this).val()) usedKodeBarang.push($(this).val());
         });
 
         let row = `
         <tr>
             <td>
-                <select class="form-control select2 sku" name="kode_barang[]" required>
-                    ${getSkuOptions(usedSku)}
+                <select class="form-control select2 sku_select" 
+                        name="sku[]" required>
+                    ${getSkuOptions(usedKodeBarang)}
                 </select>
             </td>
 
             <td>
-                <input type="text" class="form-control kode_barang" readonly>
-            </td>
-
-            <td>
                 <input type="text" class="form-control nama_barang" 
-                       name="nama_barang[]" readonly>
+                    name="nama_barang[]" readonly>
             </td>
 
             <td>
                 <input type="number" class="form-control qty text-right" 
-                       name="qty[]" min="1" required>
+                    name="qty[]" min="1" required>
             </td>
 
-            <td class="text-center">
+            <td class="text-center align-middle">
                 <a class="btn btn-danger btn-sm btn-remove">
                     <i class="fa fa-minus"></i>
                 </a>
@@ -156,11 +153,10 @@ $(document).ready(function(){
     // ============================
     // ON CHANGE SKU
     // ============================
-    $('#append_akun').on('change','.sku',function(){
+    $('#append_akun').on('change','.sku_select',function(){
         let row = $(this).closest('tr');
         let opt = $(this).find(':selected');
 
-        row.find('.kode_barang').val(opt.data('kode') || '');
         row.find('.nama_barang').val(opt.data('nama') || '');
 
         refreshSku();
@@ -171,11 +167,12 @@ $(document).ready(function(){
     // ============================
     function refreshSku(){
         let selected = [];
-        $('.sku').each(function(){
+
+        $('.sku_select').each(function(){
             if ($(this).val()) selected.push($(this).val());
         });
 
-        $('.sku').each(function(){
+        $('.sku_select').each(function(){
             let current = $(this).val();
             let except  = selected.filter(v => v !== current);
 

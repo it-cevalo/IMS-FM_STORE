@@ -38,6 +38,7 @@ use App\Http\Controllers\Transaction\DeliveryOrderController;
 use App\Http\Controllers\Transaction\DeliveryOrderTransferController;
 use App\Http\Controllers\Transaction\PaymentController;
 use App\Http\Controllers\Transaction\ProductInboundController;
+use App\Http\Controllers\Transaction\ProductOutboundController;
 
 /*
 |--------------------------------------------------------------------------
@@ -187,7 +188,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('delete-po/{purchase_order}', [PurchaseOrderController::class, 'delete'])->name('purchase_order.delete');
     Route::get('purchase_order/{purchase_order}/history', [PurchaseOrderController::class, 'history'])->name('purchase_order.history');
     Route::get('purchase_order/{purchase_order}/approve', [PurchaseOrderController::class, 'approve'])->name('purchase_order.approve');
-    Route::get('purchase_order/{purchase_order}/confirm', [PurchaseOrderController::class, 'confirm'])->name('purchase_order.confirm');
+    Route::post('purchase_order/{purchase_order}/confirm', [PurchaseOrderController::class, 'confirm'])->name('purchase_order.confirm');
     Route::get('purchase_order/download', [PurchaseOrderController::class, 'download'])->name('purchase_order.download');
     Route::post('purchase_order/upload', [PurchaseOrderController::class, 'upload'])->name('purchase_order.upload');
     Route::get('/po/{id}/qr/pdf', [PurchaseOrderController::class, 'generateQRPDF'])->name('purchase_order.print');
@@ -211,6 +212,18 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/product_inbound/{id}/edit', [ProductInboundController::class, 'edit'])->name('product_inbound.edit');    
     Route::get('/product_inbound/detail/{tgl}', [ProductInboundController::class, 'detailByDate'])->name('product_inbound.detail');
     Route::post('/product_inbound/confirm', [ProductInboundController::class, 'confirm'])->name('product_inbound.confirm');
+
+    /*
+    |--------------------------------------------------------------------------
+    | TRANSACTION - PRODUCT OUTBOND
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/product_outbound', [ProductOutboundController::class, 'index'])->name('product_outbound.index');
+    Route::get('/product_outbound/datatable', [ProductOutboundController::class, 'datatable'])->name('product_outbound.datatable');
+    Route::get('/product_outbound/{id}/edit', [ProductOutboundController::class, 'edit'])->name('product_outbound.edit');    
+    Route::get('/product_outbound/detail/{tgl}', [ProductOutboundController::class, 'detailByDate'])->name('product_outbound.detail');
+    Route::post('/product_outbound/confirm', [ProductOutboundController::class, 'confirm'])->name('product_outbound.confirm');
+
     /*
     |--------------------------------------------------------------------------
     | TRANSACTION - DELIVERY ORDER & TRANSFER
@@ -219,7 +232,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/delivery-order/data', [DeliveryOrderController::class, 'data'])->name('delivery_order.data');
     Route::get('/delivery-order/autogen', [DeliveryOrderController::class, 'autoGenerate'])->name('delivery_order.autoGenerate');
     Route::get('delivery_order/{delivery_order}/history', [DeliveryOrderController::class, 'history'])->name('delivery_order.history');
-    Route::get('delivery_order/{delivery_order}/approve', [DeliveryOrderController::class, 'approve'])->name('delivery_order.approve');
+    Route::post('delivery_order/{delivery_order}/approve', [DeliveryOrderController::class, 'approve'])->name('delivery_order.approve');
     Route::get('/cari', [DeliveryOrderController::class, 'search'])->name('delivery_order.search');
     Route::post('delivery_order/upload', [DeliveryOrderController::class, 'upload'])->name('delivery_order.upload');
     Route::post('delivery_order/uploadDO', [DeliveryOrderController::class, 'uploadDO'])->name('delivery_order.uploadDO');

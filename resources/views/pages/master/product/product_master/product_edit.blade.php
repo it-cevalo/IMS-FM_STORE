@@ -24,27 +24,12 @@
         <form id="formUpdate" action="{{ route('product.update', $products->id) }}" method="POST">
             @csrf
             {{ method_field('PUT') }}
-            <div class="mb-3">
-                <label for="SKU">SKU</label>
-                <input 
-                    type="text" 
-                    class="form-control" 
-                    id="SKU" 
-                    name="SKU" 
-                    value="{{ optional($msku->firstWhere('kode', $products->SKU))->nama ?? '' }} ({{ $products->SKU }})" 
-                    readonly
-                >
-            </div>
-            <div class="validation"></div>
-            @error('SKU')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
             
             {{-- Kode Barang (readonly) --}}
             <div class="mb-3">
-                <label for="kode_barang">Code</label>
-                <input class="form-control" id="kode_barang" name="kode_barang" type="text"
-                    value="{{ $products->kode_barang }}" readonly>
+                <label for="sku">SKU</label>
+                <input class="form-control" id="sku" name="sku" type="text"
+                    value="{{ $products->sku }}" readonly>
             </div>
             
             <div class="mb-3">
