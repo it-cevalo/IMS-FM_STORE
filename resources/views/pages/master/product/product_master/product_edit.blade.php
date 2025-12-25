@@ -29,7 +29,7 @@
             <div class="mb-3">
                 <label for="sku">SKU</label>
                 <input class="form-control" id="sku" name="sku" type="text"
-                    value="{{ $products->SKU }}" readonly>
+                    value="{{ $products->sku }}" readonly>
             </div>
             
             <div class="mb-3">

@@ -33,8 +33,8 @@ class ProductController extends Controller
             return DataTables::of($query)
             ->addIndexColumn()
 
-            ->editColumn('SKU', function ($row) {
-                return $row->SKU ?: '-';
+            ->editColumn('sku', function ($row) {
+                return $row->sku ?: '-';
             })
             ->addColumn('type', fn($row) => $row->product_type->nama_tipe ?? '-')
             ->addColumn('uom', fn($row) => $row->product_unit->nama_unit ?? '-')
@@ -98,7 +98,7 @@ class ProductController extends Controller
 
             // Save product to the database
             $product = Mproduct::create([
-                'sku'               => $request->SKU,
+                'sku'               => $request->sku,
                 'nama_barang'       => $request->nama_barang,
                 'id_type'           => $request->id_type,
                 'id_unit'           => $request->id_unit,

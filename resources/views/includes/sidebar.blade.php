@@ -70,8 +70,8 @@
             <div class="bg-white py-2 collapse-inner rounded">
                 <a class="collapse-item" href="{{route('purchase_order.index')}}">Purchase Order</a>
                 <a class="collapse-item" href="{{route('delivery_order.index')}}">Delivery Order</a>
-                <a class="collapse-item" href="{{route('product_inbound.index')}}">Barang Masuk</a>
-                <a class="collapse-item" href="{{route('product_outbound.index')}}">Barang Keluar</a>
+                <a class="collapse-item" href="{{route('product_inbound.index')}}">Scan Barang Masuk</a>
+                <a class="collapse-item" href="{{route('product_outbound.index')}}">Scan Barang Keluar</a>
                 <div class="collapse-divider"></div>
             </div>
         </div>

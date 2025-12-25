@@ -72,7 +72,7 @@
             ajax: '{{ route('product.data') }}',
             columns: [
                 { data: 'DT_RowIndex', orderable: false },
-                { data: 'SKU', name: 'SKU' },
+                { data: 'sku', name: 'sku' },
                 { data: 'nama_barang' },
                 { data: 'type' },
                 { data: 'uom' },
