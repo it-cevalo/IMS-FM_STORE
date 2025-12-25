@@ -31,32 +31,27 @@ class ProductController extends Controller
             $query = Mproduct::with(['product_type', 'product_unit'])->select('mproduct.*');
 
             return DataTables::of($query)
-                ->addIndexColumn()
+            ->addIndexColumn()
 
-                // 👉 CODE = kode
-                ->addColumn('kode', function ($row) {
-                    $url = config('app.url') . '/product/' . $row->id;
-                    return '<a href="'.$url.'" class="text-primary fw-bold">'.$row->kode.'</a>';
-                })
+            ->editColumn('sku', function ($row) {
+                return $row->sku ?: '-';
+            })
+            ->addColumn('type', fn($row) => $row->product_type->nama_tipe ?? '-')
+            ->addColumn('uom', fn($row) => $row->product_unit->nama_unit ?? '-')
 
-                // 👉 SKU = sku
-                ->addColumn('sku', fn($row) => $row->sku ?? '-')
-                ->addColumn('type', fn($row) => $row->product_type->nama_tipe ?? '-')
-                ->addColumn('uom', fn($row) => $row->product_unit->nama_unit ?? '-')
+            ->addColumn('action', function ($row) {
+                $role = auth()->user()->position;
+                $btn = '';
 
-                ->addColumn('action', function ($row) {
-                    $role = auth()->user()->position;
-                    $btn = '';
-
-                    if (in_array($role, ['MANAGER', 'SUPERADMIN', 'PURCHASING'])) {
-                        $btn .= '<a href="'.route('product.edit', $row->id).'" class="btn btn-warning btn-sm">
-                                    <i class="fa fa-edit"></i>
-                                 </a>';
-                    }
-                    return $btn;
-                })
-                ->rawColumns(['kode','action'])
-                ->make(true);
+                if (in_array($role, ['MANAGER', 'SUPERADMIN', 'PURCHASING'])) {
+                    $btn .= '<a href="'.route('product.edit', $row->id).'" class="btn btn-warning btn-sm">
+                                <i class="fa fa-edit"></i>
+                            </a>';
+                }
+                return $btn;
+            })
+            ->rawColumns(['action'])
+            ->make(true);
         }
 
         abort(403);
