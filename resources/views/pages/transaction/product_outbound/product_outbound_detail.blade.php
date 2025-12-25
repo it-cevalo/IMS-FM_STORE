@@ -6,12 +6,31 @@
 
         <h5 class="mb-3">Scan Barang Keluar - {{ $tgl }}</h5>
 
+        @php
+            // ===============================
+            // GLOBAL CHECK: APAKAH SEMUA OUTBOUND SUDAH SYNC
+            // ===============================
+            $totalAllItem = 0;
+            $doneAllItem  = 0;
+
+            foreach ($rows as $items) {
+                $totalAllItem += $items->count();
+                $doneAllItem  += $items->whereNotNull('sync_at')->count();
+            }
+
+            $allDone = $totalAllItem > 0 && $totalAllItem === $doneAllItem;
+        @endphp
+
         <!-- ACTION BAR -->
         <div class="row mb-3">
             <div class="col-md-12 text-right">
-                <button class="btn btn-success" id="btnConfirm">
-                    Confirm Selected
-                </button>
+
+                @if(!$allDone)
+                    <button class="btn btn-success" id="btnConfirm">
+                        Confirm Selected
+                    </button>
+                @endif
+
                 <a href="{{ route('product_outbound.index') }}" class="btn btn-dark">
                     Back
                 </a>
@@ -22,18 +41,34 @@
         <div id="accordion">
 
             @forelse($rows as $doId => $items)
-            <div class="card mb-2">
 
-                <div class="card-header d-flex align-items-center">
-                    <input type="checkbox" class="check-po mr-2">
+            @php
+                $isDoneDO = $items->whereNotNull('sync_at')->count() === $items->count();
+            @endphp
+
+            <div class="card mb-2 {{ $isDoneDO ? 'border-success' : '' }}">
+
+                <div class="card-header d-flex align-items-center
+                    {{ $isDoneDO ? 'bg-success text-white' : '' }}">
+
+                    <input type="checkbox"
+                           class="check-po mr-2"
+                           {{ $isDoneDO ? 'disabled' : '' }}>
 
                     <a data-toggle="collapse"
                        href="#do{{ $doId }}"
-                       class="text-dark">
+                       class="{{ $isDoneDO ? 'text-white' : 'text-dark' }}">
                         <b>{{ $items->first()->no_do }}</b>
-                        <span class="badge badge-info ml-2">
+
+                        <span class="badge {{ $isDoneDO ? 'badge-light' : 'badge-info' }} ml-2">
                             {{ $items->count() }} Item
                         </span>
+
+                        @if($isDoneDO)
+                            <span class="badge badge-dark ml-2">
+                                Sudah Sync
+                            </span>
+                        @endif
                     </a>
                 </div>
 
@@ -44,13 +79,20 @@
                         <div class="d-flex align-items-center border-bottom py-2">
                             <input type="checkbox"
                                    class="check-item mr-3"
-                                   value="{{ $item->id }}">
+                                   value="{{ $item->id }}"
+                                   {{ $item->sync_at ? 'disabled' : '' }}>
 
                             <div>
                                 <b>{{ $item->SKU }}</b>
                                 - {{ $item->nama_barang }}
                                 - {{ $item->qr_code }}<br>
                                 Qty: {{ $item->qty }}
+
+                                @if($item->sync_at)
+                                    <span class="badge badge-secondary ml-2">
+                                        Disinkron {{ $item->sync_by }}
+                                    </span>
+                                @endif
                             </div>
                         </div>
                         @endforeach
@@ -78,7 +120,7 @@ $(document).on('change', '.check-po', function () {
 
     $(this)
         .closest('.card')
-        .find('.check-item')
+        .find('.check-item:not(:disabled)')
         .prop('checked', isChecked);
 });
 
@@ -87,10 +129,10 @@ $(document).on('change', '.check-item', function () {
 
     let $card = $(this).closest('.card');
 
-    let totalItem   = $card.find('.check-item').length;
-    let checkedItem = $card.find('.check-item:checked').length;
+    let totalItem   = $card.find('.check-item:not(:disabled)').length;
+    let checkedItem = $card.find('.check-item:not(:disabled):checked').length;
 
-    if (totalItem === checkedItem) {
+    if (totalItem > 0 && totalItem === checkedItem) {
         $card.find('.check-po').prop('checked', true);
     } else {
         $card.find('.check-po').prop('checked', false);
@@ -100,7 +142,7 @@ $(document).on('change', '.check-item', function () {
 /** CONFIRM OUTBOUND */
 $('#btnConfirm').click(function () {
 
-    let items = $('.check-item:checked')
+    let items = $('.check-item:not(:disabled):checked')
         .map(function () { return $(this).val(); })
         .get();
 
@@ -117,18 +159,11 @@ $('#btnConfirm').click(function () {
     }).then(res => {
 
         if (res.isConfirmed) {
-            
-            // ===============================
-            // LOADING SWAL
-            // ===============================
+
             Swal.fire({
                 title: 'Memproses...',
-                text: 'Mohon tunggu',
                 allowOutsideClick: false,
-                allowEscapeKey: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
+                didOpen: () => Swal.showLoading()
             });
 
             $.post("{{ route('product_outbound.confirm') }}", {

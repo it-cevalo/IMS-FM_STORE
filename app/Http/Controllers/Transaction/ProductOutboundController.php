@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Transaction;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Auth, DB;
 
 class ProductOutboundController extends Controller
 {
@@ -46,6 +46,8 @@ class ProductOutboundController extends Controller
                 'd.no_do',
                 'a.qr_code',
                 'p.sku as SKU',
+                'a.sync_at',
+                'a.sync_by',
                 'p.nama_barang',
                 'a.qty'
             )
@@ -198,6 +200,15 @@ class ProductOutboundController extends Controller
                         'updated_at' => now(),
                     ]);
             }
+            // ===============================
+            // UPDATE OUTBOUND (SYNC INFO)
+            // ===============================
+            DB::table('tproduct_outbound')
+            ->whereIn('id', $request->items)
+            ->update([
+                'sync_at'   => now(),
+                'sync_by'   => Auth::user()->username,
+            ]);
 
             DB::commit();
 
@@ -212,4 +223,4 @@ class ProductOutboundController extends Controller
             ], 500);
         }
     }
-}    
+}
