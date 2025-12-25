@@ -83,6 +83,7 @@ class ProductInboundController extends Controller
             'a.id_warehouse',
             'p.sku as SKU',
             'p.nama_barang',
+            'a.received_at',
             'a.qty'
         )
         ->orderBy('po.no_po')

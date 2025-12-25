@@ -14,7 +14,6 @@
                 <tr>
                     <th>Tanggal Masuk</th>
                     <th class="text-center">Jumlah DO</th>
-                    <th>Daftar DO</th>
                     <th class="text-center">Total Barang</th>
                     <th class="text-center">Aksi</th>
                 </tr>
@@ -59,9 +58,6 @@ function loadOutboundTable() {
             { 
                 data: 'jumlah_do', 
                 className: 'text-center font-weight-bold' 
-            },
-            { 
-                data: 'daftar_do' 
             },
             { 
                 data: 'total_barang', 

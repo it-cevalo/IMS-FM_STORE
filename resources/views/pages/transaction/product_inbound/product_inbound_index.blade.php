@@ -14,7 +14,6 @@
                 <tr>
                     <th>Tanggal Masuk</th>
                     <th class="text-center">Jumlah PO</th>
-                    <th>Daftar PO</th>
                     <th class="text-center">Total Barang</th>
                     <th class="text-center">Aksi</th>
                 </tr>
@@ -59,9 +58,6 @@ function loadInboundTable() {
             { 
                 data: 'jumlah_po', 
                 className: 'text-center font-weight-bold' 
-            },
-            { 
-                data: 'daftar_po' 
             },
             { 
                 data: 'total_barang', 

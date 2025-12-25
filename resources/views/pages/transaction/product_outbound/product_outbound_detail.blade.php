@@ -86,7 +86,7 @@
                                 <b>{{ $item->SKU }}</b>
                                 - {{ $item->nama_barang }}
                                 - {{ $item->qr_code }}<br>
-                                Qty: {{ $item->qty }}
+                                Keluar: {{ $item->out_at }}
 
                                 @if($item->sync_at)
                                     <span class="badge badge-secondary ml-2">

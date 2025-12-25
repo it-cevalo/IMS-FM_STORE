@@ -105,7 +105,7 @@
                                 <b>{{ $item->SKU }}</b>
                                 - {{ $item->nama_barang }}
                                 - {{ $item->qr_code }}<br>
-                                Qty: {{ $item->qty }}
+                                Diterima: {{ $item->received_at }}
 
                                 @if($item->id_warehouse != 0)
                                     <span class="badge badge-secondary ml-2">
