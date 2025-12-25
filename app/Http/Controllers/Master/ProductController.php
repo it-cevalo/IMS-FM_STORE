@@ -33,8 +33,8 @@ class ProductController extends Controller
             return DataTables::of($query)
             ->addIndexColumn()
 
-            ->editColumn('sku', function ($row) {
-                return $row->sku ?: '-';
+            ->editColumn('SKU', function ($row) {
+                return $row->SKU ?: '-';
             })
             ->addColumn('type', fn($row) => $row->product_type->nama_tipe ?? '-')
             ->addColumn('uom', fn($row) => $row->product_unit->nama_unit ?? '-')
