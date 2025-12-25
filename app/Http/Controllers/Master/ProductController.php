@@ -89,8 +89,6 @@ class ProductController extends Controller
                 'nama_barang'       => 'required',
                 'id_type'           => 'required',
                 'id_unit'           => 'required',
-                'harga_beli'        => 'required',
-                'harga_jual'        => 'required',
                 'stock_minimum'     => 'required',
                 'flag_active'       => 'required'
             ],[
@@ -99,8 +97,6 @@ class ProductController extends Controller
                 'nama_barang.required'      => 'Product name is required.',
                 'id_type.required'          => 'Product type must be selected.',
                 'id_unit.required'          => 'Product unit must be selected.',
-                'harga_beli.required'       => 'Purchase price is required.',
-                'harga_jual.required'       => 'Selling price is required.',
                 'stock_minimum.required'    => 'Minimum stock is required.',
                 'flag_active.required'      => 'Active status must be selected.'
             ]);
@@ -111,8 +107,8 @@ class ProductController extends Controller
                 'nama_barang'       => $request->nama_barang,
                 'id_type'           => $request->id_type,
                 'id_unit'           => $request->id_unit,
-                'harga_beli'        => $request->harga_beli,
-                'harga_jual'        => $request->harga_jual,
+                'harga_beli'        => 0,
+                'harga_jual'        => 0,
                 'stock_minimum'     => $request->stock_minimum,
                 'harga_rata_rata'   => 0,
                 'flag_active'       => $request->flag_active
@@ -306,15 +302,11 @@ class ProductController extends Controller
             $this->validate($request, [
                 'id_type'           => 'required',
                 'id_unit'           => 'required',
-                'harga_beli'        => 'required',
-                'harga_jual'        => 'required',
                 'stock_minimum'     => 'required',
                 'flag_active'       => 'required'
             ], [
                 'id_type.required'          => 'Product type must be selected.',
                 'id_unit.required'          => 'Product unit must be selected.',
-                'harga_beli.required'       => 'Purchase price is required.',
-                'harga_jual.required'       => 'Selling price is required.',
                 'stock_minimum.required'    => 'Minimum stock is required.',
                 'flag_active.required'      => 'Active status must be selected.'
             ]);
@@ -324,8 +316,8 @@ class ProductController extends Controller
             $product->update([
                 'id_type'           => $request->id_type,
                 'id_unit'           => $request->id_unit,
-                'harga_beli'        => $request->harga_beli,
-                'harga_jual'        => $request->harga_jual,
+                'harga_beli'        => 0,
+                'harga_jual'        => 0,
                 'stock_minimum'     => $request->stock_minimum,
                 'flag_active'       => $request->flag_active
             ]);
