@@ -154,29 +154,65 @@ class ProductController extends Controller
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Template Product');
-
-        // Header
-        $sheet->setCellValue('A1', 'SKU');
-        $sheet->setCellValue('B1', 'NAMA PRODUK');
-
-        // Style header
+    
+        // =========================
+        // HEADER
+        // =========================
+        $headers = [
+            'A1' => 'SKU (WAJIB)',
+            'B1' => 'NAMA PRODUK (WAJIB)',
+            'C1' => 'TIPE PRODUK',
+            'D1' => 'UOM PRODUK',
+            'E1' => 'STOCK MINIMUM',
+            'F1' => 'STATUS AKTIF (Y/N)',
+        ];
+    
+        foreach ($headers as $cell => $text) {
+            $sheet->setCellValue($cell, $text);
+        }
+    
+        // =========================
+        // STYLE HEADER
+        // =========================
         $headerStyle = [
             'font' => ['bold' => true],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
-            'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
+                ]
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'EAF1FF']
+            ]
         ];
-        $sheet->getStyle('A1:B1')->applyFromArray($headerStyle);
+    
+        $sheet->getStyle('A1:F1')->applyFromArray($headerStyle);
+    
+        // =========================
+        // COLUMN WIDTH
+        // =========================
         $sheet->getColumnDimension('A')->setWidth(25);
         $sheet->getColumnDimension('B')->setWidth(40);
-
-        // Output file
+        $sheet->getColumnDimension('C')->setWidth(25);
+        $sheet->getColumnDimension('D')->setWidth(20);
+        $sheet->getColumnDimension('E')->setWidth(20);
+        $sheet->getColumnDimension('F')->setWidth(25);
+    
+        // =========================
+        // OUTPUT FILE
+        // =========================
         $writer = new Xlsx($spreadsheet);
         $filename = 'Template_Product.xlsx';
         $tempPath = storage_path('app/public/' . $filename);
         $writer->save($tempPath);
-
+    
         return response()->download($tempPath)->deleteFileAfterSend(true);
-    }
+    }    
 
     /**
      * Import data SKU dari file Excel
@@ -196,24 +232,28 @@ class ProductController extends Controller
 
             DB::beginTransaction();
 
-            $inserted = 0;
+            $inserted   = 0;
             $duplicated = 0;
-            $errors = [];
 
             foreach ($rows as $index => $row) {
                 if ($index === 0) continue; // skip header
 
-                $rowNumber = $index + 1; // excel row number
-                $SKU  = trim($row[0] ?? '');
-                $nama = trim($row[1] ?? '');
+                $rowNumber = $index + 1;
+
+                $SKU        = trim($row[0] ?? '');
+                $nama       = trim($row[1] ?? '');
+                $typeName   = trim($row[2] ?? '');
+                $unitName   = trim($row[3] ?? '');
+                $stockMin   = is_numeric($row[4] ?? null) ? $row[4] : 1;
+                $flagActive = strtoupper(trim($row[5] ?? 'Y'));
 
                 // =========================
-                // VALIDASI SKU WAJIB
+                // VALIDASI SKU
                 // =========================
                 if ($SKU === '') {
                     DB::rollBack();
                     return response()->json([
-                        'status' => 'error',
+                        'status'  => 'error',
                         'message' => "SKU wajib diisi. Cek baris ke-{$rowNumber}."
                     ], 422);
                 }
@@ -221,22 +261,45 @@ class ProductController extends Controller
                 // =========================
                 // CEK DUPLIKAT SKU
                 // =========================
-                $exists = Mproduct::where('sku', $SKU)->exists();
-                if ($exists) {
+                if (Mproduct::where('sku', $SKU)->exists()) {
                     $duplicated++;
                     continue;
                 }
 
                 // =========================
-                // INSERT DATA
+                // HANDLE PRODUCT TYPE
+                // =========================
+                $typeId = null;
+                if ($typeName !== '') {
+                    $type = MproductType::firstOrCreate(
+                        ['nama_tipe' => $typeName],
+                        ['created_at' => now(), 'updated_at' => now()]
+                    );
+                    $typeId = $type->id;
+                }
+
+                // =========================
+                // HANDLE PRODUCT UNIT
+                // =========================
+                $unitId = null;
+                if ($unitName !== '') {
+                    $unit = MproductUnit::firstOrCreate(
+                        ['nama_unit' => $unitName],
+                        ['created_at' => now(), 'updated_at' => now()]
+                    );
+                    $unitId = $unit->id;
+                }
+
+                // =========================
+                // INSERT PRODUCT
                 // =========================
                 Mproduct::create([
-                    'nama_barang'   => $nama,
-                    'id_unit'       => 1,
-                    'id_type'       => 1,
                     'sku'           => $SKU,
-                    'flag_active'   => 'Y',
-                    'stock_minimum' => 1
+                    'nama_barang'   => $nama,
+                    'id_type'       => $typeId,
+                    'id_unit'       => $unitId,
+                    'flag_active'   => in_array($flagActive, ['Y', 'N']) ? $flagActive : 'Y',
+                    'stock_minimum' => $stockMin,
                 ]);
 
                 $inserted++;
@@ -245,7 +308,7 @@ class ProductController extends Controller
             DB::commit();
 
             // =========================
-            // RESPONSE SUKSES + INFO DUPLIKAT
+            // RESPONSE
             // =========================
             $msg = "Import selesai. {$inserted} produk berhasil ditambahkan.";
             if ($duplicated > 0) {
@@ -253,18 +316,18 @@ class ProductController extends Controller
             }
 
             return response()->json([
-                'status' => 'success',
-                'message' => $msg,
-                'inserted' => $inserted,
+                'status'     => 'success',
+                'message'    => $msg,
+                'inserted'   => $inserted,
                 'duplicated' => $duplicated
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Terjadi kesalahan saat import data.',
-                'debug' => config('app.debug') ? $e->getMessage() : null
+                'debug'   => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
