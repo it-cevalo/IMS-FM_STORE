@@ -36,8 +36,8 @@
             background: #f0f0f0;
             text-align: center;
         }
-        .right {
-            text-align: right;
+        .center {
+            text-align: center;
         }
         .sign {
             width: 100%;
@@ -74,32 +74,13 @@
                         <td>Status</td>
                         <td>:
                             @switch($po->status_po)
-                                @case('0')
-                                    Created
-                                    @break
-                        
-                                @case('1')
-                                    Progress
-                                    @break
-                        
-                                @case('2')
-                                    Partial
-                                    @break
-                        
-                                @case('3')
-                                    Complete
-                                    @break
-                        
-                                @case('4')
-                                    Confirmed
-                                    @break
-                        
-                                @case('5')
-                                    Canceled
-                                    @break
-                        
-                                @default
-                                    Unknown
+                                @case('0') Created @break
+                                @case('1') Progress @break
+                                @case('2') Partial @break
+                                @case('3') Complete @break
+                                @case('4') Confirmed @break
+                                @case('5') Canceled @break
+                                @default Unknown
                             @endswitch
                         </td>
                     </tr>
@@ -112,30 +93,20 @@
         <thead>
             <tr>
                 <th width="5%">No</th>
-                <th width="20%">Kode Barang</th>
+                <th width="25%">Kode Barang</th>
                 <th>Nama Barang</th>
                 <th width="10%">Qty</th>
-                <th width="15%">Harga</th>
-                <th width="15%">Subtotal</th>
             </tr>
         </thead>
         <tbody>
             @foreach($details as $i => $row)
             <tr>
-                <td align="center">{{ $i + 1 }}</td>
+                <td class="center">{{ $i + 1 }}</td>
                 <td>{{ $row->part_number }}</td>
                 <td>{{ $row->product_name }}</td>
-                <td align="center">{{ $row->qty }}</td>
-                <td class="right">{{ number_format($row->price, 0, ',', '.') }}</td>
-                <td class="right">{{ number_format($row->total_price, 0, ',', '.') }}</td>
+                <td class="center">{{ $row->qty }}</td>
             </tr>
             @endforeach
-            <tr>
-                <td colspan="5" class="right"><strong>GRAND TOTAL</strong></td>
-                <td class="right">
-                    <strong>{{ number_format($po->grand_total, 0, ',', '.') }}</strong>
-                </td>
-            </tr>
         </tbody>
     </table>
 

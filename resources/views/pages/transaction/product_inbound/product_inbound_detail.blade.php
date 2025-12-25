@@ -6,7 +6,23 @@
 
         <h5 class="mb-3">Scan Barang Masuk - {{ $tgl }}</h5>
 
+        @php
+            // ===============================
+            // GLOBAL CHECK: APAKAH SEMUA ITEM SUDAH MASUK GUDANG
+            // ===============================
+            $totalAllItem = 0;
+            $doneAllItem  = 0;
+
+            foreach ($rows as $items) {
+                $totalAllItem += $items->count();
+                $doneAllItem  += $items->where('id_warehouse', '!=', 0)->count();
+            }
+
+            $allDone = $totalAllItem > 0 && $totalAllItem === $doneAllItem;
+        @endphp
+
         <!-- ACTION BAR -->
+        @if(!$allDone)
         <div class="row mb-3">
             <div class="col-md-4">
                 <select id="id_warehouse" class="form-control">
@@ -25,23 +41,53 @@
                 </a>
             </div>
         </div>
+        @else
+        <div class="alert alert-success d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fa fa-check-circle mr-2"></i>
+                <b>Semua barang inbound pada tanggal ini sudah masuk gudang.</b>
+            </div>
+            <a href="{{ route('product_inbound.index') }}" class="btn btn-dark btn-sm">
+                Back
+            </a>
+        </div>
+        @endif
 
         <!-- ACCORDION -->
         <div id="accordion">
 
             @forelse($rows as $poId => $items)
-            <div class="card mb-2">
 
-                <div class="card-header d-flex align-items-center">
-                    <input type="checkbox" class="check-po mr-2">
+            @php
+                // cek apakah SEMUA item di PO sudah masuk gudang
+                $totalItem = $items->count();
+                $doneItem  = $items->where('id_warehouse', '!=', 0)->count();
+                $isDonePO  = $totalItem === $doneItem;
+            @endphp
+
+            <div class="card mb-2 {{ $isDonePO ? 'border-success' : '' }}">
+
+                <div class="card-header d-flex align-items-center
+                    {{ $isDonePO ? 'bg-success text-white' : '' }}">
+
+                    <input type="checkbox"
+                           class="check-po mr-2"
+                           {{ $isDonePO ? 'disabled' : '' }}>
 
                     <a data-toggle="collapse"
                        href="#po{{ $poId }}"
-                       class="text-dark">
+                       class="{{ $isDonePO ? 'text-white' : 'text-dark' }}">
                         <b>{{ $items->first()->no_po }}</b>
-                        <span class="badge badge-info ml-2">
+
+                        <span class="badge {{ $isDonePO ? 'badge-light' : 'badge-info' }} ml-2">
                             {{ $items->count() }} Item
                         </span>
+
+                        @if($isDonePO)
+                            <span class="badge badge-dark ml-2">
+                                Sudah Masuk Gudang
+                            </span>
+                        @endif
                     </a>
                 </div>
 
@@ -52,11 +98,20 @@
                         <div class="d-flex align-items-center border-bottom py-2">
                             <input type="checkbox"
                                    class="check-item mr-3"
-                                   value="{{ $item->id }}">
+                                   value="{{ $item->id }}"
+                                   {{ $item->id_warehouse != 0 ? 'disabled' : '' }}>
 
                             <div>
-                                <b>{{ $item->SKU }}</b> - {{ $item->nama_barang }} - {{$item->qr_code}}<br>
+                                <b>{{ $item->SKU }}</b>
+                                - {{ $item->nama_barang }}
+                                - {{ $item->qr_code }}<br>
                                 Qty: {{ $item->qty }}
+
+                                @if($item->id_warehouse != 0)
+                                    <span class="badge badge-secondary ml-2">
+                                        Sudah masuk gudang
+                                    </span>
+                                @endif
                             </div>
                         </div>
                         @endforeach
@@ -78,13 +133,13 @@
 
 {{-- ================= JS ================= --}}
 <script>
-/** CHECK PO → CHECK ITEM */
+/** CHECK PO → CHECK ITEM (HANYA YANG TIDAK DISABLED) */
 $(document).on('change', '.check-po', function () {
     let isChecked = $(this).is(':checked');
 
     $(this)
         .closest('.card')
-        .find('.check-item')
+        .find('.check-item:not(:disabled)')
         .prop('checked', isChecked);
 });
 
@@ -93,15 +148,12 @@ $(document).on('change', '.check-item', function () {
 
     let $card = $(this).closest('.card');
 
-    let totalItem   = $card.find('.check-item').length;
-    let checkedItem = $card.find('.check-item:checked').length;
+    let totalItem   = $card.find('.check-item:not(:disabled)').length;
+    let checkedItem = $card.find('.check-item:not(:disabled):checked').length;
 
-    // jika SEMUA item tercentang → check-po ON
-    if (totalItem === checkedItem) {
+    if (totalItem > 0 && totalItem === checkedItem) {
         $card.find('.check-po').prop('checked', true);
-    } 
-    // jika ADA yang di-uncheck → check-po OFF
-    else {
+    } else {
         $card.find('.check-po').prop('checked', false);
     }
 });
@@ -109,7 +161,7 @@ $(document).on('change', '.check-item', function () {
 /** CONFIRM */
 $('#btnConfirm').click(function () {
 
-    let items = $('.check-item:checked')
+    let items = $('.check-item:not(:disabled):checked')
         .map(function () { return $(this).val(); })
         .get();
 

@@ -317,7 +317,7 @@ class PurchaseOrderController extends Controller
     {
         $purchase_order       = Tpo::findOrFail($id);
         $purchase_order_dtl   = Tpo_Detail::where('id_po',$id)->get();
-        $products  = Mproduct::select('id', 'kode_barang', 'nama_barang', 'harga_beli', 'sku')->whereNull('deleted_at')->get();
+        $products  = Mproduct::select('id', 'nama_barang', 'harga_beli', 'sku')->whereNull('deleted_at')->get();
 
         $customers = MCustomer::get();
         $suppliers = MSupplier::get();
@@ -438,16 +438,16 @@ class PurchaseOrderController extends Controller
             if ($status == 0) {
     
                 $request->validate([
-                    'kode_barang.*' => 'required',
+                    'sku.*' => 'required',
                     'qty.*'         => 'required|integer|min:1'
                 ]);
     
                 // hapus detail lama
                 Tpo_Detail::where('id_po', $po->id)->delete();
     
-                foreach ($request->kode_barang as $i => $kode) {
+                foreach ($request->sku as $i => $kode) {
     
-                    $product = MProduct::where('kode_barang', $kode)->first();
+                    $product = MProduct::where('sku', $kode)->first();
     
                     Tpo_Detail::create([
                         'id_po'        => $po->id,
@@ -1028,7 +1028,7 @@ class PurchaseOrderController extends Controller
             // Ambil id_product dari SKU
             // =========================
             $product = DB::table('mproduct')
-                ->where('kode_barang', $item['sku'])
+                ->where('sku', $item['sku'])
                 ->first();
     
             if (!$product) {

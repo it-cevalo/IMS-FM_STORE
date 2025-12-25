@@ -72,21 +72,22 @@ class ProductInboundController extends Controller
         // INBOUND DATA (GROUP BY PO)
         // ===============================
         $rows = DB::table('tproduct_inbound as a')
-            ->join('tpos as po', 'a.id_po', '=', 'po.id')
-            ->join('mproduct as p', 'a.id_product', '=', 'p.id')
-            ->whereDate('a.received_at', $tgl)
-            ->select(
-                'a.id',
-                'a.id_po',
-                'po.no_po',
-                'a.qr_code',
-                'p.sku as SKU',
-                'p.nama_barang',
-                'a.qty'
-            )
-            ->orderBy('po.no_po')
-            ->get()
-            ->groupBy('id_po');
+        ->join('tpos as po', 'a.id_po', '=', 'po.id')
+        ->join('mproduct as p', 'a.id_product', '=', 'p.id')
+        ->whereDate('a.received_at', $tgl)
+        ->select(
+            'a.id',
+            'a.id_po',
+            'po.no_po',
+            'a.qr_code',
+            'a.id_warehouse',
+            'p.sku as SKU',
+            'p.nama_barang',
+            'a.qty'
+        )
+        ->orderBy('po.no_po')
+        ->get()
+        ->groupBy('id_po');
 
         return view('pages.transaction.product_inbound.product_inbound_detail', compact(
             'tgl',
@@ -94,6 +95,7 @@ class ProductInboundController extends Controller
             'warehouses'
         ));
     }
+    
     /**
      * EDIT
      */
@@ -183,6 +185,20 @@ class ProductInboundController extends Controller
                     'tgl_opname'   => now()->toDateString(),
                     'created_at'   => now(),
                 ]);
+
+                DB::table('tproduct_qr as qr')
+                ->join('tproduct_inbound as i', function ($join) {
+                    $join->on(
+                        DB::raw('i.qr_code COLLATE utf8mb4_unicode_ci'),
+                        '=',
+                        DB::raw('qr.qr_code COLLATE utf8mb4_unicode_ci')
+                    );
+                })
+                ->whereIn('i.id', $request->items)
+                ->where('i.id_product', $product['id_product'])
+                ->update([
+                    'i.id_warehouse' => $request->id_warehouse
+                ]);            
     
                 // Update qty_received untuk semua po_detail terkait
                 DB::table('tpo_detail')
