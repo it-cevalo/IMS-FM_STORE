@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Product Type</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Master Data Product</h6>
     </div>
     <div class="card-body">
         @if(\Session::has('error'))
@@ -29,7 +29,7 @@
             <div class="mb-3">
                 <label for="sku">SKU</label>
                 <input class="form-control" id="sku" name="sku" type="text"
-                    value="{{ $products->sku }}" readonly>
+                    value="{{ $products->SKU }}" readonly>
             </div>
             
             <div class="mb-3">
