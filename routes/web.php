@@ -193,6 +193,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('purchase_order/upload', [PurchaseOrderController::class, 'upload'])->name('purchase_order.upload');
     Route::get('/po/{id}/qr/pdf', [PurchaseOrderController::class, 'generateQRPDF'])->name('purchase_order.print');
     Route::post('/purchase_order/{id}/qr/custom-print', [PurchaseOrderController::class, 'generateQRSelected'])->name('purchase_order.custom_print');
+    Route::get('/purchase_order/list-existing', [PurchaseOrderController::class, 'listExistingPO'])->name('purchase_order.list_existing');
     Route::resource('purchase_order', PurchaseOrderController::class);
     Route::get('/purchase_order/{id}/print', [PurchaseOrderController::class, 'printPO'])->name('purchase_order.print_po');
     Route::get('/qr/sequence/{id}', [PurchaseOrderController::class, 'getSequence'])->name('qr.sequence');

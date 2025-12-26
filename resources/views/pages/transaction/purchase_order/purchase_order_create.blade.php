@@ -29,6 +29,29 @@
                 <input type="date" class="form-control" name="tgl_po" required>
             </div>
 
+            <div class="mb-3">
+                <label>Jenis PO *</label><br>
+            
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input po-type" type="radio" 
+                           name="po_type" value="baru" checked>
+                    <label class="form-check-label">Baru</label>
+                </div>
+            
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input po-type" type="radio" 
+                           name="po_type" value="tambahan">
+                    <label class="form-check-label">Tambahan</label>
+                </div>
+            </div>
+
+            <div class="mb-3 d-none" id="basePoWrapper">
+                <label>Pilih PO Tambahan *</label>
+                <select class="form-control select2" name="base_po_id" id="base_po_select">
+                    <option value="">-- Pilih PO --</option>
+                </select>
+            </div>            
+
             {{-- Nomor PO --}}
             <div class="mb-3">
                 <label>PO Number *</label>
@@ -189,6 +212,45 @@ $(document).ready(function(){
         e.preventDefault();
         $(this).closest('tr').remove();
         refreshSku();
+    });
+
+    function loadExistingPO() {
+        $.get("{{ route('purchase_order.list_existing') }}", function(res){
+            let opt = `<option value="">-- Pilih PO --</option>`;
+            res.forEach(po => {
+                opt += `<option value="${po.id}" data-no="${po.no_po}">
+                            ${po.no_po}
+                        </option>`;
+            });
+            $('#base_po_select').html(opt).select2({ width:'100%' });
+        });
+    }
+
+    // ===============================
+    // TOGGLE PO TYPE
+    // ===============================
+    $('.po-type').change(function(){
+        const type = $(this).val();
+
+        if (type === 'tambahan') {
+            $('#basePoWrapper').removeClass('d-none');
+            loadExistingPO();
+            $('input[name="no_po"]').prop('readonly', true);
+        } else {
+            $('#basePoWrapper').addClass('d-none');
+            $('#base_po_select').val(null).trigger('change');
+            $('input[name="no_po"]').prop('readonly', false).val('');
+        }
+    });
+
+    // ===============================
+    // SET PREFIX T-
+    // ===============================
+    $('#base_po_select').on('change', function(){
+        let noPo = $(this).find(':selected').data('no');
+        if (noPo) {
+            $('input[name="no_po"]').val('T-' + noPo);
+        }
     });
 
     // ============================

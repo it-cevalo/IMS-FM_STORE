@@ -177,7 +177,15 @@ class PurchaseOrderController extends Controller
 
         return view('pages.transaction.purchase_order.purchase_order_create', compact('customers', 'suppliers', 'products'));
     }
-
+    
+    public function listExistingPO()
+    {
+        return Tpo::select('id', 'no_po')
+            ->where('status_po', '!=', 5) // exclude canceled
+            ->orderByDesc('tgl_po')
+            ->get();
+    }
+    
     /**
      * Store a newly created resource in storage.
      *
@@ -185,87 +193,110 @@ class PurchaseOrderController extends Controller
      * @return \Illuminate\Http\Response
      */
     
-     public function store(Request $request)
-     {
-         try {
-             $this->validate($request, [
-                 'id_supplier'   => 'required',
-                 'no_po'         => 'required',
-                 'tgl_po'        => 'required',
-                 'reason_po'     => 'required'
-             ]);
-     
-             $supplier = MSupplier::select('code_spl','nama_spl')
-                 ->where('id', $request->id_supplier)
-                 ->first();
-     
-             $purchase_order = Tpo::create([
-                 'id_cust'       => 0,
-                 'id_supplier'   => $request->id_supplier,
-                 'code_cust'     => '',
-                 'nama_cust'     => '',
-                 'code_spl'      => $supplier->code_spl ?? '',
-                 'nama_spl'      => $supplier->nama_spl ?? '',
-                 'no_po'         => $request->no_po,
-                 'no_so'         => 0,
-                 'tgl_po'        => $request->tgl_po,
-                 'status_po'     => '0',
-                 'reason_po'     => $request->reason_po,
-                 'grand_total'   => 0,
-                 'flag_approve'  => 'N',
-                 'approve_date'  => '1970-01-01',
-                 'approve_by'    => ''
-             ]);
-             $id_po = $purchase_order->id;
-     
-             // Detail PO
-            //  foreach($request->total as $key => $value) {
-            //      TPO_Detail::create([
-            //          'id_po'         => $id_po,
-            //          'part_number'   => $request->kode_barang[$key],
-            //          'product_name'  => $request->nama_barang[$key],
-            //          'qty'           => $request->qty[$key],
-            //          'price'         => /*$request->harga[$key]*/0,
-            //          'total_price'   => /*$request->total[$key]*/0
-            //      ]);
-            //  }
-            foreach($request->sku as $key => $kode) {
-                TPO_Detail::create([
-                    'id_po'         => $id_po,
-                    'part_number'   => $kode,
-                    'product_name'  => $request->nama_barang[$key],
-                    'qty'           => $request->qty[$key],
-                    'price'         => 0,
-                    'total_price'   => 0
+    public function store(Request $request)
+    {
+        try {
+            $this->validate($request, [
+                'id_supplier' => 'required',
+                'tgl_po'      => 'required|date',
+                'reason_po'   => 'required',
+                'po_type'     => 'required|in:baru,tambahan',
+                'no_po'       => 'required'
+            ]);
+
+            DB::beginTransaction();
+
+            // ===============================
+            // SUPPLIER
+            // ===============================
+            $supplier = MSupplier::select('code_spl','nama_spl')
+                ->where('id', $request->id_supplier)
+                ->first();
+
+            if (!$supplier) {
+                throw new \Exception('Supplier tidak ditemukan');
+            }
+
+            // ===============================
+            // NO PO HANDLING
+            // ===============================
+            $finalNoPo = $request->no_po;
+
+            if ($request->po_type === 'tambahan') {
+                if (!$request->base_po_id) {
+                    throw new \Exception('PO asal wajib dipilih');
+                }
+
+                $basePo = Tpo::findOrFail($request->base_po_id);
+
+                // prefix T-
+                $finalNoPo = 'T-' . $basePo->no_po;
+            }
+
+            // ===============================
+            // CREATE PO (SELALU BARU)
+            // ===============================
+            $purchase_order = Tpo::create([
+                'id_cust'       => 0,
+                'id_supplier'   => $request->id_supplier,
+                'code_cust'     => '',
+                'nama_cust'     => '',
+                'code_spl'      => $supplier->code_spl,
+                'nama_spl'      => $supplier->nama_spl,
+                'no_po'         => $finalNoPo,
+                'no_so'         => 0,
+                'tgl_po'        => $request->tgl_po,
+                'status_po'     => 0,
+                'reason_po'     => $request->reason_po,
+                'grand_total'   => 0,
+                'flag_approve'  => 'N',
+                'approve_date'  => '1970-01-01',
+                'approve_by'    => '',
+                'parent_po_id'  => $request->po_type === 'tambahan' ? $request->base_po_id : null
+            ]);
+
+            // ===============================
+            // DETAIL
+            // ===============================
+            foreach ($request->sku as $i => $sku) {
+                Tpo_Detail::create([
+                    'id_po'        => $purchase_order->id,
+                    'part_number'  => $sku,
+                    'product_name' => $request->nama_barang[$i],
+                    'qty'          => $request->qty[$i],
+                    'price'        => 0,
+                    'total_price'  => 0
                 ]);
             }
-     
-             // History PO
-             Hpo::create([
-                 'id_cust'    => 0,
-                 'id_po'      => $id_po,
-                 'code_cust'  => '',
-                 'nama_cust'  => '',
-                 'code_spl'   => $supplier->code_spl ?? '',
-                 'nama_spl'   => $supplier->nama_spl ?? '',
-                 'no_po'      => $request->no_po,
-                 'no_so'      => 0,
-                 'tgl_po'     => $request->tgl_po,
-                 'reason_po'  => $request->reason_po
-             ]);
-     
-             return response()->json([
-                 'status' => 'success',
-                 'message' => 'PO has successfully been added'
-             ]);
-     
-         } catch (\Exception $e) {
-             return response()->json([
-                 'status' => 'error',
-                 'message' => 'Failed to create PO: ' . $e->getMessage()
-             ], 500);
-         }
-     }
+
+            // ===============================
+            // HISTORY
+            // ===============================
+            Hpo::create([
+                'id_po'     => $purchase_order->id,
+                'code_spl'  => $supplier->code_spl,
+                'nama_spl'  => $supplier->nama_spl,
+                'no_po'     => $finalNoPo,
+                'tgl_po'    => $request->tgl_po,
+                'reason_po' => $request->reason_po,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Purchase Order berhasil dibuat'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     /**
      * Display the specified resource.
