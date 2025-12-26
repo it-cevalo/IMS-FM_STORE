@@ -77,12 +77,12 @@ class PurchaseOrderController extends Controller
                             </button>
                         ';
                     }
-                    $btn .= '<a 
-                        href="'.route('purchase_order.edit', $row->id).'" 
-                        class="btn btn-warning btn-sm"
-                        title="Edit PO">
-                        <i class="fa fa-edit"></i>
-                        </a> ';
+                    // $btn .= '<a 
+                    //     href="'.route('purchase_order.edit', $row->id).'" 
+                    //     class="btn btn-warning btn-sm"
+                    //     title="Edit PO">
+                    //     <i class="fa fa-edit"></i>
+                    //     </a> ';
                         
                     $req = DB::table('tproduct_qr')
                         ->where('id_po', $row->id)
@@ -625,91 +625,137 @@ class PurchaseOrderController extends Controller
         return $this->generateAllQR($po);
     }
     
-    private function generateSingleQR($po, $detailId, $seqText)
+    // private function generateSingleQR($po, $detailId, $seqText)
+    // {
+    //     $detail = $po->po_detail->where('id', $detailId)->first();
+    //     if (!$detail) abort(404);
+    
+    //     $range = $this->parseSequenceInput($seqText);
+    
+    //     $qrList = [];
+        
+    //     foreach ($range as $num) {
+
+    //         $seq = str_pad($num, 4, '0', STR_PAD_LEFT);
+    //         $conflict = $this->detectPrintedConflict($po->id, $detail->id, $seq);
+        
+    //         if ($conflict) {
+    //             return response()->json([
+    //                 'type' => 'SINGLE',
+    //                 'conflicts' => [$conflict]
+    //             ], 403);
+    //         }
+        
+    //         $qrList[] = $this->createOrGetQR($po, $detail, $num);
+    //     }
+        
+    //     return $this->printPDF($po, $qrList);
+    // }
+    
+    private function generateSingleQR($po, $detailId, $qty)
     {
         $detail = $po->po_detail->where('id', $detailId)->first();
         if (!$detail) abort(404);
-    
-        $range = $this->parseSequenceInput($seqText);
-    
-        $qrList = [];
-        
-        foreach ($range as $num) {
 
-            $seq = str_pad($num, 4, '0', STR_PAD_LEFT);
-            $conflict = $this->detectPrintedConflict($po->id, $detail->id, $seq);
-        
-            if ($conflict) {
-                return response()->json([
-                    'type' => 'SINGLE',
-                    'conflicts' => [$conflict]
-                ], 403);
-            }
-        
-            $qrList[] = $this->createOrGetQR($po, $detail, $num);
+        $qty = intval($qty);
+        if ($qty <= 0) abort(422, 'Qty tidak valid');
+
+        $qrList = [];
+
+        for ($i = 1; $i <= $qty; $i++) {
+            $qrList[] = $this->createOrGetQR($po, $detail);
         }
-        
+
         return $this->printPDF($po, $qrList);
     }
+    
+    // private function generateMultipleQR($po, $ids)
+    // {
+    //     foreach ($po->po_detail as $item) {
+
+    //         if (!in_array($item->id, $ids)) continue;
+
+    //         $existing = DB::table('tproduct_qr')
+    //             ->where('id_po', $po->id)
+    //             ->where('id_po_detail', $item->id)
+    //             ->first();
+
+    //         if ($existing) {
+    //             return response()->json([
+    //                 'message' => "Gagal print QR. Barang {$item->product_name} nomor {$existing->sequence_no} sudah pernah dicetak."
+    //             ], 409);
+    //         }
+    //     }
+
+    //     // ===============================
+    //     // AMAN → GENERATE SEMUA
+    //     // ===============================
+    //     $qrList = [];
+
+    //     foreach ($po->po_detail as $item) {
+
+    //         if (!in_array($item->id, $ids)) continue;
+
+    //         for ($seq = 1; $seq <= intval($item->qty); $seq++) {
+    //             $qrList[] = $this->createOrGetQR($po, $item, $seq);
+    //         }
+    //     }
+
+    //     return $this->printPDF($po, $qrList);
+    // }
     
     private function generateMultipleQR($po, $ids)
     {
-        foreach ($po->po_detail as $item) {
-
-            if (!in_array($item->id, $ids)) continue;
-
-            $existing = DB::table('tproduct_qr')
-                ->where('id_po', $po->id)
-                ->where('id_po_detail', $item->id)
-                ->first();
-
-            if ($existing) {
-                return response()->json([
-                    'message' => "Gagal print QR. Barang {$item->product_name} nomor {$existing->sequence_no} sudah pernah dicetak."
-                ], 409);
-            }
-        }
-
-        // ===============================
-        // AMAN → GENERATE SEMUA
-        // ===============================
         $qrList = [];
 
         foreach ($po->po_detail as $item) {
 
             if (!in_array($item->id, $ids)) continue;
 
-            for ($seq = 1; $seq <= intval($item->qty); $seq++) {
-                $qrList[] = $this->createOrGetQR($po, $item, $seq);
+            for ($i = 1; $i <= intval($item->qty); $i++) {
+                $qrList[] = $this->createOrGetQR($po, $item);
             }
         }
 
         return $this->printPDF($po, $qrList);
     }
     
+    // private function generateAllQR($po)
+    // {
+    //     $existing = DB::table('tproduct_qr')
+    //         ->where('id_po', $po->id)
+    //         ->orderBy('id_po_detail')
+    //         ->orderBy('sequence_no')
+    //         ->first();
+
+    //     // ❌ JIKA ADA SATU SAJA → GAGAL TOTAL
+    //     if ($existing) {
+    //         return response()->json([
+    //             'message' => "Gagal print QR. Barang sudah pernah dicetak (No {$existing->sequence_no})."
+    //         ], 409);
+    //     }
+
+    //     // ===============================
+    //     // BELUM ADA → PRINT SEMUA
+    //     // ===============================
+    //     $qrList = [];
+
+    //     foreach ($po->po_detail as $item) {
+    //         for ($seq = 1; $seq <= intval($item->qty); $seq++) {
+    //             $qrList[] = $this->createOrGetQR($po, $item, $seq);
+    //         }
+    //     }
+
+    //     return $this->printPDF($po, $qrList);
+    // }
+
     private function generateAllQR($po)
     {
-        $existing = DB::table('tproduct_qr')
-            ->where('id_po', $po->id)
-            ->orderBy('id_po_detail')
-            ->orderBy('sequence_no')
-            ->first();
-
-        // ❌ JIKA ADA SATU SAJA → GAGAL TOTAL
-        if ($existing) {
-            return response()->json([
-                'message' => "Gagal print QR. Barang sudah pernah dicetak (No {$existing->sequence_no})."
-            ], 409);
-        }
-
-        // ===============================
-        // BELUM ADA → PRINT SEMUA
-        // ===============================
         $qrList = [];
 
         foreach ($po->po_detail as $item) {
-            for ($seq = 1; $seq <= intval($item->qty); $seq++) {
-                $qrList[] = $this->createOrGetQR($po, $item, $seq);
+            for ($i = 1; $i <= intval($item->qty); $i++) {
+                $qrList[] = $this->createOrGetQR($po, $item);
             }
         }
 
@@ -875,65 +921,130 @@ class PurchaseOrderController extends Controller
         }
     }
     
-    private function createOrGetQR($po, $item, $seqNumber)
-    {
-        $seqStr = str_pad($seqNumber, 4, '0', STR_PAD_LEFT);
+    // private function createOrGetQR($po, $item, $seqNumber)
+    // {
+    //     $seqStr = str_pad($seqNumber, 4, '0', STR_PAD_LEFT);
 
-        $qrValue = $po->no_po
-                . "|" . $item->part_number
-                . "|" . $seqStr;
+    //     $qrValue = $po->no_po
+    //             . "|" . $item->part_number
+    //             . "|" . $seqStr;
 
-        $sku = $item->part_number;
+    //     $sku = $item->part_number;
         
-        $id_product = DB::table('mproduct')
-                        ->where('sku', $sku)
-                        ->value('id');
+    //     $id_product = DB::table('mproduct')
+    //                     ->where('sku', $sku)
+    //                     ->value('id');
                         
-        $sku = DB::table('mproduct')
-        ->where('sku', $sku)
-        ->value('sku');
+    //     $sku = DB::table('mproduct')
+    //     ->where('sku', $sku)
+    //     ->value('sku');
 
-        // ===========================
-        // 1. CEK APAKAH QR SUDAH ADA
-        // ===========================
+    //     // ===========================
+    //     // 1. CEK APAKAH QR SUDAH ADA
+    //     // ===========================
+    //     $existing = DB::table('tproduct_qr')
+    //         ->where('qr_code', $qrValue)
+    //         ->first();
+
+    //     if ($existing) {
+
+    //         // update printed_at
+    //         DB::table('tproduct_qr')
+    //             ->where('id', $existing->id)
+    //             ->update(['printed_at' => now()]);
+
+    //         // update mproduct_sequence
+    //         // DB::table('mproduct_sequence')
+    //         //     ->updateOrInsert(
+    //         //         ['sku' => $sku],
+    //         //         [
+    //         //             'id_product'   => $id_product,
+    //         //             'last_sequence'=> $seqNumber,
+    //         //             'id_po'        => $po->id,
+    //         //             'updated_at'   => now()
+    //         //         ]
+    //         //     );
+
+    //         return [
+    //             'nama_barang' => $item->product_name,
+    //             'sku' => $item->part_number,
+    //             'nomor_urut'  => $seqStr,
+    //             'qr_payload'  => $qrValue,
+    //         ];
+    //     }
+
+    //     // ===========================
+    //     // 2. INSERT BARU
+    //     // ===========================
+    //     DB::table('tproduct_qr')->insert([
+    //         'id_po'        => $po->id,
+    //         'id_po_detail' => $item->id,
+    //         'id_product'   => $id_product,
+    //         'sku'          => $sku,
+    //         'qr_code'      => $qrValue,
+    //         'sequence_no'  => $seqStr,
+    //         'nama_barang'  => $item->product_name,
+    //         'status'       => 'NEW',
+    //         'used_for'     => 'IN',
+    //         'printed_at'   => now(),
+    //     ]);
+
+    //     // update mproduct_sequence
+    //     // DB::table('mproduct_sequence')
+    //     //     ->updateOrInsert(
+    //     //         ['sku' => $sku],
+    //     //         [
+    //     //             'id_product'   => $id_product,
+    //     //             'last_sequence'=> $seqNumber,
+    //     //             'id_po'        => $po->id,
+    //     //             'updated_at'   => now()
+    //     //         ]
+    //     //     );
+
+    //     return [
+    //         'nama_barang' => $item->product_name,
+    //         'sku' => $item->part_number,
+    //         'nomor_urut'  => $seqStr,
+    //         'qr_payload'  => $qrValue,
+    //     ];
+    // }
+    
+    private function createOrGetQR($po, $item)
+    {
+        $sku = $item->part_number;
+
+        $product = DB::table('mproduct')->where('sku', $sku)->first();
+        if (!$product) {
+            abort(422, "SKU {$sku} tidak ditemukan");
+        }
+
+        // ===============================
+        // GLOBAL SEQUENCE PER SKU
+        // ===============================
+        $seqNumber = $this->getNextGlobalSequenceBySKU($sku);
+        $seqStr    = str_pad($seqNumber, 4, '0', STR_PAD_LEFT);
+
+        // ===============================
+        // QR VALUE TETAP CANTUMKAN PO
+        // ===============================
+        $qrValue = $po->no_po . "|" . $sku . "|" . $seqStr;
+
+        // ===============================
+        // SAFETY CHECK (SKU + SEQUENCE)
+        // ===============================
         $existing = DB::table('tproduct_qr')
-            ->where('qr_code', $qrValue)
+            ->where('sku', $sku)
+            ->where('sequence_no', $seqStr)
             ->first();
 
         if ($existing) {
-
-            // update printed_at
-            DB::table('tproduct_qr')
-                ->where('id', $existing->id)
-                ->update(['printed_at' => now()]);
-
-            // update mproduct_sequence
-            // DB::table('mproduct_sequence')
-            //     ->updateOrInsert(
-            //         ['sku' => $sku],
-            //         [
-            //             'id_product'   => $id_product,
-            //             'last_sequence'=> $seqNumber,
-            //             'id_po'        => $po->id,
-            //             'updated_at'   => now()
-            //         ]
-            //     );
-
-            return [
-                'nama_barang' => $item->product_name,
-                'sku' => $item->part_number,
-                'nomor_urut'  => $seqStr,
-                'qr_payload'  => $qrValue,
-            ];
+            abort(409, "Sequence {$seqStr} untuk SKU {$sku} sudah ada");
         }
 
-        // ===========================
-        // 2. INSERT BARU
-        // ===========================
         DB::table('tproduct_qr')->insert([
             'id_po'        => $po->id,
             'id_po_detail' => $item->id,
-            'id_product'   => $id_product,
+            'id_product'   => $product->id,
             'sku'          => $sku,
             'qr_code'      => $qrValue,
             'sequence_no'  => $seqStr,
@@ -943,31 +1054,13 @@ class PurchaseOrderController extends Controller
             'printed_at'   => now(),
         ]);
 
-        // update mproduct_sequence
-        // DB::table('mproduct_sequence')
-        //     ->updateOrInsert(
-        //         ['sku' => $sku],
-        //         [
-        //             'id_product'   => $id_product,
-        //             'last_sequence'=> $seqNumber,
-        //             'id_po'        => $po->id,
-        //             'updated_at'   => now()
-        //         ]
-        //     );
-
         return [
             'nama_barang' => $item->product_name,
-            'sku' => $item->part_number,
+            'sku'         => $sku,
             'nomor_urut'  => $seqStr,
             'qr_payload'  => $qrValue,
         ];
     }
-
-    // public function listReprint()
-    // {
-
-    //     return view('pages.transaction.purchase_order.purchase_order_reprint', compact('requestsGrouped'));
-    // }
     
     public function reprintList($id)
     {
@@ -1092,26 +1185,6 @@ class PurchaseOrderController extends Controller
         return response()->json(['success'=>true]);
     }
     
-    
-    // public function requestReprint(Request $r)
-    // {
-    //     foreach ($r->items as $item) {
-    //         DB::table('tqr_reprint_request')->insert([
-    //             'id_po'         => $r->id_po,
-    //             'id_po_detail'  => $item['id_po_detail'],
-    //             'id_product'    => $item['id_product'],
-    //             'id_product_qr' => $item['id_product_qr'],
-    //             'sequence_no'   => $item['sequence'],
-    //             'reason'        => $r->reason,
-    //             'status'        => 'PENDING',
-    //             'requested_by'  => Auth::user()->username,
-    //             'requested_at'  => now(),
-    //         ]);
-    //     }
-    
-    //     return response()->json(['success'=>true]);
-    // }
-
     private function canPrintQR($poId, $detailId, $seq)
     {
         $printed = DB::table('tproduct_qr')
@@ -1131,6 +1204,12 @@ class PurchaseOrderController extends Controller
             ])->exists();
     }
     
+    private function getNextGlobalSequenceBySKU(string $sku): int
+    {
+        return DB::table('tproduct_qr')
+            ->where('sku', $sku)
+            ->max(DB::raw('CAST(sequence_no AS UNSIGNED)')) + 1;
+    }
     // public function destroy($id)
     // {
     //     $courier = MCourier::findOrFail($id);
