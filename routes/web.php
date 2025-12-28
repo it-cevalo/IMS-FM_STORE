@@ -55,7 +55,7 @@ use App\Http\Controllers\Invoice\SendInvoiceController;
 | REPORT
 |--------------------------------------------------------------------------
 */
-use App\Http\Controllers\Report\ReportProductController;
+use App\Http\Controllers\Report\ReportStockMovementController;
 use App\Http\Controllers\Report\ReportPaymentController;
 use App\Http\Controllers\Report\ReportInvoicingController;
 use App\Http\Controllers\Report\ReportCustomerController;
@@ -308,10 +308,14 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('report_invoicing', ReportInvoicingController::class);
     Route::get('/filterRptInv', [ReportInvoicingController::class, 'filter'])->name('report_invoicing.filter');
     Route::get('RptInv_Export2PDF', [ReportInvoicingController::class, 'Export2PDF'])->name('report_invoicing.pdf');
-
-    Route::resource('report_product', ReportProductController::class);
-    Route::get('/filterRptProduct', [ReportProductController::class, 'filter'])->name('report_product.filter');
-    Route::get('RptInv_Export2PDF', [ReportProductController::class, 'Export2PDF'])->name('report_product.pdf');
+    
+    Route::prefix('report')->group(function () {
+        Route::get('stock-movement', [ReportStockMovementController::class, 'index'])
+            ->name('stock_movement.index');
+    
+        Route::get('stock-movement/data', [ReportStockMovementController::class, 'data'])
+            ->name('stock_movement.data');
+    });
 
     Route::resource('report_customer', ReportCustomerController::class);
     Route::get('/filterRptCust', [ReportCustomerController::class, 'filter'])->name('report_customer.filter');

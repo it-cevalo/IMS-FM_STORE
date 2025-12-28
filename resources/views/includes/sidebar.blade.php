@@ -86,7 +86,7 @@
         </a>
         <div id="collapseReport" class="collapse" aria-labelledby="headingReport" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">
-                <a class="collapse-item" href="{{route('report_product.index')}}">Product</a>
+                <a class="collapse-item" href="{{route('stock_movement.index')}}">Stock Movement</a>
                 <a class="collapse-item" href="{{route('report_invoicing.index')}}">Invoicing</a>
                 <a class="collapse-item" href="{{route('report_customer.index')}}">Customer</a>
                 <a class="collapse-item" href="{{route('report_stock_mutation.index')}}">Stock Mutation</a>
