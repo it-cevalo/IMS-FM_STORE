@@ -14,7 +14,8 @@
                 <tr>
                     <th>Tanggal Masuk</th>
                     <th class="text-center">Jumlah PO</th>
-                    <th class="text-center">Total Barang</th>
+                    <th class="text-center">Jumlah Retur (Barang) </th>
+                    {{-- <th class="text-center">Total Barang</th> --}}
                     <th class="text-center">Aksi</th>
                 </tr>
             </thead>
@@ -55,25 +56,18 @@ function loadInboundTable() {
                     return `${day}-${month}-${year}`;
                 }
             },
-            { 
-                data: 'jumlah_po', 
-                className: 'text-center font-weight-bold' 
-            },
-            { 
-                data: 'total_barang', 
-                className: 'text-center' 
-            },
+            { data: 'jumlah_po', className: 'text-center font-weight-bold' },
+            { data: 'jumlah_retur', className: 'text-center font-weight-bold' },
+            // { data: 'total_barang', className: 'text-center' },
             {
                 data: 'tgl_inbound',
                 orderable: false,
-                searchable: false,
                 className: 'text-center',
                 render: function (tgl) {
                     return `
                     <a href="{{ url('product_inbound/detail') }}/${tgl}" class="btn btn-sm btn-info">
                         Detail
-                    </a>
-                    `;
+                    </a>`;
                 }
             }
         ],

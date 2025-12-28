@@ -56,34 +56,43 @@
         <!-- ACCORDION -->
         <div id="accordion">
 
-            @forelse($rows as $poId => $items)
+            @forelse($rows as $groupKey => $items)
 
             @php
-                // cek apakah SEMUA item di PO sudah masuk gudang
+                $firstItem = $items->first();
+                $isRetur   = $firstItem->inbound_source === 'RETUR_CUST';
+
                 $totalItem = $items->count();
                 $doneItem  = $items->where('id_warehouse', '!=', 0)->count();
-                $isDonePO  = $totalItem === $doneItem;
+                $isDoneGrp = $totalItem === $doneItem;
             @endphp
 
-            <div class="card mb-2 {{ $isDonePO ? 'border-success' : '' }}">
+            <div class="card mb-2 {{ $isDoneGrp ? 'border-success' : '' }}">
 
                 <div class="card-header d-flex align-items-center
-                    {{ $isDonePO ? 'bg-success text-white' : '' }}">
+                    {{ $isDoneGrp ? 'bg-success text-white' : '' }}">
 
                     <input type="checkbox"
                            class="check-po mr-2"
-                           {{ $isDonePO ? 'disabled' : '' }}>
+                           {{ $isDoneGrp ? 'disabled' : '' }}>
 
                     <a data-toggle="collapse"
-                       href="#po{{ $poId }}"
-                       class="{{ $isDonePO ? 'text-white' : 'text-dark' }}">
-                        <b>{{ $items->first()->no_po }}</b>
+                       href="#grp{{ $groupKey }}"
+                       class="{{ $isDoneGrp ? 'text-white' : 'text-dark' }}">
 
-                        <span class="badge {{ $isDonePO ? 'badge-light' : 'badge-info' }} ml-2">
-                            {{ $items->count() }} Item
-                        </span>
+                        @if($isRetur)
+                            <b>RETUR CUSTOMER</b>
+                            <span class="badge badge-warning ml-2">
+                                {{ $items->count() }} Item
+                            </span>
+                        @else
+                            <b>{{ $items->first()->no_po }}</b>
+                            <span class="badge {{ $isDoneGrp ? 'badge-light' : 'badge-info' }} ml-2">
+                                {{ $items->count() }} Item
+                            </span>
+                        @endif
 
-                        @if($isDonePO)
+                        @if($isDoneGrp)
                             <span class="badge badge-dark ml-2">
                                 Sudah Masuk Gudang
                             </span>
@@ -91,7 +100,7 @@
                     </a>
                 </div>
 
-                <div id="po{{ $poId }}" class="collapse">
+                <div id="grp{{ $groupKey }}" class="collapse">
                     <div class="card-body p-2">
 
                         @foreach($items as $item)
@@ -106,6 +115,12 @@
                                 - {{ $item->nama_barang }}
                                 - {{ $item->qr_code }}<br>
                                 Diterima: {{ $item->received_at }}
+
+                                @if($item->inbound_source === 'RETUR_CUST')
+                                    <span class="badge badge-warning ml-2">
+                                        RETUR
+                                    </span>
+                                @endif
 
                                 @if($item->id_warehouse != 0)
                                     <span class="badge badge-secondary ml-2">
@@ -133,7 +148,7 @@
 
 {{-- ================= JS ================= --}}
 <script>
-/** CHECK PO → CHECK ITEM (HANYA YANG TIDAK DISABLED) */
+/** CHECK GROUP → CHECK ITEM */
 $(document).on('change', '.check-po', function () {
     let isChecked = $(this).is(':checked');
 
@@ -143,7 +158,7 @@ $(document).on('change', '.check-po', function () {
         .prop('checked', isChecked);
 });
 
-/** CHECK ITEM → SYNC CHECK PO */
+/** CHECK ITEM → SYNC CHECK GROUP */
 $(document).on('change', '.check-item', function () {
 
     let $card = $(this).closest('.card');
@@ -158,7 +173,7 @@ $(document).on('change', '.check-item', function () {
     }
 });
 
-/** CONFIRM */
+/** CONFIRM (PO + RETUR) + LOADING */
 $('#btnConfirm').click(function () {
 
     let items = $('.check-item:not(:disabled):checked')
@@ -182,6 +197,19 @@ $('#btnConfirm').click(function () {
     }).then(res => {
 
         if (res.isConfirmed) {
+
+            // 🔄 LOADING
+            Swal.fire({
+                title: 'Processing Inbound...',
+                text: 'Mohon tunggu, sedang memproses data',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $('#btnConfirm').prop('disabled', true);
+
             $.post("{{ route('product_inbound.confirm') }}", {
                 _token: "{{ csrf_token() }}",
                 id_warehouse: $('#id_warehouse').val(),
@@ -200,6 +228,9 @@ $('#btnConfirm').click(function () {
                     err.responseJSON?.message ?? 'Error',
                     'error'
                 );
+            })
+            .always(() => {
+                $('#btnConfirm').prop('disabled', false);
             });
         }
 

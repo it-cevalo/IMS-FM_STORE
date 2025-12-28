@@ -12,53 +12,94 @@ class ProductInboundController extends Controller
     {
         return view('pages.transaction.product_inbound.product_inbound_index');
     }
-
+    
     public function datatable()
     {
         $data = DB::table('tproduct_inbound as pi')
-            ->join('tpos as po', 'po.id', '=', 'pi.id_po')
+            ->leftJoin('tpos as po', 'po.id', '=', 'pi.id_po')
             ->select(
                 DB::raw('DATE(pi.received_at) as tgl_inbound'),
-                DB::raw('COUNT(pi.id) as total_barang'),
-                DB::raw('COUNT(DISTINCT pi.id_po) as jumlah_po'),
-                DB::raw('GROUP_CONCAT(DISTINCT po.no_po ORDER BY po.no_po SEPARATOR ", ") as daftar_po')
+
+                // JUMLAH PO (hanya inbound_source = PO)
+                DB::raw("
+                    COUNT(DISTINCT CASE
+                        WHEN pi.inbound_source = 'PO' THEN pi.id_po
+                    END) as jumlah_po
+                "),
+
+                // JUMLAH RETUR
+                DB::raw("
+                    COUNT(CASE
+                        WHEN pi.inbound_source = 'RETUR_CUST' THEN 1
+                    END) as jumlah_retur
+                "),
+
+                // TOTAL BARANG (SEMUA)
+                DB::raw('COUNT(pi.id) as total_barang')
             )
             ->groupBy(DB::raw('DATE(pi.received_at)'))
             ->orderByDesc('tgl_inbound')
             ->get();
-    
+
         return response()->json(['data' => $data]);
     }
+
     
-    // public function detail($tgl)
+    // public function datatable()
     // {
-    //     $rows = DB::table('tproduct_inbound as pi')
-    //         ->join('mproduct as p', 'p.id', '=', 'pi.id_product')
-    //         ->join('tpo_detail as pd', 'pd.id', '=', 'pi.id_po_detail')
+    //     $data = DB::table('tproduct_inbound as pi')
     //         ->join('tpos as po', 'po.id', '=', 'pi.id_po')
-    //         ->whereDate('pi.received_at', $tgl)
     //         ->select(
-    //             'pi.id',
-    //             'pi.qty',
-    //             'pi.id_product',
-    //             'pi.id_po',
-    //             'pi.id_po_detail',
-    //             'po.no_po',
-    //             'po.status_po',
-    //             'p.nama_barang',
-    //             'p.SKU'
+    //             DB::raw('DATE(pi.received_at) as tgl_inbound'),
+    //             DB::raw('COUNT(pi.id) as total_barang'),
+    //             DB::raw('COUNT(DISTINCT pi.id_po) as jumlah_po'),
+    //             DB::raw('GROUP_CONCAT(DISTINCT po.no_po ORDER BY po.no_po SEPARATOR ", ") as daftar_po')
     //         )
-    //         ->orderBy('po.no_po')
-    //         ->get()
-    //         ->groupBy('id_po');
-
-    //     $warehouses = DB::table('m_warehouses')->get();
-
-    //     return view(
-    //         'pages.transaction.product_inbound.product_inbound_detail',
-    //         compact('rows', 'warehouses', 'tgl')
-    //     );
+    //         ->groupBy(DB::raw('DATE(pi.received_at)'))
+    //         ->orderByDesc('tgl_inbound')
+    //         ->get();
+    
+    //     return response()->json(['data' => $data]);
     // }
+    
+    // public function detailByDate(Request $request, $tgl)
+    // {
+    //     // ===============================
+    //     // WAREHOUSE
+    //     // ===============================
+    //     $warehouses = DB::table('m_warehouses')
+    //         ->orderBy('nama_wh')
+    //         ->get();
+
+    //     // ===============================
+    //     // INBOUND DATA (GROUP BY PO)
+    //     // ===============================
+    //     $rows = DB::table('tproduct_inbound as a')
+    //     ->join('tpos as po', 'a.id_po', '=', 'po.id')
+    //     ->join('mproduct as p', 'a.id_product', '=', 'p.id')
+    //     ->whereDate('a.received_at', $tgl)
+    //     ->select(
+    //         'a.id',
+    //         'a.id_po',
+    //         'po.no_po',
+    //         'a.qr_code',
+    //         'a.id_warehouse',
+    //         'p.sku as SKU',
+    //         'p.nama_barang',
+    //         'a.received_at',
+    //         'a.qty'
+    //     )
+    //     ->orderBy('po.no_po')
+    //     ->get()
+    //     ->groupBy('id_po');
+
+    //     return view('pages.transaction.product_inbound.product_inbound_detail', compact(
+    //         'tgl',
+    //         'rows',
+    //         'warehouses'
+    //     ));
+    // }
+    
     public function detailByDate(Request $request, $tgl)
     {
         // ===============================
@@ -69,34 +110,56 @@ class ProductInboundController extends Controller
             ->get();
 
         // ===============================
-        // INBOUND DATA (GROUP BY PO)
+        // INBOUND DATA (PO + RETUR)
         // ===============================
         $rows = DB::table('tproduct_inbound as a')
-        ->join('tpos as po', 'a.id_po', '=', 'po.id')
-        ->join('mproduct as p', 'a.id_product', '=', 'p.id')
-        ->whereDate('a.received_at', $tgl)
-        ->select(
-            'a.id',
-            'a.id_po',
-            'po.no_po',
-            'a.qr_code',
-            'a.id_warehouse',
-            'p.sku as SKU',
-            'p.nama_barang',
-            'a.received_at',
-            'a.qty'
-        )
-        ->orderBy('po.no_po')
-        ->get()
-        ->groupBy('id_po');
+            ->leftJoin('tpos as po', 'a.id_po', '=', 'po.id')
+            ->join('mproduct as p', 'a.id_product', '=', 'p.id')
+            ->whereDate('a.received_at', $tgl)
+            ->select(
+                'a.id',
+                'a.id_po',
+                'a.inbound_source',
+                'po.no_po',
+                'a.qr_code',
+                'a.id_warehouse',
+                'p.sku as SKU',
+                'p.nama_barang',
+                'a.received_at',
+                'a.qty'
+            )
+            ->orderByRaw("
+                CASE 
+                    WHEN a.inbound_source = 'RETUR_CUST' THEN 1
+                    ELSE 0
+                END
+            ")
+            ->orderBy('po.no_po')
+            ->orderBy('a.received_at')
+            ->get()
+            ->groupBy(function ($row) {
+                /**
+                 * ===============================
+                 * GROUPING RULE
+                 * ===============================
+                 * - PO        → group by id_po
+                 * - RETUR     → group under 'RETUR'
+                 */
+                return $row->inbound_source === 'RETUR_CUST'
+                    ? 'RETUR'
+                    : $row->id_po;
+            });
 
-        return view('pages.transaction.product_inbound.product_inbound_detail', compact(
-            'tgl',
-            'rows',
-            'warehouses'
-        ));
+        return view(
+            'pages.transaction.product_inbound.product_inbound_detail',
+            compact(
+                'tgl',
+                'rows',
+                'warehouses'
+            )
+        );
     }
-    
+
     /**
      * EDIT
      */
