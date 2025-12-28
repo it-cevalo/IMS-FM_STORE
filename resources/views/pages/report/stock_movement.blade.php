@@ -6,9 +6,9 @@
         <h6 class="m-0 font-weight-bold text-primary">
             Stock Movement
         </h6>
-        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#filterModal">
+        {{-- <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#filterModal">
             <i class="fa fa-filter"></i> Filter
-        </button>
+        </button> --}}
     </div>
 
     <div class="card-body">
