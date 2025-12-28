@@ -56,11 +56,7 @@ use App\Http\Controllers\Invoice\SendInvoiceController;
 |--------------------------------------------------------------------------
 */
 use App\Http\Controllers\Report\ReportStockMovementController;
-use App\Http\Controllers\Report\ReportPaymentController;
-use App\Http\Controllers\Report\ReportInvoicingController;
-use App\Http\Controllers\Report\ReportCustomerController;
-use App\Http\Controllers\Report\ReportCourierController;
-use App\Http\Controllers\Report\ReportStockMutationController;
+use App\Http\Controllers\Report\ReportStockAgingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -300,30 +296,19 @@ Route::middleware(['auth'])->group(function () {
     | REPORT
     |--------------------------------------------------------------------------
     */
-    Route::resource('report_payment', ReportPaymentController::class);
-    Route::get('/filterRptPayment', [ReportPaymentController::class, 'filter'])->name('report_payment.filter');
-    Route::get('RptTaxInv_Export2PDF', [ReportPaymentController::class, 'Export2PDF'])->name('report_payment.pdf');
-    Route::get('RptTaxInv_Export2PDFHis/{report_payment}', [ReportPaymentController::class, 'Export2PDFHis'])->name('report_payment.hispdf');
 
-    Route::resource('report_invoicing', ReportInvoicingController::class);
-    Route::get('/filterRptInv', [ReportInvoicingController::class, 'filter'])->name('report_invoicing.filter');
-    Route::get('RptInv_Export2PDF', [ReportInvoicingController::class, 'Export2PDF'])->name('report_invoicing.pdf');
-    
     Route::prefix('report')->group(function () {
         Route::get('stock-movement', [ReportStockMovementController::class, 'index'])
             ->name('stock_movement.index');
     
         Route::get('stock-movement/data', [ReportStockMovementController::class, 'data'])
             ->name('stock_movement.data');
+
+            
+        Route::get('stock-aging', [ReportStockAgingController::class, 'index'])
+        ->name('stock_aging.index');
+
+        Route::get('stock-aging/data', [ReportStockAgingController::class, 'data'])
+            ->name('stock_aging.data');
     });
-
-    Route::resource('report_customer', ReportCustomerController::class);
-    Route::get('/filterRptCust', [ReportCustomerController::class, 'filter'])->name('report_customer.filter');
-
-    Route::resource('report_courier', ReportCourierController::class);
-    Route::get('/filterRptCourier', [ReportCourierController::class, 'filter'])->name('report_courier.filter');
-
-    Route::resource('report_stock_mutation', ReportStockMutationController::class);
-    Route::get('/filterRptStockMutation', [ReportStockMutationController::class, 'filter'])->name('report_stock_mutation.filter');
-
 });
