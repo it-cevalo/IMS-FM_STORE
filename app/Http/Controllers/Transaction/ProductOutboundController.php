@@ -45,11 +45,13 @@ class ProductOutboundController extends Controller
                 'a.id_do',
                 'd.no_do',
                 'a.qr_code',
+                'd.nama_cust',
+                'd.do_source',
                 'p.sku as SKU',
                 'a.sync_at',
                 'a.sync_by',
                 'p.nama_barang',
-                'a.received_at',
+                'a.out_at',
                 'a.qty'
             )
             ->orderBy('d.no_do')

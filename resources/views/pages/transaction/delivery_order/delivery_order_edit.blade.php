@@ -11,11 +11,12 @@
     </div>
 
     <div class="card-body">
+
         {{-- ALERT --}}
-        @if(\Session::has('error'))
-            <div class="alert alert-danger">{{ \Session::get('error') }}</div>
-        @elseif(\Session::has('success'))
-            <div class="alert alert-success">{{ \Session::get('success') }}</div>
+        @if(session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        @elseif(session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
         @endif
 
         <form action="{{ route('delivery_order.update',$delivery_order->id) }}" method="POST">
@@ -25,62 +26,50 @@
             {{-- DATE --}}
             <div class="mb-3">
                 <label>Date</label>
-                <input class="form-control"
-                       type="date"
-                       value="{{ \Carbon\Carbon::parse($delivery_order->tgl_do)->format('Y-m-d') }}"
-                       readonly>
+                <input type="date" class="form-control"
+                       value="{{ \Carbon\Carbon::parse($delivery_order->tgl_do)->format('Y-m-d') }}" readonly>
             </div>
 
             {{-- NUMBER --}}
             <div class="mb-3">
                 <label>DO Number</label>
-                <input class="form-control"
-                       type="text"
-                       value="{{ $delivery_order->no_do }}"
-                       readonly>
+                <input type="text" class="form-control"
+                       value="{{ $delivery_order->no_do }}" readonly>
             </div>
 
-            {{-- NO RESI (SATU-SATUNYA YANG BISA EDIT SETELAH APPROVE) --}}
+            {{-- NO RESI --}}
             <div class="mb-3">
                 <label>No Resi</label>
-                <input class="form-control"
+                <input type="text" class="form-control"
                        name="no_resi"
-                       value="{{ $delivery_order->no_resi }}"
-                       {{ !$isApproved ? 'readonly' : '' }}>
+                       value="{{ $delivery_order->no_resi }}">
             </div>
 
             {{-- SHIPPING VIA --}}
             <div class="mb-3">
                 <label>Shipping Via</label>
-                <select class="form-control"
-                        name="shipping_via"
-                        {{ $isApproved ? 'disabled' : '' }}>
-                    @foreach($shipping_via as $k => $v)
-                        <option value="{{ $k }}" {{ $delivery_order->shipping_via == $k ? 'selected' : '' }}>
+                <select class="form-control" name="shipping_via" {{ $isApproved ? 'disabled' : '' }}>
+                    @foreach($shipping_via as $k=>$v)
+                        <option value="{{ $k }}" {{ $delivery_order->shipping_via==$k?'selected':'' }}>
                             {{ $v }}
                         </option>
                     @endforeach
                 </select>
             </div>
-
-            {{-- supaya value tetap terkirim kalau disabled --}}
             @if($isApproved)
                 <input type="hidden" name="shipping_via" value="{{ $delivery_order->shipping_via }}">
             @endif
 
             {{-- NOTE --}}
             <div class="mb-3">
-                <label>Note</label>
-                <textarea class="form-control"
-                          name="reason_do"
-                          {{ $isApproved ? 'readonly' : '' }}>{{ $delivery_order->reason_do }}</textarea>
+                <label>Reason</label>
+                <textarea class="form-control" name="reason_do"
+                    {{ $isApproved?'readonly':'' }}>{{ $delivery_order->reason_do }}</textarea>
             </div>
 
-            {{-- ===================== --}}
-            {{-- DETAIL PRODUK --}}
-            {{-- ===================== --}}
+            {{-- ================= PRODUCT ================= --}}
             <hr>
-            <h6 class="font-weight-bold">Product Detail</h6>
+            <label class="font-weight-bold">Product</label>
 
             <div class="table-responsive">
                 <table class="table table-bordered">
@@ -88,33 +77,44 @@
                         <tr>
                             <th>SKU</th>
                             <th>Nama Barang</th>
-                            <th width="120">Qty</th>
+                            <th>Qty</th>
+                            <th>Qty Tersedia</th>
                             @if(!$isApproved)
-                                <th width="80">Action</th>
+                                <th style="width:60px" class="text-center align-middle">
+                                    <a class="btn btn-primary btn-sm" id="addrow">
+                                        <i class="fa fa-plus"></i>
+                                    </a>
+                                </th>
                             @endif
                         </tr>
                     </thead>
-                    <tbody id="productBody">
+                    <tbody id="append_akun">
+                        {{-- EXISTING DETAIL --}}
                         @foreach($tdo_detail as $d)
                         <tr>
-                            <td>{{ $d->SKU }}</td>
-                            <td>{{ $d->nama_barang }}</td>
                             <td>
-                                <input type="number"
-                                       name="qty[]"
-                                       class="form-control"
+                                <select class="form-control select2 sku" name="sku[]" {{ $isApproved?'disabled':'' }}>
+                                    <option value="{{ $d->sku }}" selected>{{ $d->SKU }}</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control nama_barang"
+                                       value="{{ $d->nama_barang }}" readonly>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control qty"
+                                       name="qty[]" min="1"
                                        value="{{ $d->qty }}"
-                                       min="1"
-                                       {{ $isApproved ? 'readonly' : '' }}>
-                                <input type="hidden"
-                                       name="kode_barang[]"
-                                       value="{{ $d->kode_barang }}">
+                                       {{ $isApproved?'readonly':'' }}>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control qty_tersedia" readonly>
                             </td>
                             @if(!$isApproved)
-                            <td class="text-center">
-                                <button type="button" class="btn btn-danger btn-sm btn-remove">
+                            <td class="text-center align-middle">
+                                <a class="btn btn-danger btn-sm btn-remove">
                                     <i class="fa fa-minus"></i>
-                                </button>
+                                </a>
                             </td>
                             @endif
                         </tr>
@@ -123,32 +123,112 @@
                 </table>
             </div>
 
-            {{-- ADD PRODUCT (HANYA JIKA BELUM APPROVE) --}}
-            @if(!$isApproved)
-                <button type="button" class="btn btn-primary btn-sm" id="addRow">
-                    <i class="fa fa-plus"></i> Add Product
-                </button>
-            @endif
-
-            <hr>
-
-            <button type="submit" class="btn btn-primary">
-                Submit
-            </button>
-            <a href="{{ route('delivery_order.index') }}" class="btn btn-dark">
-                Back
-            </a>
+            <button type="submit" class="btn btn-primary">Submit</button>
+            <a href="{{ route('delivery_order.index') }}" class="btn btn-dark">Back</a>
         </form>
     </div>
 </div>
-
-{{-- JS HANYA AKTIF JIKA BELUM APPROVE --}}
 @if(!$isApproved)
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-document.addEventListener('click', function(e){
-    if(e.target.closest('.btn-remove')){
-        e.target.closest('tr').remove();
+$(document).ready(function(){
+
+    $('.select2').select2({ width:'100%' });
+
+    const PRODUCTS = @json($products);
+
+    function getSkuOptions(except = []) {
+        let opt = `<option value="">-- Pilih SKU --</option>`;
+        PRODUCTS.forEach(p => {
+            if (!except.includes(p.sku)) {
+                opt += `<option value="${p.sku}"
+                               data-kode="${p.sku}"
+                               data-nama="${p.nama_barang}">
+                               ${p.SKU}
+                        </option>`;
+            }
+        });
+        return opt;
     }
+
+    function refreshSku(){
+        let selected = [];
+        $('.sku').each(function(){ if($(this).val()) selected.push($(this).val()); });
+        $('.sku').each(function(){
+            let current = $(this).val();
+            let except = selected.filter(v => v !== current);
+            $(this).html(getSkuOptions(except));
+            $(this).val(current).trigger('change.select2');
+        });
+    }
+
+    function loadStock(row, sku){
+        if(!sku) return;
+        $.get('/delivery-order/stock',{ sku }, function(res){
+            row.find('.qty_tersedia').val(res.qty_tersedia || 0);
+        });
+    }
+
+    // load stok existing
+    $('#append_akun tr').each(function(){
+        let sku = $(this).find('.sku').val();
+        loadStock($(this), sku);
+    });
+
+    // ADD ROW
+    $('#addrow').click(function(e){
+        e.preventDefault();
+        let usedSku = [];
+        $('.sku').each(function(){ if($(this).val()) usedSku.push($(this).val()); });
+
+        let row = `
+        <tr>
+            <td>
+                <select class="form-control select2 sku" name="sku[]" required>
+                    ${getSkuOptions(usedSku)}
+                </select>
+            </td>
+            <td><input type="text" class="form-control nama_barang" readonly></td>
+            <td><input type="number" class="form-control qty" name="qty[]" min="1" required></td>
+            <td><input type="number" class="form-control qty_tersedia" readonly></td>
+            <td class="text-center align-middle">
+                <a class="btn btn-danger btn-sm btn-remove">
+                    <i class="fa fa-minus"></i>
+                </a>
+            </td>
+        </tr>`;
+        $('#append_akun').append(row);
+        $('#append_akun').find('.select2').last().select2({ width:'100%' });
+    });
+
+    // CHANGE SKU
+    $('#append_akun').on('change','.sku',function(){
+        let row = $(this).closest('tr');
+        let opt = $(this).find(':selected');
+        let sku = opt.data('kode') || '';
+        row.find('.nama_barang').val(opt.data('nama') || '');
+        loadStock(row, sku);
+        refreshSku();
+    });
+
+    // VALIDASI QTY
+    $('#append_akun').on('input','.qty',function(){
+        let row = $(this).closest('tr');
+        let max = parseFloat(row.find('.qty_tersedia').val()) || 0;
+        let val = parseFloat($(this).val()) || 0;
+        if(val > max){
+            $(this).val(max);
+            Swal.fire('Warning',`Qty tidak boleh lebih dari ${max}`,'warning');
+        }
+    });
+
+    // REMOVE
+    $('#append_akun').on('click','.btn-remove',function(e){
+        e.preventDefault();
+        $(this).closest('tr').remove();
+        refreshSku();
+    });
+
 });
 </script>
 @endif

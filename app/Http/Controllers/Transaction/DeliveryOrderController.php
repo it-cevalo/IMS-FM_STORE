@@ -295,24 +295,26 @@ class DeliveryOrderController extends Controller
                 $qtyNeeded = (int) $detail->qty;
     
                 $product = Mproduct::where('sku', $detail->sku)->first();
-    
+                
                 if (!$product) {
                     throw new \Exception("Product dengan kode {$detail->sku} tidak ditemukan.");
                 }
-    
+                
                 $idProduct   = $product->id;
                 $sequence_no = str_pad($detail->seq, 4, '0', STR_PAD_LEFT);
     
                 // 3. Ambil QR FIFO (limit sesuai qty needed)
+                
                 $productQRs = DB::table('tproduct_qr')
-                    ->where('id_product', $idProduct)
-                    ->where('sequence_no', $sequence_no)
-                    ->whereNull('id_do') // pastikan belum dipakai
-                    ->orderBy('id', 'asc')
-                    ->limit($qtyNeeded)
-                    ->get();
+                ->where('id_product', $idProduct)
+                ->whereNull('id_do')
+                ->orderBy('id', 'asc') // FIFO real
+                ->limit($qtyNeeded)
+                ->get();
+
     
                 $available = (int) $productQRs->count();
+
     
                 if ($available < $qtyNeeded) {
                     throw new \Exception(
@@ -350,83 +352,6 @@ class DeliveryOrderController extends Controller
             ], 500);
         }
     }    
-
-    // public function approve(Request $request, $id)
-    // {
-    //     $do = Tdo::find($id);
-
-    //     if (!$do) {
-    //         return response()->json(['error' => 'Delivery Order tidak ditemukan'], 404);
-    //     }
-
-    //     // safety: tidak boleh approve ulang
-    //     if ($do->flag_approve === 'Y') {
-    //         return response()->json([
-    //             'error' => 'Delivery Order sudah di-approve'
-    //         ], 422);
-    //     }
-
-    //     $do->update([
-    //         'approve_by'   => Auth::user()->username,
-    //         'approve_date' => now()->format('Y-m-d'),
-    //         'flag_approve' => 'Y'
-    //     ]);
-
-    //     return response()->json(['success' => true]);
-    // }
-
-    // public function store(Request $request)
-    // {
-    //     $request->validate([
-    //         'tgl_do'            => 'required',
-    //         'no_do'             => 'required|unique:tdos,no_do',
-    //         'reason_do'         => 'required',
-    //         'shipping_via'      => 'required',
-    //         'sku'       => 'required|array',
-    //         'qty'               => 'required|array'
-    //     ]);
-    
-    //     DB::beginTransaction();
-    //     try {
-    //         // Buat DO header tanpa PO
-    //         $do = Tdo::create([
-    //             'no_do'         => $request->no_do,
-    //             'tgl_do'        => $request->tgl_do,
-    //             'reason_do'     => $request->reason_do,
-    //             'shipping_via'  => $request->shipping_via,
-    //             'flag_approve'  => 'N',
-    //             'approve_date'  => '1970-01-01',
-    //             'approve_by'    => ''
-    //         ]);
-    
-    //         // FIFO sequence untuk detail DO (format 3 digit)
-    //         $sequence = 1;
-    //         foreach($request->sku as $i => $sku){
-    //             Hdo::create([
-    //                 'id_do'         => $do->id,
-    //                 'no_do'         => $request->no_do,
-    //                 'tgl_do'        => $request->tgl_do,
-    //                 'sku'   => $sku,
-    //                 'reason_do'     => $request->reason_do,
-    //                 'qty'           => $request->qty[$i],
-    //                 'sequence'      => str_pad($sequence++, 4, '0', STR_PAD_LEFT) // 0001, 0002, 0003...
-    //             ]);
-    //         }
-    
-    //         DB::commit();
-    //         return response()->json([
-    //             'status'  => 'success',
-    //             'message' => 'Delivery Order berhasil dibuat'
-    //         ]);
-    
-    //     } catch (\Exception $e) {
-    //         DB::rollback();
-    //         return response()->json([
-    //             'status'  => 'error',
-    //             'message' => $e->getMessage()
-    //         ]);
-    //     }
-    // }
 
     /**
      * Display the specified resource.
@@ -563,12 +488,12 @@ class DeliveryOrderController extends Controller
             $seq = 1;
             foreach ($request->sku as $i => $kode) {
                 DB::table('tdo_detail')->insert([
-                    'id_do'       => $id,
-                    'sku' => $kode,
-                    'qty'         => $request->qty[$i],
-                    'seq'         => str_pad($seq++, 4, '0', STR_PAD_LEFT),
-                    'created_at'  => now(),
-                    'updated_at'  => now()
+                    'id_do'         => $id,
+                    'sku'           => $kode,
+                    'qty'           => $request->qty[$i],
+                    'seq'           => str_pad($seq++, 4, '0', STR_PAD_LEFT),
+                    'created_at'    => now(),
+                    'updated_at'    => now()
                 ]);
             }
 

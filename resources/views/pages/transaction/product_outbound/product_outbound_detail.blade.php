@@ -55,21 +55,38 @@
                            class="check-po mr-2"
                            {{ $isDoneDO ? 'disabled' : '' }}>
 
-                    <a data-toggle="collapse"
-                       href="#do{{ $doId }}"
-                       class="{{ $isDoneDO ? 'text-white' : 'text-dark' }}">
-                        <b>{{ $items->first()->no_do }}</b>
-
-                        <span class="badge {{ $isDoneDO ? 'badge-light' : 'badge-info' }} ml-2">
-                            {{ $items->count() }} Item
-                        </span>
-
-                        @if($isDoneDO)
-                            <span class="badge badge-dark ml-2">
-                                Sudah Sync
-                            </span>
-                        @endif
-                    </a>
+                        <a data-toggle="collapse"
+                           href="#do{{ $doId }}"
+                           class="flex-grow-1 {{ $isDoneDO ? 'text-white' : 'text-dark' }}">
+                        
+                            <div class="d-flex align-items-center justify-content-between">
+                        
+                                {{-- KIRI: NO DO + CUSTOMER --}}
+                                <div>
+                                    <b>{{ $items->first()->no_do }}</b>
+                        
+                                    @if($items->first()->do_source === 'CUST')
+                                        <div class="text medium">
+                                            {{ $items->first()->nama_cust }}
+                                        </div>
+                                    @endif
+                                </div>
+                        
+                                {{-- KANAN: BADGE ITEM --}}
+                                <div class="text-nowrap">
+                                    <span class="badge {{ $isDoneDO ? 'badge-light' : 'badge-info' }}">
+                                        {{ $items->count() }} Item
+                                    </span>
+                        
+                                    @if($isDoneDO)
+                                        <span class="badge badge-dark ml-2">
+                                            Sudah Sync
+                                        </span>
+                                    @endif
+                                </div>
+                        
+                            </div>
+                        </a>
                 </div>
 
                 <div id="do{{ $doId }}" class="collapse">
