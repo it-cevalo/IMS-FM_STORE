@@ -44,15 +44,21 @@ function loadOutboundTable() {
         columns: [
             {
                 data: 'tgl_outbound',
-                render: function (data) {
-                    if (!data) return '-';
+                render: {
+                    display: function (data) {
+                        if (!data) return '-';
 
-                    const d = new Date(data);
-                    const day   = String(d.getDate()).padStart(2, '0');
-                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                    const year  = d.getFullYear();
+                        const d = new Date(data);
+                        const day   = String(d.getDate()).padStart(2, '0');
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const year  = d.getFullYear();
 
-                    return `${day}-${month}-${year}`;
+                        return `${day}-${month}-${year}`;
+                    },
+                    sort: function (data) {
+                        // PAKAI FORMAT ASLI BUAT SORT
+                        return data;
+                    }
                 }
             },
             { 
