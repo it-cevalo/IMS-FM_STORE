@@ -44,7 +44,7 @@
 
             {{-- Reason --}}
             <div class="mb-3">
-                <label>Reason *</label>
+                <label>Note *</label>
                 <textarea class="form-control" name="reason_do" required></textarea>
             </div>
 

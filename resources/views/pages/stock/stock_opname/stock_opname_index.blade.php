@@ -110,7 +110,18 @@
                 { data: 'product_code', name: 'product.SKU' },
                 { data: 'product_name', name: 'product.nama_barang' },
                 { data: 'qty_last', name: 'qty_last' },
-                { data: 'tgl_opname', name: 'tgl_opname' },
+                {
+                    data: 'created_at',
+                    name: 'created_at',
+                    render: function (data) {
+                        if (!data) return '-';
+
+                        const d = new Date(data);
+                        const pad = n => n.toString().padStart(2, '0');
+
+                        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                    }
+                },
                 { data: 'action', name: 'action', orderable: false, searchable: false }
             ]
         });

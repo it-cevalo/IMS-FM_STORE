@@ -191,27 +191,27 @@ class ProductInboundController extends Controller
             'id_warehouse' => 'required|integer',
             'items'        => 'required|array|min:1'
         ]);
-    
+
         DB::beginTransaction();
         try {
-    
+
             /** Ambil inbound yang dipilih */
             $inbounds = DB::table('tproduct_inbound')
                 ->whereIn('id', $request->items)
                 ->get();
-    
+
             if ($inbounds->isEmpty()) {
                 throw new \Exception('Data inbound tidak ditemukan');
             }
-    
+
             /** Simpan PO yang terlibat */
             $poIds = [];
-    
+
             /** Gabungkan qty inbound per product */
             $grouped = [];
             foreach ($inbounds as $inbound) {
                 $key = $inbound->id_product;
-    
+
                 if (!isset($grouped[$key])) {
                     $grouped[$key] = [
                         'id_product' => $inbound->id_product,
@@ -225,10 +225,10 @@ class ProductInboundController extends Controller
                     $grouped[$key]['po_ids'][]     = $inbound->id_po;
                 }
             }
-    
+
             /** Proses stock opname */
             foreach ($grouped as $product) {
-    
+
                 // 🔒 Lock saldo terakhir
                 $lastStock = DB::table('t_stock_opname')
                     ->where('id_warehouse', $request->id_warehouse)
@@ -236,39 +236,42 @@ class ProductInboundController extends Controller
                     ->orderBy('id', 'desc')
                     ->lockForUpdate()
                     ->first();
-    
+
                 $qty_last_prev = $lastStock ? $lastStock->qty_last : 0;
                 $qty_in        = $product['total_qty'];
                 $qty_last      = $qty_last_prev + $qty_in;
-    
-                // 🔍 Cek apakah sudah ada opname HARI INI
-                $todayOpname = DB::table('t_stock_opname')
+
+                /**
+                 * 🔍 Ambil OPNAME PERTAMA (tanggal paling awal)
+                 * 👉 BUKAN per hari
+                 */
+                $firstOpname = DB::table('t_stock_opname')
                     ->where('id_warehouse', $request->id_warehouse)
                     ->where('id_product', $product['id_product'])
-                    ->where('tgl_opname', now()->toDateString())
+                    ->orderBy('tgl_opname', 'asc')
                     ->first();
-    
-                if ($todayOpname) {
-                    // 🔁 UPDATE (bukan insert baru)
+
+                if ($firstOpname) {
+                    // 🔁 UPDATE KE TANGGAL PERTAMA
                     DB::table('t_stock_opname')
-                        ->where('id', $todayOpname->id)
+                        ->where('id', $firstOpname->id)
                         ->update([
                             'qty_in'     => DB::raw("qty_in + {$qty_in}"),
                             'qty_last'   => $qty_last,
                             'updated_at' => now(),
                         ]);
                 } else {
-                    // ➕ INSERT BARU (hari pertama)
+                    // ➕ INSERT SEKALI SEBAGAI OPNAME PERTAMA
                     DB::table('t_stock_opname')->insert([
                         'id_warehouse' => $request->id_warehouse,
                         'id_product'   => $product['id_product'],
                         'qty_in'       => $qty_in,
                         'qty_last'     => $qty_last,
-                        'tgl_opname'   => now()->toDateString(),
+                        'tgl_opname'   => now()->toDateString(), // tanggal pertama
                         'created_at'   => now(),
                     ]);
                 }
-    
+
                 // Update warehouse di inbound via QR
                 DB::table('tproduct_qr as qr')
                     ->join('tproduct_inbound as i', function ($join) {
@@ -283,26 +286,26 @@ class ProductInboundController extends Controller
                     ->update([
                         'i.id_warehouse' => $request->id_warehouse
                     ]);
-    
+
                 // Update qty_received PO detail
                 DB::table('tpo_detail')
                     ->whereIn('id', $product['po_details'])
                     ->update([
                         'qty_received' => DB::raw("qty_received + {$qty_in}")
                     ]);
-    
+
                 $poIds = array_merge($poIds, $product['po_ids']);
             }
-    
+
             /** Update status PO */
             $poIds = array_unique($poIds);
-    
+
             foreach ($poIds as $poId) {
-    
+
                 $details = DB::table('tpo_detail')
                     ->where('id_po', $poId)
                     ->get();
-    
+
                 $isComplete = true;
                 foreach ($details as $d) {
                     if ($d->qty_received < $d->qty) {
@@ -310,7 +313,7 @@ class ProductInboundController extends Controller
                         break;
                     }
                 }
-    
+
                 DB::table('tpos')
                     ->where('id', $poId)
                     ->update([
@@ -318,21 +321,21 @@ class ProductInboundController extends Controller
                         'updated_at' => now()
                     ]);
             }
-    
+
             DB::commit();
-    
+
             return response()->json([
                 'message' => 'Inbound berhasil dikonfirmasi'
             ]);
-    
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'message' => $e->getMessage()
             ], 500);
         }
-    }    
-    
+    }
+
     // public function confirm(Request $request)
     // {
     //     $request->validate([
@@ -343,7 +346,7 @@ class ProductInboundController extends Controller
     //     DB::beginTransaction();
     //     try {
     
-    //         /** Ambil semua inbound yang dipilih */
+    //         /** Ambil inbound yang dipilih */
     //         $inbounds = DB::table('tproduct_inbound')
     //             ->whereIn('id', $request->items)
     //             ->get();
@@ -352,30 +355,97 @@ class ProductInboundController extends Controller
     //             throw new \Exception('Data inbound tidak ditemukan');
     //         }
     
-    //         /** Simpan PO yang terlibat (biar update status 1x per PO) */
+    //         /** Simpan PO yang terlibat */
     //         $poIds = [];
     
+    //         /** Gabungkan qty inbound per product */
+    //         $grouped = [];
     //         foreach ($inbounds as $inbound) {
+    //             $key = $inbound->id_product;
     
-    //             /** 1️⃣ INSERT STOCK OPNAME */
-    //             DB::table('t_stock_opname')->insert([
-    //                 'id_warehouse' => $request->id_warehouse,
-    //                 'id_product'   => $inbound->id_product,
-    //                 'qty_in'       => $inbound->qty,
-    //                 'qty_last'     => $inbound->qty,
-    //                 'tgl_opname'   => now()->toDateString(),
-    //                 'created_at'   => now(),
-    //             ]);
-    
-    //             /** 2️⃣ UPDATE QTY RECEIVED PO DETAIL */
-    //             DB::table('tpo_detail')
-    //                 ->where('id', $inbound->id_po_detail)
-    //                 ->increment('qty_received', $inbound->qty);
-    
-    //             $poIds[] = $inbound->id_po;
+    //             if (!isset($grouped[$key])) {
+    //                 $grouped[$key] = [
+    //                     'id_product' => $inbound->id_product,
+    //                     'total_qty'  => $inbound->qty,
+    //                     'po_details' => [$inbound->id_po_detail],
+    //                     'po_ids'     => [$inbound->id_po]
+    //                 ];
+    //             } else {
+    //                 $grouped[$key]['total_qty'] += $inbound->qty;
+    //                 $grouped[$key]['po_details'][] = $inbound->id_po_detail;
+    //                 $grouped[$key]['po_ids'][]     = $inbound->id_po;
+    //             }
     //         }
     
-    //         /** 3️⃣ UPDATE STATUS PO (PER PO, BUKAN PER ITEM) */
+    //         /** Proses stock opname */
+    //         foreach ($grouped as $product) {
+    
+    //             // 🔒 Lock saldo terakhir
+    //             $lastStock = DB::table('t_stock_opname')
+    //                 ->where('id_warehouse', $request->id_warehouse)
+    //                 ->where('id_product', $product['id_product'])
+    //                 ->orderBy('id', 'desc')
+    //                 ->lockForUpdate()
+    //                 ->first();
+    
+    //             $qty_last_prev = $lastStock ? $lastStock->qty_last : 0;
+    //             $qty_in        = $product['total_qty'];
+    //             $qty_last      = $qty_last_prev + $qty_in;
+    
+    //             // 🔍 Cek apakah sudah ada opname HARI INI
+    //             $todayOpname = DB::table('t_stock_opname')
+    //                 ->where('id_warehouse', $request->id_warehouse)
+    //                 ->where('id_product', $product['id_product'])
+    //                 ->where('tgl_opname', now()->toDateString())
+    //                 ->first();
+    
+    //             if ($todayOpname) {
+    //                 // 🔁 UPDATE (bukan insert baru)
+    //                 DB::table('t_stock_opname')
+    //                     ->where('id', $todayOpname->id)
+    //                     ->update([
+    //                         'qty_in'     => DB::raw("qty_in + {$qty_in}"),
+    //                         'qty_last'   => $qty_last,
+    //                         'updated_at' => now(),
+    //                     ]);
+    //             } else {
+    //                 // ➕ INSERT BARU (hari pertama)
+    //                 DB::table('t_stock_opname')->insert([
+    //                     'id_warehouse' => $request->id_warehouse,
+    //                     'id_product'   => $product['id_product'],
+    //                     'qty_in'       => $qty_in,
+    //                     'qty_last'     => $qty_last,
+    //                     'tgl_opname'   => now()->toDateString(),
+    //                     'created_at'   => now(),
+    //                 ]);
+    //             }
+    
+    //             // Update warehouse di inbound via QR
+    //             DB::table('tproduct_qr as qr')
+    //                 ->join('tproduct_inbound as i', function ($join) {
+    //                     $join->on(
+    //                         DB::raw('i.qr_code COLLATE utf8mb4_unicode_ci'),
+    //                         '=',
+    //                         DB::raw('qr.qr_code COLLATE utf8mb4_unicode_ci')
+    //                     );
+    //                 })
+    //                 ->whereIn('i.id', $request->items)
+    //                 ->where('i.id_product', $product['id_product'])
+    //                 ->update([
+    //                     'i.id_warehouse' => $request->id_warehouse
+    //                 ]);
+    
+    //             // Update qty_received PO detail
+    //             DB::table('tpo_detail')
+    //                 ->whereIn('id', $product['po_details'])
+    //                 ->update([
+    //                     'qty_received' => DB::raw("qty_received + {$qty_in}")
+    //                 ]);
+    
+    //             $poIds = array_merge($poIds, $product['po_ids']);
+    //         }
+    
+    //         /** Update status PO */
     //         $poIds = array_unique($poIds);
     
     //         foreach ($poIds as $poId) {
@@ -385,7 +455,6 @@ class ProductInboundController extends Controller
     //                 ->get();
     
     //             $isComplete = true;
-    
     //             foreach ($details as $d) {
     //                 if ($d->qty_received < $d->qty) {
     //                     $isComplete = false;
@@ -396,7 +465,7 @@ class ProductInboundController extends Controller
     //             DB::table('tpos')
     //                 ->where('id', $poId)
     //                 ->update([
-    //                     'status_po'  => $isComplete ? 3 : 2, // 3 = COMPLETE, 2 = PROGRESS
+    //                     'status_po'  => $isComplete ? 3 : 2,
     //                     'updated_at' => now()
     //                 ]);
     //         }
@@ -413,5 +482,5 @@ class ProductInboundController extends Controller
     //             'message' => $e->getMessage()
     //         ], 500);
     //     }
-    // }    
+    // }
 }

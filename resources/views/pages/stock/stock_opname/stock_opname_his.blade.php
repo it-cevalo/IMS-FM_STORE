@@ -91,7 +91,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form method="GET" action="{{route('report_courier.filter')}}">
+                {{-- <form method="GET" action="{{route('report_courier.filter')}}">
                     <div class="mb-3">
                         <label for="exampleFormControlInput1">Product</label>
                         <select class="form-control select2" id="search-type" name="id_unit" value="{{old('id_unit')}}"
@@ -118,7 +118,7 @@
             <div class="modal-footer">
                 <button type="submit" class="btn btn-primary">Execute</button>
             </div>
-            </form>
+            </form> --}}
         </div>
     </div>
 </div>
