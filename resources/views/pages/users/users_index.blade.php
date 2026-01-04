@@ -28,7 +28,7 @@
                                             <th>No</th>
                                             <th>Username</th>
                                             <th>Name</th>
-                                            <th>Position</th>
+                                            <th>Role</th>
                                             <th>Action</th>
                                         </tr>
                                     </thead>
@@ -41,12 +41,11 @@
                                             <td>{{$no++}}</td>
                                             <td>{{$f->username}}</td>
                                             <td>{{$f->name}}</td>
-                                            <td>{{$f->position ?? 'NA'}}</td>
+                                            <td>{{ $f->role->name ?? '-' }}</td>
                                             <td>
                                                 <form action="{{route('users.destroy',$f->id)}}" method="POST" class="formDelete">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <a href="{{route('users.show',$f->id)}}" class="btn btn-flat btn-primary btn-sm"><i class="fa fa-eye"></i></a>
                                                     <a href="{{route('users.edit',$f->id)}}" class="btn btn-warning btn-flat btn-sm"><i class="fa fa-edit"></i></a> 
                                                     <button type="submit" class="btn btn-flat btn-danger btn-sm"><i class="fa fa-trash"></i></button>
                                                 </form>

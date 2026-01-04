@@ -1,135 +1,142 @@
 <?php
-    
+
 namespace App\Http\Controllers;
 
-
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\User;
-use Spatie\Permission\Models\Permission;
+use App\Models\Role;
+use App\Models\Menu;
 use DB;
-    
+
 class RoleController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    function __construct()
+    public function __construct()
     {
         $this->middleware('auth');
     }
-    
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index(Request $request)
+
+    public function index()
     {
-        $roles = Role::orderBy('id','DESC')->paginate(5);
-        return view('pages.roles.roles_index',compact('roles'))
-            ->with('i', ($request->input('page', 1) - 1) * 5);
+        $roles = Role::orderBy('id','DESC')->get();
+        return view('pages.roles.roles_index', compact('roles'));
     }
-    
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+
     public function create()
     {
-        $permission = Permission::get();
-        return view('pages.roles.roles_create',compact('permission'));
+        $menus = Menu::where('is_active',1)
+            ->orderBy('order_no')
+            ->get()
+            ->groupBy('parent_menu_id');
+
+        return view('pages.roles.roles_create', compact('menus'));
     }
-    
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
+
     public function store(Request $request)
     {
-        $this->validate($request, [
+        $validator = Validator::make($request->all(), [
             'name' => 'required|unique:roles,name',
-            'permission' => 'required',
         ]);
     
-        $role = Role::create(['name' => $request->input('name')]);
-        $role->syncPermissions($request->input('permission'));
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => 'validation_error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
     
-        return redirect()->route('roles.index')
-                        ->with('success','Role created successfully');
+        try {
+            DB::transaction(function () use ($request) {
+    
+                $role = Role::create([
+                    'name' => $request->name,
+                    'guard_name' => 'web'
+                ]);
+    
+                foreach ($request->menus ?? [] as $menuId) {
+                    DB::table('role_menus')->insert([
+                        'role_id'    => $role->id,
+                        'menu_id'    => $menuId,
+                        'is_enabled' => 1,
+                        'created_at'=> now(),
+                        'updated_at'=> now(),
+                    ]);
+                }
+            });
+    
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Role berhasil dibuat'
+            ]);
+    
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal membuat role'
+            ], 500);
+        }
     }
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        $role = Role::find($id);
-        $rolePermissions = Permission::join("role_has_permissions","role_has_permissions.permission_id","=","permissions.id")
-            ->where("role_has_permissions.role_id",$id)
-            ->get();
-    
-        return view('pages.roles.roles_show',compact('role','rolePermissions'));
-    }
-    
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
+
     public function edit($id)
     {
-        $role = Role::find($id);
-        $permission = Permission::get();
-        $rolePermissions = DB::table("role_has_permissions")->where("role_has_permissions.role_id",$id)
-            ->pluck('role_has_permissions.permission_id','role_has_permissions.permission_id')
-            ->all();
-    
-        return view('pages.roles.roles_edit',compact('role','permission','rolePermissions'));
+        $role = Role::findOrFail($id);
+
+        $menus = Menu::where('is_active',1)
+            ->orderBy('order_no')
+            ->get()
+            ->groupBy('parent_menu_id');
+
+        $roleMenus = DB::table('role_menus')
+            ->where('role_id', $id)
+            ->pluck('menu_id')
+            ->toArray();
+
+        return view('pages.roles.roles_edit', compact(
+            'role','menus','roleMenus'
+        ));
     }
-    
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
+
     public function update(Request $request, $id)
     {
-        $this->validate($request, [
+        $validator = Validator::make($request->all(), [
             'name' => 'required',
-            'permission' => 'required',
         ]);
     
-        $role = Role::find($id);
-        $role->name = $request->input('name');
-        $role->save();
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => 'validation_error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
     
-        $role->syncPermissions($request->input('permission'));
+        try {
+            DB::transaction(function () use ($request, $id) {
     
-        return redirect()->route('roles.index')
-                        ->with('success','Role updated successfully');
-    }
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy($id)
-    {
-        DB::table("roles")->where('id',$id)->delete();
-        return redirect()->route('roles.index')
-                        ->with('success','Role deleted successfully');
+                $role = Role::findOrFail($id);
+                $role->update(['name' => $request->name]);
+    
+                DB::table('role_menus')->where('role_id', $id)->delete();
+    
+                foreach ($request->menus ?? [] as $menuId) {
+                    DB::table('role_menus')->insert([
+                        'role_id' => $id,
+                        'menu_id' => $menuId,
+                        'is_enabled' => 1,
+                        'created_at'=> now(),
+                        'updated_at'=> now(),
+                    ]);
+                }
+            });
+    
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Role berhasil diperbarui'
+            ]);
+    
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal memperbarui role'
+            ], 500);
+        }
     }
 }

@@ -1,132 +1,88 @@
-<!-- Sidebar -->
 <ul class="navbar-nav bg-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
-    <!-- Sidebar - Brand -->
-    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{route('dashboard')}}">
+    {{-- BRAND --}}
+    <a class="sidebar-brand d-flex align-items-center justify-content-center"
+       href="{{ route('dashboard') }}">
         <div class="sidebar-brand-icon rotate-n-15">
             <i class="fas fa-chart-bar"></i>
         </div>
         <div class="sidebar-brand-text mx-3">IMS</div>
     </a>
 
-    <!-- Divider -->
     <hr class="sidebar-divider my-0">
 
-    <!-- Nav Item - Dashboard -->
-    <li class="nav-item active">
-        <a class="nav-link" href="{{route('dashboard')}}">
+    {{-- DASHBOARD (OPTIONAL: BISA JUGA FULL DARI DB) --}}
+    <li class="nav-item">
+        <a class="nav-link" href="{{ route('dashboard') }}">
             <i class="fas fa-fw fa-home"></i>
-            <span>Dashboard</span></a>
+            <span>Dashboard</span>
+        </a>
     </li>
 
-    <!-- Divider -->
     <hr class="sidebar-divider">
 
-    <!-- Heading -->
-    <div class="sidebar-heading">
-        MENU
-    </div>
+    <div class="sidebar-heading">MENU</div>
 
-    @if(Auth::user()->position == 'SUPERADMIN')
-    <!-- Nav Item - Master -->
-    <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseMaster"
-            aria-expanded="true" aria-controls="collapseMaster">
-            <i class="fas fa-fw fa-folder"></i>
-            <span>Master</span>
-        </a>
-        <div id="collapseMaster" class="collapse" aria-labelledby="headingMaster" data-parent="#accordionSidebar">
-            <div class="bg-white py-2 collapse-inner rounded">
-                <a class="collapse-item" href="{{route('product_unit.index')}}">Unit of Measure (UOM)</a>
-                <a class="collapse-item" href="{{route('product_type.index')}}">Product Type</a>
-                {{-- <a class="collapse-item" href="{{route('sku.index')}}">SKU</a> --}}
-                <a class="collapse-item" href="{{route('product.index')}}">Product</a>
-                <a class="collapse-item" href="{{route('customers.index')}}">Customer</a>
-                <a class="collapse-item" href="{{route('suppliers.index')}}">Supplier</a>
-                <a class="collapse-item" href="{{route('stores.index')}}">Store</a>
-                <a class="collapse-item" href="{{route('warehouses.index')}}">Warehouse</a>
-                <a class="collapse-item" href="{{route('couriers.index')}}">Courier</a>
-                <div class="collapse-divider"></div>
-            </div>
-        </div>
-    </li>
+    {{-- MENU DINAMIS BERDASARKAN ROLE --}}
+    @foreach($menus[null] ?? [] as $menu)
+    
 
-    <!-- Nav Item - Stock Opname -->
-    <li class="nav-item">
-        <a class="nav-link" href="{{route('stock_opname.index')}}">
-            <i class="fas fa-fw fa-database"></i>
-            <span>Stock Opname</span></a>
-    </li>
+        {{-- MENU TANPA CHILD --}}
+        @if(empty($menus[$menu->menu_id]))
+            <li class="nav-item">
+                <a class="nav-link"
+                   href="{{ $menu->route_name ? route($menu->route_name) : '#' }}">
+                    <i class="{{ $menu->icon }}"></i>
+                    <span>{{ $menu->name }}</span>
+                </a>
+            </li>
+        @else
+            {{-- MENU PARENT --}}
+            <li class="nav-item">
+                <a class="nav-link collapsed"
+                   href="#"
+                   data-toggle="collapse"
+                   data-target="#collapse{{ $menu->menu_id }}"
+                   aria-expanded="false">
+                    <i class="{{ $menu->icon }}"></i>
+                    <span>{{ $menu->name }}</span>
+                </a>
 
-    <!-- Nav Item - Transaction -->
-    <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTransaction"
-            aria-expanded="true" aria-controls="collapseTransaction">
-            <i class="fas fa-fw fa-list"></i>
-            <span>Transaction</span>
-        </a>
-        <div id="collapseTransaction" class="collapse" aria-labelledby="headingTransaction"
-            data-parent="#accordionSidebar">
-            <div class="bg-white py-2 collapse-inner rounded">
-                <a class="collapse-item" href="{{route('purchase_order.index')}}">Purchase Order</a>
-                <a class="collapse-item" href="{{route('delivery_order.index')}}">Delivery Order</a>
-                <a class="collapse-item" href="{{route('product_inbound.index')}}">Scan Barang Masuk</a>
-                <a class="collapse-item" href="{{route('product_outbound.index')}}">Scan Barang Keluar</a>
-                <div class="collapse-divider"></div>
-            </div>
-        </div>
-    </li>
+                <div id="collapse{{ $menu->menu_id }}"
+                     class="collapse"
+                     data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
 
-    <!-- Nav Item - Report -->
-    <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseReport"
-            aria-expanded="true" aria-controls="collapseReport">
-            <i class="fas fa-fw fa-file"></i>
-            <span>Report</span>
-        </a>
-        <div id="collapseReport" class="collapse" aria-labelledby="headingReport" data-parent="#accordionSidebar">
-            <div class="bg-white py-2 collapse-inner rounded">
-                <a class="collapse-item" href="{{route('stock_movement.index')}}">Stock Movement</a>
-                <a class="collapse-item" href="{{route('stock_aging.index')}}">Stock Aging</a>
-                <div class="collapse-divider"></div>
-            </div>
-        </div>
-    </li>
+                        @foreach($menus[$menu->menu_id] as $child)
+                            <a class="collapse-item"
+                               href="{{ $child->route_name ? route($child->route_name) : '#' }}">
+                                {{ $child->name }}
+                            </a>
+                        @endforeach
 
-    <!-- Nav Item - Utilities -->
-    <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities"
-            aria-expanded="true" aria-controls="collapseUtilities">
-            <i class="fas fa-fw fa-wrench"></i>
-            <span>Utilities</span>
-        </a>
-        <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities" data-parent="#accordionSidebar">
-            <div class="bg-white py-2 collapse-inner rounded">
-                <h6 class="collapse-header">User Security:</h6>
-                <a class="collapse-item" href="{{route('users.index')}}">User</a>
-                <a class="collapse-item" href="{{route('roles.index')}}">Roles</a>
-            </div>
-        </div>
-    </li>
-    @endif
+                    </div>
+                </div>
+            </li>
+        @endif
 
-    <!-- Logout -->
+    @endforeach
+
+    <hr class="sidebar-divider d-none d-md-block">
+
+    {{-- LOGOUT --}}
     <li class="nav-item">
         <form id="logout-form" action="{{ route('logout') }}" method="POST">
             @csrf
         </form>
-        <a href="#" class="nav-link" onclick="event.preventDefault();
-        document.getElementById('logout-form').submit();">
+        <a href="#" class="nav-link"
+           onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
             <i class="fas fa-fw fa-sign-out-alt"></i>
-            <span>Sign Out</span></a>
+            <span>Sign Out</span>
+        </a>
     </li>
 
-    <!-- Divider -->
-    <hr class="sidebar-divider d-none d-md-block">
-
-    <!-- Sidebar Toggler (Sidebar) -->
     <div class="text-center d-none d-md-inline">
         <button class="rounded-circle border-0" id="sidebarToggle"></button>
     </div>
+
 </ul>
-<!-- End of Sidebar -->

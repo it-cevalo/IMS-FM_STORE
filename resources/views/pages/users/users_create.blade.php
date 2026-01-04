@@ -15,7 +15,7 @@
         <h6 class="m-0 font-weight-bold text-primary">User Management</h6>
     </div>
     <div class="card-body">
-        <form method="POST" action="{{route('users.store')}}">
+        <form id="userCreateForm">
             @csrf
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Name</label>
@@ -38,21 +38,56 @@
                     placeholder="name@example.com">
             </div>
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Position</label>
-                <select class="form-control" name="position" value="{{old('position')}}" required>
-                    <option value="">....</option>
-                    <option value="OPERATIONAL">Operational</option>
-                    <option value="WAREHOUSE_ADMIN">Warehouse Admin</option>
-                    <option value="PURCHASING">Purchasing</option>
-                    <!-- <option value="INVOICINGTAX">Invoicing & Tax</option> -->
-                    <!-- <option value="STAFF_FINANCE">Staff Finance</option> -->
-                    <option value="MANAGER">Manager</option>
-                    <!-- <option value="COURIER">Courier</option>
-                    <option value="DIRECTOR">Director</option> -->
+                <label>Role</label>
+                <select name="role_id" class="form-control" required>
+                    <option value="">-- Pilih Role --</option>
+                    @foreach($roles as $role)
+                        <option value="{{ $role->id }}">{{ $role->name }}</option>
+                    @endforeach
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary">Submit</button>
+            <button type="submit" class="btn btn-primary">Simpan</button>
         </form>
     </div>
 </div>
+<script>
+    $('#userCreateForm').submit(function(e){
+        e.preventDefault();
+
+        Swal.fire({
+            title: 'Menyimpan...',
+            text: 'Mohon tunggu',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        $.ajax({
+            url: "{{ route('users.store') }}",
+            method: "POST",
+            data: $(this).serialize(),
+            success: function(res){
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: res.message
+                }).then(() => {
+                    window.location.href = "{{ route('users.index') }}";
+                });
+            },
+            error: function(xhr){
+                let msg = 'Terjadi kesalahan';
+
+                if (xhr.status === 422) {
+                    msg = xhr.responseJSON.message;
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: msg
+                });
+            }
+        });
+    });
+</script>
 @endsection

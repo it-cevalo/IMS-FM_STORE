@@ -15,9 +15,9 @@
         <h6 class="m-0 font-weight-bold text-primary">User Management</h6>
     </div>
     <div class="card-body">
-        <form method="POST" action="{{route('users.update',$user->id)}}">
+        <form id="userEditForm">
             @csrf
-            {{ method_field('PUT') }}
+            @method('PUT')
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Name</label>
                 <input class="form-control" id="exampleFormControlInput1" name="name" value="{{$user->name}}" type="text" placeholder="Jhon Doe">
@@ -36,14 +36,13 @@
                 <input class="form-control" id="exampleFormControlInput1" name="email" value="{{$user->email}}" type="email" placeholder="name@example.com">
             </div>
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Position</label>
-                <select class="form-control" name="position" required>
-                    @foreach($position as $k => $v)
-                        @if($user->position == $k)
-                            <option value="{{ $k }}" selected="">{{ $v }}</option>
-                        @else
-                            <option value="{{ $k }}">{{ $v }}</option>
-                        @endif
+                <label>Role</label>
+                <select name="role_id" class="form-control" required>
+                    @foreach($roles as $role)
+                        <option value="{{ $role->id }}"
+                            {{ $user->role_id == $role->id ? 'selected':'' }}>
+                            {{ $role->name }}
+                        </option>
                     @endforeach
                 </select>
             </div>
@@ -51,4 +50,44 @@
         </form>
     </div>
 </div>
+<script>
+    $('#userEditForm').submit(function(e){
+        e.preventDefault();
+
+        Swal.fire({
+            title: 'Memperbarui...',
+            text: 'Mohon tunggu',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        $.ajax({
+            url: "{{ route('users.update',$user->id) }}",
+            method: "POST",
+            data: $(this).serialize(),
+            success: function(res){
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: res.message
+                }).then(() => {
+                    window.location.href = "{{ route('users.index') }}";
+                });
+            },
+            error: function(xhr){
+                let msg = 'Terjadi kesalahan';
+
+                if (xhr.status === 422) {
+                    msg = xhr.responseJSON.message;
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: msg
+                });
+            }
+        });
+    });
+</script>
 @endsection
