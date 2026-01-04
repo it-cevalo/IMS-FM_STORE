@@ -100,25 +100,54 @@ function bulkAction(poNo, action) {
         didOpen: () => {
             Swal.showLoading();
             $.post(
-                action === 'approve' ? '{{ route("reprint.approve") }}' : '{{ route("reprint.reject") }}',
+                action === 'approve'
+                    ? '{{ route("reprint.approve") }}'
+                    : '{{ route("reprint.reject") }}',
                 {_token:'{{ csrf_token() }}', ids:ids},
                 function(res){
                     Swal.close();
+
                     if(res.success){
+
                         ids.forEach(function(id){
                             $('#status-'+id).text(action === 'approve' ? 'APPROVED' : 'REJECTED');
                             $('#row-'+id+' input.check-item').remove();
                         });
+
                         hideButtonsIfAllProcessed(poNo);
+
                         Swal.fire('Success', 'Operation completed.', 'success');
+
+                        // 🔥 AUTO PRINT SETELAH APPROVE
+                        if(action === 'approve' && res.printUrl){
+                            window.open(res.printUrl, '_blank');
+                        }
+
                     } else {
                         Swal.fire('Error', 'Operation failed.', 'error');
                     }
                 }
-            ).fail(function(){
-                Swal.close();
-                Swal.fire('Error', 'Request failed.', 'error');
-            });
+            )
+            // $.post(
+            //     action === 'approve' ? '{{ route("reprint.approve") }}' : '{{ route("reprint.reject") }}',
+            //     {_token:'{{ csrf_token() }}', ids:ids},
+            //     function(res){
+            //         Swal.close();
+            //         if(res.success){
+            //             ids.forEach(function(id){
+            //                 $('#status-'+id).text(action === 'approve' ? 'APPROVED' : 'REJECTED');
+            //                 $('#row-'+id+' input.check-item').remove();
+            //             });
+            //             hideButtonsIfAllProcessed(poNo);
+            //             Swal.fire('Success', 'Operation completed.', 'success');
+            //         } else {
+            //             Swal.fire('Error', 'Operation failed.', 'error');
+            //         }
+            //     }
+            // ).fail(function(){
+            //     Swal.close();
+            //     Swal.fire('Error', 'Request failed.', 'error');
+            // });
         }
     });
 }

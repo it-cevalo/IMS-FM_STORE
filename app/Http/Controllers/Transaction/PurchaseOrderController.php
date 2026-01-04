@@ -683,20 +683,77 @@ class PurchaseOrderController extends Controller
     //     return $this->printPDF($po, $qrList);
     // }
     
-    private function generateSingleQR($po, $detailId, $qty)
+    // private function generateSingleQR($po, $detailId, $qty)
+    //last
+    // {
+    //     $detail = $po->po_detail->where('id', $detailId)->first();
+    //     if (!$detail) abort(404);
+
+    //     $qty = intval($qty);
+    //     if ($qty <= 0) abort(422, 'Qty tidak valid');
+
+    //     $qrList = [];
+
+    //     for ($i = 1; $i <= $qty; $i++) {
+    //         $qrList[] = $this->createOrGetQR($po, $detail);
+    //     }
+
+    //     return $this->printPDF($po, $qrList);
+    // }
+    
+    private function generateSingleQR($po, $detailId, $seqText)
     {
         $detail = $po->po_detail->where('id', $detailId)->first();
         if (!$detail) abort(404);
 
-        $qty = intval($qty);
-        if ($qty <= 0) abort(422, 'Qty tidak valid');
+        $sequences = $this->parseSequenceInput($seqText);
+        if (empty($sequences)) {
+            abort(422, 'Nomor urut tidak valid');
+        }
 
         $qrList = [];
 
-        for ($i = 1; $i <= $qty; $i++) {
-            $qrList[] = $this->createOrGetQR($po, $detail);
+        foreach ($sequences as $num) {
+
+            $seqStr = str_pad($num, 4, '0', STR_PAD_LEFT);
+
+            /**
+             * 1️⃣ CEK BOLEH CETAK ATAU TIDAK
+             */
+            if (!$this->canPrintQR($po->id, $detail->id, $seqStr)) {
+                return response()->json([
+                    'message' => "Sequence {$seqStr} harus mengajukan request reprint terlebih dahulu"
+                ], 403);
+            }
+
+            /**
+             * 2️⃣ BUAT QR (FIXED SEQUENCE)
+             */
+            $qrList[] = $this->createQRWithFixedSequence(
+                $po,
+                $detail,
+                $num
+            );
+
+            /**
+             * 3️⃣ HABISKAN APPROVAL (KALAU ADA)
+             */
+            DB::table('tqr_reprint_request')
+                ->where([
+                    'id_po'        => $po->id,
+                    'id_po_detail' => $detail->id,
+                    'sequence_no'  => $seqStr,
+                    'status'       => 'APPROVED'
+                ])
+                ->whereNull('used_at')
+                ->update([
+                    'used_at' => now()
+                ]);
         }
 
+        /**
+         * 4️⃣ CETAK PDF
+         */
         return $this->printPDF($po, $qrList);
     }
     
@@ -779,6 +836,39 @@ class PurchaseOrderController extends Controller
 
     //     return $this->printPDF($po, $qrList);
     // }
+    
+    private function createQRWithFixedSequence($po, $item, int $seqNumber)
+    {
+        $sku = $item->part_number;
+    
+        $product = DB::table('mproduct')->where('sku', $sku)->first();
+        if (!$product) abort(422, "SKU {$sku} tidak ditemukan");
+    
+        $seqStr = str_pad($seqNumber, 4, '0', STR_PAD_LEFT);
+    
+        $qrValue = $po->no_po . "|" . $sku . "|" . $seqStr;
+    
+        DB::table('tproduct_qr')->insert([
+            'id_po'        => $po->id,
+            'id_po_detail' => $item->id,
+            'id_product'   => $product->id,
+            'sku'          => $sku,
+            'qr_code'      => $qrValue,
+            'sequence_no'  => $seqStr,
+            'nama_barang'  => $item->product_name,
+            'status'       => 'NEW',
+            'used_for'     => 'IN',
+            'printed_at'   => now(),
+            'printed_by'   => Auth::user()->username,
+        ]);
+    
+        return [
+            'nama_barang' => $item->product_name,
+            'sku'         => $sku,
+            'nomor_urut'  => $seqStr,
+            'qr_payload'  => $qrValue,
+        ];
+    }
 
     private function generateAllQR($po)
     {
@@ -924,30 +1014,47 @@ class PurchaseOrderController extends Controller
     public function getSequence($id)
     {
         try {
-            // Ambil semua sequence_no untuk id_po_detail
-            $sequences = DB::table('tproduct_qr')
-                ->where('id_po_detail', $id)
-                ->orderBy('sequence_no', 'asc')
-                ->pluck('sequence_no')
+    
+            /**
+             * Ambil sequence unik
+             * jika ada duplicate (reprint) → ambil yang terbaru
+             */
+            $sequences = DB::table('tproduct_qr as q')
+                ->select('q.sequence_no')
+                ->join(
+                    DB::raw('
+                        (
+                            SELECT MAX(id) AS id
+                            FROM tproduct_qr
+                            WHERE id_po_detail = '.$id.'
+                            GROUP BY sequence_no
+                        ) latest
+                    '),
+                    'q.id',
+                    '=',
+                    'latest.id'
+                )
+                ->orderBy('q.sequence_no', 'asc')
+                ->pluck('q.sequence_no')
                 ->toArray();
     
-            // ubah "0001" => int 1
-            $available = array_values(array_map(function($s){
-                return intval($s);
-            }, $sequences));
+            // "0001" → 1
+            $available = array_values(array_map(
+                fn($s) => intval($s),
+                $sequences
+            ));
     
-            // optional: tambahkan info last_sequence (maksimum yang ada)
             $lastSequence = count($available) ? max($available) : 0;
     
             return response()->json([
-                'available' => $available,
+                'available'     => $available,
                 'last_sequence' => $lastSequence
             ], 200);
     
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Gagal mengambil data sequence.',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }
@@ -1083,6 +1190,7 @@ class PurchaseOrderController extends Controller
             'status'       => 'NEW',
             'used_for'     => 'IN',
             'printed_at'   => now(),
+            'printed_by'   => Auth::user()->username,
         ]);
 
         return [
@@ -1120,15 +1228,61 @@ class PurchaseOrderController extends Controller
         return view('pages.transaction.purchase_order.purchase_order_reprint', compact('requestsGrouped'));
     }
 
+    // public function approveReprint(Request $request)
+    // {
+    //     $reqIds = $request->ids ?? [];
+    //     DB::table('tqr_reprint_request')
+    //         ->whereIn('id', $reqIds)
+    //         ->update(['status' => 'APPROVED', 'approved_by' => Auth::user()->username, 'approved_at' => now()]);
+    
+    //     return response()->json(['success' => true]);
+    // }
+    
     public function approveReprint(Request $request)
     {
         $reqIds = $request->ids ?? [];
+
+        if (empty($reqIds)) {
+            return response()->json(['success' => false]);
+        }
+
+        // Ambil request pertama (asumsi bulk approve masih 1 PO)
+        $first = DB::table('tqr_reprint_request')
+            ->whereIn('id', $reqIds)
+            ->first();
+
+        if (!$first) {
+            return response()->json(['success' => false]);
+        }
+
+        // Approve semua
         DB::table('tqr_reprint_request')
             ->whereIn('id', $reqIds)
-            ->update(['status' => 'APPROVED', 'approved_by' => Auth::user()->username, 'approved_at' => now()]);
-    
-        return response()->json(['success' => true]);
+            ->update([
+                'status'       => 'APPROVED',
+                'approved_by'  => Auth::user()->username,
+                'approved_at'  => now()
+            ]);
+
+        /**
+         * =========================================
+         * BUILD PRINT URL
+         * =========================================
+         * contoh:
+         * /po/2/qr/pdf?detail=38&seq=5
+         */
+        $printUrl = url(
+            "/po/{$first->id_po}/qr/pdf"
+            . "?detail={$first->id_po_detail}"
+            . "&seq={$first->sequence_no}"
+        );
+
+        return response()->json([
+            'success'   => true,
+            'printUrl' => $printUrl
+        ]);
     }
+
     
     public function rejectReprint(Request $request)
     {
@@ -1218,21 +1372,27 @@ class PurchaseOrderController extends Controller
     
     private function canPrintQR($poId, $detailId, $seq)
     {
+        // QR BELUM PERNAH ADA → PRINT BARU
         $printed = DB::table('tproduct_qr')
-            ->where('id_po', $poId)
-            ->where('id_po_detail', $detailId)
-            ->where('sequence_no', $seq)
+            ->where([
+                'id_po'        => $poId,
+                'id_po_detail' => $detailId,
+                'sequence_no'  => $seq
+            ])
             ->exists();
     
         if (!$printed) return true;
     
+        // QR SUDAH ADA → CEK APPROVAL YANG BELUM DIPAKAI
         return DB::table('tqr_reprint_request')
             ->where([
-                'id_po' => $poId,
+                'id_po'        => $poId,
                 'id_po_detail' => $detailId,
-                'sequence_no' => $seq,
-                'status' => 'APPROVED'
-            ])->exists();
+                'sequence_no'  => $seq,
+                'status'       => 'APPROVED'
+            ])
+            ->whereNull('used_at') // 🔐 PENTING
+            ->exists();
     }
     
     private function getNextGlobalSequenceBySKU(string $sku): int

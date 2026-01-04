@@ -272,20 +272,22 @@ class ProductInboundController extends Controller
                     ]);
                 }
 
+                $latestQR = DB::table('tproduct_qr')
+                ->select(DB::raw('MAX(id) as id'))
+                ->where('id_product', $product['id_product'])
+                ->groupBy('sequence_no');
+                
                 // Update warehouse di inbound via QR
-                DB::table('tproduct_qr as qr')
-                    ->join('tproduct_inbound as i', function ($join) {
-                        $join->on(
-                            DB::raw('i.qr_code COLLATE utf8mb4_unicode_ci'),
-                            '=',
-                            DB::raw('qr.qr_code COLLATE utf8mb4_unicode_ci')
-                        );
-                    })
-                    ->whereIn('i.id', $request->items)
-                    ->where('i.id_product', $product['id_product'])
-                    ->update([
-                        'i.id_warehouse' => $request->id_warehouse
-                    ]);
+                DB::table('tproduct_inbound as i')
+                ->join('tproduct_qr as qr', function ($join) use ($latestQR) {
+                    $join->on('qr.qr_code', '=', 'i.qr_code')
+                         ->whereIn('qr.id', $latestQR);
+                })
+                ->whereIn('i.id', $request->items)
+                ->where('i.id_product', $product['id_product'])
+                ->update([
+                    'i.id_warehouse' => $request->id_warehouse
+                ]);
 
                 // Update qty_received PO detail
                 DB::table('tpo_detail')

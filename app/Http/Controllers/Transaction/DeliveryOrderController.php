@@ -305,10 +305,28 @@ class DeliveryOrderController extends Controller
     
                 // 3. Ambil QR FIFO (limit sesuai qty needed)
                 
-                $productQRs = DB::table('tproduct_qr')
-                ->where('id_product', $idProduct)
-                ->whereNull('id_do')
-                ->orderBy('id', 'asc') // FIFO real
+                // $productQRs = DB::table('tproduct_qr')
+                // ->where('id_product', $idProduct)
+                // ->whereNull('id_do')
+                // ->orderBy('id', 'asc') // FIFO real
+                // ->limit($qtyNeeded)
+                // ->get();
+                $productQRs = DB::table('tproduct_qr as q')
+                ->join(
+                    DB::raw('
+                        (
+                            SELECT MAX(id) AS id
+                            FROM tproduct_qr
+                            WHERE id_product = '.$idProduct.'
+                            AND id_do IS NULL
+                            GROUP BY sequence_no
+                        ) latest
+                    '),
+                    'q.id',
+                    '=',
+                    'latest.id'
+                )
+                ->orderBy('q.id', 'asc') // FIFO antar sequence
                 ->limit($qtyNeeded)
                 ->get();
 
