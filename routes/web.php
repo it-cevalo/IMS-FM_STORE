@@ -310,9 +310,12 @@ Route::middleware(['auth'])->group(function () {
             ->name('stock_movement.export');
             
         Route::get('stock-aging', [ReportStockAgingController::class, 'index'])
-        ->name('stock_aging.index');
+            ->name('stock_aging.index');
 
         Route::get('stock-aging/data', [ReportStockAgingController::class, 'data'])
             ->name('stock_aging.data');
+
+        Route::get('stock-aging/export', [ReportStockAgingController::class, 'export'])
+            ->name('stock_aging.export');
     });
 });
