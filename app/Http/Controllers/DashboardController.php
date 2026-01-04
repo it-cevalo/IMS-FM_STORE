@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Tpo;
+use App\Models\TProductInbound;
+use App\Models\TProductOutbound;
 use App\Models\Tdo;
 use App\Models\TInvoiceH;
 use App\Models\TStockOpname;
@@ -25,9 +27,9 @@ class DashboardController extends Controller
     {
         $total_po = Tpo::count();
         $total_do = Tdo::count();
-        $total_inv  = TinvoiceH::count();
-        $total_product = TStockOpname::distinct('id_product')->count('id_product');
-        return view('pages.dashboard',compact('total_po','total_do','total_inv','total_product'));
+        $total_inb = TProductInbound::count();
+        $total_outb = TProductOutbound::count();
+        return view('pages.dashboard',compact('total_po','total_do','total_inb','total_outb'));
     }
 
     /**

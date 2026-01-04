@@ -5,10 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class TProductInbound extends Model
+class TProductOutbound extends Model
 {
     use HasFactory;
-    protected $table   = 'tproduct_inbound';
+    protected $table   = 'tproduct_outbound';
     protected $guarded = [];
     
     public function product()
