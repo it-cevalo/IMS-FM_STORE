@@ -81,6 +81,8 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/chart/inout', [DashboardController::class, 'chartInOut'])
+    ->name('dashboard.chart.inout');
     Route::resource('roles', RoleController::class);
     Route::resource('users', UserController::class);
 
