@@ -2,13 +2,14 @@
 
 @section('content')
 <div class="card shadow mb-4">
-    <div class="card-header py-3 d-flex justify-content-between">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
         <h6 class="m-0 font-weight-bold text-primary">
             Stock Movement
         </h6>
-        {{-- <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#filterModal">
-            <i class="fa fa-filter"></i> Filter
-        </button> --}}
+
+        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#filterModal">
+            <i class="fa fa-filter"></i> Filter & Export
+        </button>
     </div>
 
     <div class="card-body">
@@ -32,13 +33,15 @@
 </div>
 
 {{-- ================= MODAL FILTER ================= --}}
-<div class="modal fade" id="filterModal">
-    <div class="modal-dialog">
+<div class="modal fade" id="filterModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
         <form id="filterForm">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Filter Stock Movement</h5>
-                    <button class="close" data-dismiss="modal">&times;</button>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
                 </div>
 
                 <div class="modal-body">
@@ -57,15 +60,24 @@
                         <select name="movement_type" class="form-control">
                             <option value="">-- Semua --</option>
                             <option value="FAST">Fast Moving</option>
+                            <option value="MEDIUM">Medium Moving</option>
                             <option value="SLOW">Slow Moving</option>
                             <option value="DEAD">Dead Stock</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Aksi</label>
+                        <select name="action" class="form-control">
+                            <option value="show">Tampilkan Data</option>
+                            <option value="export">Export Excel</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="modal-footer">
-                    <button class="btn btn-primary">
-                        <i class="fa fa-search"></i> Terapkan
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fa fa-check"></i> Proses
                     </button>
                 </div>
             </div>
@@ -73,11 +85,31 @@
     </div>
 </div>
 
-{{-- ================= SCRIPT ================= --}}
+{{-- ================= SWEETALERT2 (SAFE CDN) ================= --}}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+/**
+ * ======================================================
+ * SAFETY NET BOOTSTRAP MODAL
+ * ======================================================
+ */
+(function () {
+    if (typeof $.fn.modal === 'undefined') {
+        var script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js';
+        document.head.appendChild(script);
+    }
+})();
+</script>
+
 <script>
 let table;
 
-function loadData() {
+/* =======================
+   INIT DATATABLE
+======================= */
+function loadTable() {
     table = $('#stockMovementTable').DataTable({
         processing: true,
         serverSide: true,
@@ -91,36 +123,60 @@ function loadData() {
             }
         },
         columns: [
-            { data: 'DT_RowIndex', searchable: false, orderable: false },
+            { data: 'DT_RowIndex', orderable: false, searchable: false },
             { data: 'sku' },
             { data: 'nama_barang' },
             { data: 'qty_in', searchable: false },
             { data: 'qty_out', searchable: false },
             { data: 'last_out_date', searchable: false },
             { data: 'movement_rate', searchable: false },
-            { data: 'badge', searchable: false, orderable: false }
+            { data: 'badge', orderable: false, searchable: false }
         ]
     });
 }
 
-function reloadData() {
-    table.ajax.reload();
-}
-
-/* =======================
-   AUTO LOAD PAGE
-======================= */
 $(document).ready(function () {
-    loadData();
+    loadTable();
 });
 
 /* =======================
-   FILTER SUBMIT
+   FILTER SUBMIT + SWAL
 ======================= */
 $('#filterForm').on('submit', function (e) {
     e.preventDefault();
-    $('#filterModal').modal('hide');
-    reloadData();
+
+    const action = $('select[name=action]').val();
+    const params = $(this).serialize();
+    const exportUrl = "{{ route('stock_movement.export') }}?" + params;
+
+    // close modal safely
+    if ($.fn.modal) {
+        $('#filterModal').modal('hide');
+    } else {
+        $('#filterModal').removeClass('show');
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open');
+    }
+
+    // ===== SHOW DATA =====
+    if (action === 'show') {
+        table.ajax.reload();
+        return;
+    }
+
+    // ===== EXPORT EXCEL (WITH CONFIRMATION) =====
+    Swal.fire({
+        title: 'Export Stock Movement?',
+        text: 'File Excel akan di-generate sesuai filter yang dipilih.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Export',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.open(exportUrl, '_blank');
+        }
+    });
 });
 </script>
 @endsection

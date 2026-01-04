@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Report;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Exports\Report\StockMovementExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ReportStockMovementController extends Controller
 {
@@ -118,6 +120,18 @@ class ReportStockMovementController extends Controller
     
             ->rawColumns(['badge'])
             ->make(true);
+    }
+
+    public function export(Request $request)
+    {
+        $startDate = $request->fd ?? now()->subDays(30)->toDateString();
+        $endDate   = $request->td ?? now()->toDateString();
+        $category  = $request->movement_type;
+
+        return Excel::download(
+            new StockMovementExport($startDate, $endDate, $category),
+            'stock_movement_'.date('Ymd_His').'.xlsx'
+        );
     }
     
     // public function data(Request $request)
