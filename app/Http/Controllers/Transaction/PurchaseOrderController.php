@@ -972,45 +972,77 @@ class PurchaseOrderController extends Controller
         // Bersihkan spasi
         $text = str_replace(' ', '', $text);
 
-        if (empty($text)) return [];
+        if ($text === '') {
+            return [];
+        }
 
         $result = [];
 
-        // Pisahkan berdasarkan koma (jika ada)
+        /**
+         * Pisahkan berdasarkan koma
+         * contoh: "1-3,5,7-10" → ["1-3","5","7-10"]
+         */
         $segments = explode(',', $text);
 
         foreach ($segments as $seg) {
 
-            // Case range: "x-y"
+            if ($seg === '') continue;
+
+            /**
+             * Case RANGE: x-y
+             */
             if (strpos($seg, '-') !== false) {
-                [$start, $end] = explode('-', $seg);
 
-                // Validasi angka
-                if (is_numeric($start) && is_numeric($end)) {
-                    $start = (int)$start;
-                    $end   = (int)$end;
-
-                    if ($start <= $end) {
-                        $result = array_merge($result, range($start, $end));
-                    }
+                // pastikan hanya 1 tanda "-"
+                $parts = explode('-', $seg);
+                if (count($parts) !== 2) {
+                    continue; // skip invalid format
                 }
+
+                [$start, $end] = $parts;
+
+                if (!is_numeric($start) || !is_numeric($end)) {
+                    continue;
+                }
+
+                $start = (int)$start;
+                $end   = (int)$end;
+
+                // validasi logis
+                if ($start <= 0 || $end <= 0) {
+                    continue;
+                }
+
+                if ($start > $end) {
+                    continue;
+                }
+
+                $result = array_merge($result, range($start, $end));
             }
 
-            // Case single: "7"
+            /**
+             * Case SINGLE: x
+             */
             else {
-                if (is_numeric($seg)) {
-                    $result[] = (int)$seg;
+                if (!is_numeric($seg)) {
+                    continue;
                 }
+
+                $num = (int)$seg;
+                if ($num <= 0) {
+                    continue;
+                }
+
+                $result[] = $num;
             }
         }
 
         // Hilangkan duplikat & urutkan
-        $result = array_unique($result);
+        $result = array_values(array_unique($result));
         sort($result);
 
-        return array_values($result);
-    }
-    
+        return $result;
+    }   
     public function getSequence($id)
     {
         try {
@@ -1241,20 +1273,20 @@ class PurchaseOrderController extends Controller
     public function approveReprint(Request $request)
     {
         $reqIds = $request->ids ?? [];
-
+    
         if (empty($reqIds)) {
             return response()->json(['success' => false]);
         }
-
-        // Ambil request pertama (asumsi bulk approve masih 1 PO)
-        $first = DB::table('tqr_reprint_request')
+    
+        // Ambil semua request yang di-approve
+        $requests = DB::table('tqr_reprint_request')
             ->whereIn('id', $reqIds)
-            ->first();
-
-        if (!$first) {
+            ->get();
+    
+        if ($requests->isEmpty()) {
             return response()->json(['success' => false]);
         }
-
+    
         // Approve semua
         DB::table('tqr_reprint_request')
             ->whereIn('id', $reqIds)
@@ -1263,20 +1295,29 @@ class PurchaseOrderController extends Controller
                 'approved_by'  => Auth::user()->username,
                 'approved_at'  => now()
             ]);
-
+    
         /**
          * =========================================
-         * BUILD PRINT URL
+         * BUILD PRINT URL (MULTI SEQUENCE)
          * =========================================
-         * contoh:
-         * /po/2/qr/pdf?detail=38&seq=5
          */
+    
+        $first = $requests->first();
+    
+        // Ambil sequence unik (0001,0002,0010 → 1,2,10)
+        $seqList = $requests
+            ->pluck('sequence_no')
+            ->map(fn ($s) => (int) $s)
+            ->unique()
+            ->sort()
+            ->implode(',');
+    
         $printUrl = url(
             "/po/{$first->id_po}/qr/pdf"
             . "?detail={$first->id_po_detail}"
-            . "&seq={$first->sequence_no}"
+            . "&seq={$seqList}"
         );
-
+    
         return response()->json([
             'success'   => true,
             'printUrl' => $printUrl
