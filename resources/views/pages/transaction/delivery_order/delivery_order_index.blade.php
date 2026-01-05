@@ -111,49 +111,36 @@ function loadDeliveryOrderData() {
         ajax: '{{ route('delivery_order.data') }}',
         columns: [            
             { data: 'tgl_do', render: data => data ? data.split(' ')[0] : '' },
-
-            // ✅ Gabungan Supplier Code + Name
-            // { 
-            //     data: null, 
-            //     name: 'supplier',
-            //     render: function(data, type, row) {
-            //         let code = row.po?.code_spl || '-';
-            //         let name = row.po?.nama_spl || '-';
-            //         return `${code} - ${name}`;
-            //     }
-            // },
-
-            // Klik No PO ke halaman PO.show
-            // { 
-            //     data: 'no_po', 
-            //     name: 'no_po',
-            //     render: function(data, type, row) {
-            //         if (!data || !row.po_id) return data || '-';
-            //         return `<a href="${baseUrl}/purchase_order/${row.po_id}" class="text-primary font-weight-bold">${data}</a>`;
-            //     }
-            // },
             {
                 data: 'no_do', 
                 name: 'no_do',
             },
             { data: 'shipping_via', name: 'shipping_via' },
-            // { 
-            //     data: 'file', 
-            //     name: 'file', 
-            //     render: (data) => data 
-            //         ? `<a href="/storage/${data}" target="_blank">${data}</a>` 
-            //         : 'No Document'
-            // },
-            // { data: 'upload_date_at', name: 'upload_date_at' },
-            // { data: 'status_lmpr_do', name: 'status_lmpr_do' },
             { data: 'reason_do', name: 'reason_do' },
             {
                 data: 'flag_approve',
-                render: function(data) {
-                    if (data === 'Y') {
+                render: function (data, type, row) {
+
+                    // Jika belum approve → kondisi lama
+                    if (data !== 'Y') {
+                        return `<span class="badge badge-secondary">Created</span>`;
+                    }
+
+                    // Flag approve Y
+                    if (!row.status_do) {
                         return `<span class="badge badge-success">Approved</span>`;
                     }
-                    return `<span class="badge badge-secondary">Created</span>`;
+
+                    if (row.status_do == 2) {
+                        return `<span class="badge badge-warning">Partial</span>`;
+                    }
+
+                    if (row.status_do == 3) {
+                        return `<span class="badge badge-primary">Complete</span>`;
+                    }
+
+                    // fallback safety
+                    return `<span class="badge badge-success">Approved</span>`;
                 }
             },
             { 

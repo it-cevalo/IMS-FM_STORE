@@ -63,167 +63,135 @@ class ProductOutboundController extends Controller
             compact('tgl', 'rows', 'warehouses')
         );
     }
-
-    // public function confirm(Request $request)
-    // {
-    //     $request->validate([
-    //         'items' => 'required|array|min:1'
-    //     ]);
     
-    //     DB::beginTransaction();
-    //     try {
-    
-    //         // ===============================
-    //         // DEFAULT WAREHOUSE
-    //         // ===============================
-    //         $warehouseId = 1; // <-- GANTI jika perlu
-    
-    //         $outbounds = DB::table('tproduct_outbound')
-    //             ->whereIn('id', $request->items)
-    //             ->get();
-    
-    //         if ($outbounds->isEmpty()) {
-    //             throw new \Exception('Data outbound tidak ditemukan');
-    //         }
-    
-    //         // ===============================
-    //         // GROUP QTY PER PRODUCT
-    //         // ===============================
-    //         $grouped = [];
-    //         foreach ($outbounds as $o) {
-    //             $grouped[$o->id_product] =
-    //                 ($grouped[$o->id_product] ?? 0) + $o->qty;
-    //         }
-    
-    //         // ===============================
-    //         // UPDATE STOCK OPNAME (KURANGI)
-    //         // ===============================
-    //         foreach ($grouped as $idProduct => $qtyOut) {
-    
-    //             $lastStock = DB::table('t_stock_opname')
-    //                 ->where('id_warehouse', $warehouseId)
-    //                 ->where('id_product', $idProduct)
-    //                 ->orderByDesc('id')
-    //                 ->first();
-    
-    //             if (!$lastStock) {
-    //                 throw new \Exception("Stock belum ada untuk product ID {$idProduct}");
-    //             }
-    
-    //             if ($lastStock->qty_last < $qtyOut) {
-    //                 throw new \Exception("Stock tidak mencukupi untuk product ID {$idProduct}");
-    //             }
-    
-    //             DB::table('t_stock_opname')->insert([
-    //                 'id_warehouse' => $warehouseId,
-    //                 'id_product'   => $idProduct,
-    //                 'qty_out'      => $qtyOut,
-    //                 'qty_last'     => $lastStock->qty_last - $qtyOut,
-    //                 'tgl_opname'   => now()->toDateString(),
-    //                 'created_at'   => now(),
-    //             ]);
-    //         }
-    
-    //         DB::commit();
-    
-    //         return response()->json([
-    //             'message' => 'Outbound berhasil dikonfirmasi'
-    //         ]);
-    
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         return response()->json([
-    //             'message' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }    
-
     public function confirm(Request $request)
     {
         $request->validate([
             'items' => 'required|array|min:1'
         ]);
-
+    
         DB::beginTransaction();
         try {
-
-            // ===============================
-            // DEFAULT WAREHOUSE
-            // ===============================
-            $warehouseId = 1; // sesuaikan jika perlu
-
+    
+            $warehouseId = 1;
+    
             $outbounds = DB::table('tproduct_outbound')
                 ->whereIn('id', $request->items)
                 ->get();
-
+    
             if ($outbounds->isEmpty()) {
                 throw new \Exception('Data outbound tidak ditemukan');
             }
-
-            // ===============================
-            // GROUP QTY PER PRODUCT
-            // ===============================
-            $grouped = [];
+    
+            /**
+             * =================================================
+             * GROUP QTY OUT PER PRODUCT (UNTUK STOCK)
+             * =================================================
+             */
+            $groupedProduct = [];
             foreach ($outbounds as $o) {
-                $grouped[$o->id_product] =
-                    ($grouped[$o->id_product] ?? 0) + $o->qty;
+                $groupedProduct[$o->id_product] =
+                    ($groupedProduct[$o->id_product] ?? 0) + $o->qty;
             }
-
-            // ===============================
-            // UPDATE STOCK OPNAME (PAKAI DATA YANG ADA)
-            // ===============================
-            foreach ($grouped as $idProduct => $qtyOut) {
-
-                // Ambil stock terakhir
+    
+            /**
+             * =================================================
+             * UPDATE STOCK OPNAME
+             * =================================================
+             */
+            foreach ($groupedProduct as $idProduct => $qtyOut) {
+    
                 $stock = DB::table('t_stock_opname')
                     ->where('id_warehouse', $warehouseId)
                     ->where('id_product', $idProduct)
                     ->orderByDesc('id')
-                    ->lockForUpdate() // 🔒 penting biar aman race condition
+                    ->lockForUpdate()
                     ->first();
-
+    
                 if (!$stock) {
                     throw new \Exception("Stock belum tersedia untuk product ID {$idProduct}");
                 }
-
+    
                 if ($stock->qty_last < $qtyOut) {
                     throw new \Exception("Stock tidak mencukupi untuk product ID {$idProduct}");
                 }
-
-                // Hitung nilai baru
-                $newQtyLast = $stock->qty_last - $qtyOut;
-                $newQtyOut  = ($stock->qty_out ?? 0) + $qtyOut;
-
-                // UPDATE record stock opname yang sama
+    
                 DB::table('t_stock_opname')
                     ->where('id', $stock->id)
                     ->update([
-                        'qty_out'    => $newQtyOut,
-                        'qty_last'   => $newQtyLast,
+                        'qty_out'    => ($stock->qty_out ?? 0) + $qtyOut,
+                        'qty_last'   => $stock->qty_last - $qtyOut,
                         'updated_at' => now(),
                     ]);
             }
-            // ===============================
-            // UPDATE OUTBOUND (SYNC INFO)
-            // ===============================
+    
+            /**
+             * =================================================
+             * UPDATE OUTBOUND SYNC
+             * =================================================
+             */
             DB::table('tproduct_outbound')
-            ->whereIn('id', $request->items)
-            ->update([
-                'sync_at'   => now(),
-                'sync_by'   => Auth::user()->username,
-            ]);
-
+                ->whereIn('id', $request->items)
+                ->update([
+                    'sync_at' => now(),
+                    'sync_by' => Auth::user()->username,
+                ]);
+    
+            /**
+             * =================================================
+             * UPDATE STATUS DO (VALIDASI SKU + QTY)
+             * =================================================
+             */
+            $doIds = $outbounds->pluck('id_do')->unique();
+    
+            foreach ($doIds as $doId) {
+    
+                // 🔹 DO DETAIL (SKU WAJIB)
+                $doDetails = DB::table('tdo_detail')
+                    ->where('id_do', $doId)
+                    ->select('sku', 'qty')
+                    ->get();
+    
+                // 🔹 OUTBOUND PER SKU
+                $outboundPerSku = DB::table('tproduct_outbound')
+                ->where('id_do', $doId)
+                ->whereNotNull('sync_at') // 🔒 PENTING
+                ->select('sku', DB::raw('SUM(qty) as qty_out'))
+                ->groupBy('sku')
+                ->pluck('qty_out', 'sku');
+    
+                $isComplete = true;
+    
+                foreach ($doDetails as $detail) {
+                    $outQty = $outboundPerSku[$detail->sku] ?? 0;
+    
+                    if ($outQty < $detail->qty) {
+                        $isComplete = false;
+                        break;
+                    }
+                }
+    
+                DB::table('tdos')
+                    ->where('id', $doId)
+                    ->update([
+                        'status_do'    => $isComplete ? 3 : 2,
+                        'confirm_by'   => Auth::user()->username,
+                        'confirm_date' => now()->toDateString(),
+                        'updated_at'   => now(),
+                    ]);
+            }
+    
             DB::commit();
-
+    
             return response()->json([
-                'message' => 'Outbound berhasil dikonfirmasi'
+                'message' => 'Outbound berhasil dikonfirmasi & status DO tervalidasi per SKU'
             ]);
-
+    
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'message' => $e->getMessage()
             ], 500);
         }
-    }
+    }    
 }
