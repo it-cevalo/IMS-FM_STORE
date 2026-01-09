@@ -26,4 +26,18 @@ class Role extends Authenticatable
             'menu_id'
         )->withPivot('is_enabled');
     }
+    /**
+     * Apps access (IMS, WMS, dll)
+     */
+    public function apps()
+    {
+        return $this->belongsToMany(
+            App::class,
+            'role_apps',
+            'role_id',
+            'app_code',
+            'id',
+            'app_code'
+        )->withPivot('is_enabled');
+    }
 }
