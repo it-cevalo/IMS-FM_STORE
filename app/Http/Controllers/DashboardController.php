@@ -70,6 +70,8 @@ class DashboardController extends Controller
             )
             ->whereMonth('out_at', $month)
             ->whereYear('out_at', $year)
+            ->whereNotNull('sync_by')
+            ->where('sync_by', '!=', '')
             ->groupBy(DB::raw('DAY(out_at)'))
             ->get();
 
