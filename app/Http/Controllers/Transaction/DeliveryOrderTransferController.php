@@ -193,7 +193,7 @@ class DeliveryOrderTransferController extends Controller
 
                                     
                                     if($stock_opm){
-                                        $user = Auth::user()->username;
+                                        $user = Auth::user()->id;
                                         $date = date('Y-m-d'); // Menggunakan fungsi now() untuk mendapatkan waktu sekarang
                                     
                                         // Menggunakan create() untuk membuat entri baru pada HStockOpname
@@ -258,7 +258,7 @@ class DeliveryOrderTransferController extends Controller
                                     ]);
                                     
                                     if($stock_opmt){
-                                        $user = Auth::user()->username;
+                                        $user = Auth::user()->id;
                                         $date = date('Y-m-d'); // Menggunakan fungsi now() untuk mendapatkan waktu sekarang
                                     
                                         // Menggunakan create() untuk membuat entri baru pada HStockOpname

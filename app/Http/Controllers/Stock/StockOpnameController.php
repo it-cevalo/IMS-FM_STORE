@@ -118,7 +118,7 @@ class StockOpnameController extends Controller
         $id_stock_opn   = $stock_opn->id;
 
         if($stock_opname){
-            $user = Auth::user()->username;
+            $user = Auth::user()->id;
             $date = date('Y-m-d');
             $stock_opname_his = HStockOpname::create([
                 'id_stock_opname'   => $id_stock_opn,
@@ -222,7 +222,7 @@ class StockOpnameController extends Controller
         try{
             $stock_opname = TStockOpname::whereId($id)->update($validatedData);
             if($stock_opname){      
-                $user = Auth::user()->username;
+                $user = Auth::user()->id;
                 $date = date('Y-m-d');
                 $stock_opn      = TStockOpname::select('id')->whereId($id)->latest()->first();
                 $id_stock_opn   = $stock_opn->id;

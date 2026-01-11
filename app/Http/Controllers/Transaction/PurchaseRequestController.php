@@ -198,7 +198,7 @@ class PurchaseRequestController extends Controller
 
     public function approve(Request $request, $id)
     {
-        $approve_by = Auth::user()->username;
+        $approve_by = Auth::user()->id;
         // dd($approve_by);
         
         $approve = TPurchaseRequest::find($id);

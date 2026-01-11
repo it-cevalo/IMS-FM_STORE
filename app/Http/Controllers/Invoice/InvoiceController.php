@@ -285,7 +285,7 @@ class InvoiceController extends Controller
                                             'qty_last'  => $qty_last_opn - $request->qty[$key],
                                         ]);
                                         if($stock_opm){
-                                            $user = Auth::user()->username;
+                                            $user = Auth::user()->id;
                                             $date = date('Y-m-d'); // Menggunakan fungsi now() untuk mendapatkan waktu sekarang
                                         
                                             // Menggunakan create() untuk membuat entri baru pada HStockOpname
