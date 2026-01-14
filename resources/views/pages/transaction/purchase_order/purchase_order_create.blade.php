@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Purchase Order</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Tambah Pemesanan Barang</h6>
     </div>
     <div class="card-body">
 
@@ -12,9 +12,9 @@
 
             {{-- Supplier --}}
             <div class="mb-3">
-                <label>Supplier *</label>
+                <label>Pemasok *</label>
                 <select class="form-control select2" name="id_supplier" required>
-                    <option value="">-- Pilih Supplier --</option>
+                    <option value="">-- Pilih Pemasok --</option>
                     @foreach($suppliers as $sup)
                         <option value="{{ $sup->id }}">
                             {{ $sup->code_spl }} - {{ $sup->nama_spl }}
@@ -25,7 +25,7 @@
 
             {{-- Tanggal PO --}}
             <div class="mb-3">
-                <label>PO Date *</label>
+                <label>Tanggal *</label>
                 <input type="date" class="form-control" name="tgl_po" required>
             </div>
 
@@ -60,13 +60,13 @@
 
             {{-- Note --}}
             <div class="mb-3">
-                <label>Note *</label>
+                <label>Catatan *</label>
                 <textarea class="form-control" name="reason_po" required></textarea>
             </div>
 
             {{-- Produk --}}
             <div class="table-responsive">
-                <label>Product</label>
+                <label>Produk</label>
                 <table class="table table-bordered">
                     <thead>
                         <tr>
@@ -84,8 +84,8 @@
                 </table>
             </div>
 
-            <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="{{ route('purchase_order.index') }}" class="btn btn-dark">Back</a>
+            <button type="submit" class="btn btn-primary">Simpan</button>
+            <a href="{{ route('purchase_order.index') }}" class="btn btn-dark">Kembali</a>
         </form>
 
     </div>

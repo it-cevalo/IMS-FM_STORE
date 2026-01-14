@@ -7,7 +7,7 @@
 
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Delivery Order</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Pengiriman Barang</h6>
     </div>
 
     <div class="card-body">
@@ -25,14 +25,14 @@
 
             {{-- DATE --}}
             <div class="mb-3">
-                <label>Date</label>
+                <label>Tanggal</label>
                 <input type="date" class="form-control"
                        value="{{ \Carbon\Carbon::parse($delivery_order->tgl_do)->format('Y-m-d') }}" readonly>
             </div>
 
             {{-- NUMBER --}}
             <div class="mb-3">
-                <label>DO Number</label>
+                <label>Nomor</label>
                 <input type="text" class="form-control"
                        value="{{ $delivery_order->no_do }}" readonly>
             </div>
@@ -45,9 +45,9 @@
                        value="{{ $delivery_order->no_resi }}">
             </div>
 
-            {{-- SHIPPING VIA --}}
+            {{-- Metode Pengiriman --}}
             <div class="mb-3">
-                <label>Shipping Via</label>
+                <label>Metode Pengiriman</label>
                 <select class="form-control" name="shipping_via" {{ $isApproved ? 'disabled' : '' }}>
                     @foreach($shipping_via as $k=>$v)
                         <option value="{{ $k }}" {{ $delivery_order->shipping_via==$k?'selected':'' }}>
@@ -62,14 +62,14 @@
 
             {{-- NOTE --}}
             <div class="mb-3">
-                <label>Note</label>
+                <label>Catatan</label>
                 <textarea class="form-control" name="reason_do"
                     {{ $isApproved?'readonly':'' }}>{{ $delivery_order->reason_do }}</textarea>
             </div>
 
             {{-- ================= PRODUCT ================= --}}
             <hr>
-            <label class="font-weight-bold">Product</label>
+            <label class="font-weight-bold">Produk</label>
 
             <div class="table-responsive">
                 <table class="table table-bordered">
@@ -123,8 +123,8 @@
                 </table>
             </div>
 
-            <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="{{ route('delivery_order.index') }}" class="btn btn-dark">Back</a>
+            <button type="submit" class="btn btn-primary">Simpan</button>
+            <a href="{{ route('delivery_order.index') }}" class="btn btn-dark">Kembali</a>
         </form>
     </div>
 </div>

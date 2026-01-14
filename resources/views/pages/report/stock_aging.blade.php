@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">Stock Aging</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Umur Stok</h6>
 
         {{-- tombol buka modal TANPA bootstrap js --}}
         <button class="btn btn-primary btn-sm" id="btnFilter">
@@ -34,7 +34,7 @@
         <form id="filterForm">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5>Filter Stock Aging</h5>
+                    <h5>Filter Umur Stok</h5>
                     <button type="button" class="close btnCloseModal">&times;</button>
                 </div>
 
@@ -134,7 +134,7 @@ $('#filterForm').on('submit', function(e){
     }
 
     Swal.fire({
-        title: 'Export Stock Aging?',
+        title: 'Export Umur Stok?',
         text: 'File Excel akan dibuat sesuai filter.',
         icon: 'question',
         showCancelButton: true,

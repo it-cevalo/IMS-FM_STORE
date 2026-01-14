@@ -4,7 +4,7 @@
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
         <h6 class="m-0 font-weight-bold text-primary">
-            Stock Movement
+            Pergerakan Barang
         </h6>
 
         <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#filterModal">
@@ -20,10 +20,10 @@
                         <th>No</th>
                         <th>SKU</th>
                         <th>Nama Barang</th>
-                        <th>Qty In</th>
-                        <th>Qty Out</th>
-                        <th>Last Out</th>
-                        <th>Movement Rate</th>
+                        <th>QTY Masuk</th>
+                        <th>QTY Keluar</th>
+                        <th>Keluar Terakhir</th>
+                        <th>Rata Rata Pergerakan</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -38,7 +38,7 @@
         <form id="filterForm">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Filter Stock Movement</h5>
+                    <h5 class="modal-title">Filter Pergerakan Barang</h5>
                     <button type="button" class="close" data-dismiss="modal">
                         <span>&times;</span>
                     </button>
@@ -166,7 +166,7 @@ $('#filterForm').on('submit', function (e) {
 
     // ===== EXPORT EXCEL (WITH CONFIRMATION) =====
     Swal.fire({
-        title: 'Export Stock Movement?',
+        title: 'Export Pergerakan Barang?',
         text: 'File Excel akan di-generate sesuai filter yang dipilih.',
         icon: 'question',
         showCancelButton: true,

@@ -29,7 +29,7 @@
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Kode Bank</label>
                 <input class="form-control" id="exampleFormControlInput1" name="code_bank" type="text"
-                    value="{{$bank->code_bank}}" placeholder="Input Kode Bank">
+                    value="{{$bank->code_bank}}" placeholder="Masukkan Kode Bank">
             </div>
             <div class="validation"></div>
             @error('code_bank')
@@ -38,7 +38,7 @@
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Nama Bank</label>
                 <input class="form-control" id="exampleFormControlInput1" name="nama_bank" type="text"
-                    value="{{$bank->nama_bank}}" placeholder="Input Nama bank">
+                    value="{{$bank->nama_bank}}" placeholder="Masukkan Nama bank">
             </div>
             <div class="validation"></div>
             @error('nama_bank')
@@ -47,7 +47,7 @@
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Nomor Rekening Bank</label>
                 <input class="form-control" id="exampleFormControlInput1" name="norek_bank" type="text"
-                    value="{{$bank->norek_bank}}" placeholder="Input No Rekening bank">
+                    value="{{$bank->norek_bank}}" placeholder="Masukkan No Rekening bank">
             </div>
             <div class="validation"></div>
             @error('norek_bank')
@@ -56,14 +56,14 @@
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Nama Pemilik / Atas Nama Bank</label>
                 <input class="form-control" id="exampleFormControlInput1" name="atasnama_bank" type="text"
-                    value="{{$bank->atasnama_bank}}" placeholder="Input Nama Pemilik / Atas Nama Bank">
+                    value="{{$bank->atasnama_bank}}" placeholder="Masukkan Nama Pemilik / Atas Nama Bank">
             </div>
             <div class="validation"></div>
             @error('atasnama_bank')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
-            <button type="button" class="btn btn-primary" id="btnUpdateBank">Submit</button>
-            <a href="{{route('bank.index')}}" class="btn btn-dark">Cancel</a>
+            <button type="button" class="btn btn-primary" id="btnUpdateBank">Simpan</button>
+            <a href="{{route('bank.index')}}" class="btn btn-dark">Batal</a>
         </form>
     </div>
 </div>

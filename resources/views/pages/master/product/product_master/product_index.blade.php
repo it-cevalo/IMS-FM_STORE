@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Product</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Master Data Produk</h6>
         <div>
             <a href="{{ route('product.template.download') }}" class="btn btn-success btn-sm">
                 <i class="fa fa-file-excel"></i> Download Template
@@ -12,7 +12,7 @@
                 <i class="fa fa-upload"></i> Import Excel
             </button>
             <a href="{{route('product.create')}}" class="btn btn-primary btn-sm">
-                <i class="fa fa-plus"></i> Add
+                <i class="fa fa-plus"></i> Tambah
             </a>
         </div>
     </div>
@@ -24,11 +24,11 @@
                     <tr>
                         <th>No</th>
                         <th>SKU</th>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>UOM</th>
-                        <th>Active</th>
-                        <th>Action</th>
+                        <th>Nama</th>
+                        <th>Tipe</th>
+                        <th>Satuan Barang</th>
+                        <th>Aktif</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody></tbody> <!-- diisi oleh DataTables -->
@@ -42,7 +42,7 @@
                     @csrf
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="modalImportLabel">Import Data Product</h5>
+                            <h5 class="modal-title" id="modalImportLabel">Import Data Produk</h5>
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                 <span>&times;</span>
                             </button>
@@ -54,7 +54,7 @@
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                             <button type="submit" class="btn btn-primary">Upload</button>
                         </div>
                     </div>

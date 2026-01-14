@@ -13,7 +13,7 @@
             <thead class="bg-light">
                 <tr>
                     <th>Tanggal Masuk</th>
-                    <th class="text-center">Jumlah DO</th>
+                    <th class="text-center">Jumlah Pengiriman Barang</th>
                     <th class="text-center">Total Barang</th>
                     <th class="text-center">Aksi</th>
                 </tr>
@@ -26,7 +26,7 @@
 let outboundTable;
 
 /**
- * Init Datatable Product Outbound (Harian)
+ * Init Datatable Barang Keluarbound (Harian)
  */
 function loadOutboundTable() {
 

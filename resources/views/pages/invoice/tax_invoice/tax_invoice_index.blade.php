@@ -13,7 +13,7 @@
     <div class="card-header py-3">
         @if(Auth::user()->position!='DIRECTOR')
         <a href="{{route('tax_invoice.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i>
-            Add</a>
+            Tambah</a>
         <a href="{{route('tax_invoice.bin')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-archive"></i> See
             Archive</a>
         @else
@@ -37,8 +37,8 @@
                     <tr>
                         <th rowspan="2" class="text-center align-middle">No</th>
                         <th colspan="2" class="text-center">Customer</th>
-                        <th colspan="4" class="text-center">Purchase Order</th>
-                        <th colspan="4" class="text-center">Delivery Order</th>
+                        <th colspan="4" class="text-center">Pemesanan Barang</th>
+                        <th colspan="4" class="text-center">Pengiriman Barang</th>
                         <th colspan="4" class="text-center">Invoice</th>
                         <th rowspan="2" class="text-center align-middle">SO Number</th>
                         <th rowspan="2" class="text-center align-middle text-wrap">Reason</th>
@@ -46,27 +46,27 @@
                         <th rowspan="2" class="text-center align-middle">Term</th>
                         <th rowspan="2" class="text-center align-middle">Grand Total</th>
                         <th rowspan="2" class="text-center align-middle">Tax Code</th>
-                        <th rowspan="2" class="text-center align-middle">Shipping Via</th>
-                        <th rowspan="2" colspan="5" class="text-center align-middle">Action</th>
+                        <th rowspan="2" class="text-center align-middle">Metode Pengiriman</th>
+                        <th rowspan="2" colspan="5" class="text-center align-middle">Aksi</th>
                     </tr>
                     <tr>
 
                         <th class="text-center align-middle text-wrap">Code</th>
-                        <th class="text-center align-middle text-wrap">Name</th>
+                        <th class="text-center align-middle text-wrap">Nama</th>
 
-                        <th class="text-center align-middle text-wrap">Date</th>
+                        <th class="text-center align-middle text-wrap">Tanggal</th>
                         <th class="text-center align-middle text-wrap">No</th>
                         <th class="text-center align-middle text-wrap">Status</th>
                         <th class="text-center align-middle text-wrap">Reason</th>
 
 
-                        <th class="text-center align-middle text-wrap">Date</th>
+                        <th class="text-center align-middle text-wrap">Tanggal</th>
                         <th class="text-center align-middle text-wrap">No</th>
                         <th class="text-center align-middle text-wrap">Status</th>
                         <th class="text-center align-middle text-wrap">Reason</th>
 
 
-                        <th class="text-center align-middle text-wrap">Date</th>
+                        <th class="text-center align-middle text-wrap">Tanggal</th>
                         <th class="text-center align-middle text-wrap">No</th>
                         <th class="text-center align-middle text-wrap">Status</th>
                         <th class="text-center align-middle text-wrap">Reason</th>

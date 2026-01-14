@@ -3,14 +3,14 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Add Warehouse Data</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Data Master Gudang</h6>
     </div>
     <div class="card-body">
 
         <form id="formWarehouseCreate" method="POST" action="{{ route('warehouses.store') }}">
             @csrf
             <div class="mb-3">
-                <label>Store</label>
+                <label>Toko</label>
                 <select class="form-control select2" name="id_store" required>
                     <option value="">...</option>
                     @foreach($stores as $s)
@@ -20,32 +20,32 @@
             </div>
 
             <div class="mb-3">
-                <label>Warehouse Code</label>
+                <label>Kode Gudang</label>
                 <input class="form-control" name="code_wh" type="text">
             </div>
 
             <div class="mb-3">
-                <label>Warehouse Name</label>
+                <label>Nama Gudang</label>
                 <input class="form-control" name="nama_wh" type="text">
             </div>
 
             <div class="mb-3">
-                <label>Warehouse Phone</label>
+                <label>No HP Gudang</label>
                 <input class="form-control" name="phone" type="number" min="0">
             </div>
 
             <div class="mb-3">
-                <label>Warehouse Email</label>
+                <label>Email Gudang</label>
                 <input class="form-control" name="email" type="email">
             </div>
 
             <div class="mb-3">
-                <label>Warehouse Address</label>
+                <label>Alamat Gudang</label>
                 <input class="form-control" name="address" type="text">
             </div>
 
-            <button type="button" class="btn btn-primary" id="btnCreateWarehouse">Submit</button>
-            <a href="{{ route('warehouses.index') }}" class="btn btn-dark">Back</a>
+            <button type="button" class="btn btn-primary" id="btnCreateWarehouse">Simpan</button>
+            <a href="{{ route('warehouses.index') }}" class="btn btn-dark">Kembali</a>
         </form>
 
     </div>
@@ -73,7 +73,7 @@ $(document).ready(function () {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             beforeSend: function () {
-                $('#btnCreateWarehouse').prop('disabled', true).text('Saving...');
+                $('#btnCreateWarehouse').prop('disabled', true).text('Menyimpan...');
             },
             success: function (res) {
                 Swal.fire({
@@ -105,7 +105,7 @@ $(document).ready(function () {
                     } else if (typeof res.message === 'string') {
                         errorList += `<li>${res.message}</li>`;
                     } else {
-                        errorList += `<li>Invalid input. Please check your data.</li>`;
+                        errorList += `<li>Data tidak Valid. Silahkan cek data kembali.</li>`;
                     }
 
                     errorList += '</ul>';
@@ -121,7 +121,7 @@ $(document).ready(function () {
                         title: 'Error!',
                         text: res && res.message
                             ? res.message
-                            : 'An unexpected system error occurred. Please try again later.'
+                            : 'Terjadi kesalahan. Silakan coba lagi.'
                     });
                 }
             }

@@ -13,12 +13,12 @@
             <i class="fa fa-filter"></i> Filter
         </button>
         <a href="{{route('product_transfer.create')}}" class="btn btn-primary btn-flat btn-sm"><i
-                class="fa fa-plus"></i> Add</a>
+                class="fa fa-plus"></i> Tambah</a>
         <!-- <a href="#" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal"><i class="fa fa-upload"></i> Upload Excel</a>
                 <a download="Template_po.xlsx" href="{{ Storage::url('tpl/template_po.xlsx') }}" class="btn btn-primary btn-flat btn-sm" title="Template_po.xlsx"><i class="fa fa-download"></i> Download Template Excel</a> -->
         @elseif(Auth::user()->position=='MARKETING')
         <a href="{{route('product_transfer.create')}}" class="btn btn-primary btn-flat btn-sm"><i
-                class="fa fa-plus"></i> Add</a>
+                class="fa fa-plus"></i> Tambah</a>
         <!-- <a href="#" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal"><i class="fa fa-upload"></i> Upload Excel</a>
                 <a download="Template_po.xlsx" href="{{ Storage::url('tpl/template_po.xlsx') }}" class="btn btn-primary btn-flat btn-sm" title="Template_po.xlsx"><i class="fa fa-download"></i> Download Template Excel</a> -->
         @else
@@ -42,7 +42,7 @@
                     <th class="text-center">To WH Name</th>
                     <th class="text-center">Qty Transfer</th>
                     <th class="text-center">Date Transfer</th>
-                    <th class="text-center">Action</th>
+                    <th class="text-center">Aksi</th>
                 </tr>
             </thead>
                 <tbody></tbody>
@@ -57,7 +57,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel"><i class="fa fa-filter"></i> Filter</h5>
+                <h5 class="modal-title" id="exampleModalLabel"><i class="fa fa-filter"></i> Saring</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -65,7 +65,7 @@
             <div class="modal-body">
                 <form method="GET" action="{{route('product_transfer.filter')}}">
                     <div class="mb-3">
-                        <label for="exampleFormControlInput1">Warehouse From</label>
+                        <label for="exampleFormControlInput1">Gudang From</label>
                         <select class="form-control select2" id="search-type" name="id_warehouse_from"
                             value="{{old('id_warehouse_from')}}" required>
                             <option value="#">....</option>
@@ -75,7 +75,7 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="exampleFormControlInput1">Warehouse To</label>
+                        <label for="exampleFormControlInput1">Gudang To</label>
                         <select class="form-control select2" id="search-type" name="id_warehouse_to"
                             value="{{old('id_warehouse_to')}}" required>
                             <option value="#">....</option>

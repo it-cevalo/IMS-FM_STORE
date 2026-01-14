@@ -3,29 +3,29 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Supplier</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Data Master Pemasok</h6>
     </div>
     <div class="card-body">
         <form id="formSupplierStore" action="{{ route('suppliers.store') }}" method="POST">
             @csrf
             <div class="mb-3">
-                <label>Supplier Code</label>
+                <label>Kode Pemasok</label>
                 <input class="form-control" name="code_spl" type="text">
             </div>
             <div class="mb-3">
-                <label>Supplier Name</label>
+                <label>Nama Pemasok</label>
                 <input class="form-control" name="nama_spl" type="text">
             </div>
             <div class="mb-3">
-                <label>Supplier Phone</label>
+                <label>No HP Pemasok</label>
                 <input class="form-control" name="phone" type="number">
             </div>
             <div class="mb-3">
-                <label>Supplier Email</label>
+                <label>Email Pemasok</label>
                 <input class="form-control" name="email" type="email">
             </div>
             <div class="mb-3">
-                <label>Supplier NPWP</label>
+                <label>NPWP Pemasok</label>
                 <input
                     class="form-control"
                     name="npwp_spl"
@@ -36,27 +36,27 @@
                 >
             </div>
             <div class="mb-3">
-                <label>Supplier Address</label>
+                <label>Alamat Pemasok</label>
                 <input class="form-control" name="address_spl" type="text">
             </div>
             <div class="mb-3">
-                <label>Supplier Address NPWP</label>
+                <label>Alamat Pemasok NPWP</label>
                 <input class="form-control" name="address_npwp" type="text">
             </div>
             <div class="mb-3">
-                <label>PIC Name</label>
+                <label>Nama PIC</label>
                 <input class="form-control" name="name_pic" type="text">
             </div>
             <div class="mb-3">
-                <label>PIC Phone</label>
+                <label>No HP PIC</label>
                 <input class="form-control" name="phone_pic" type="number">
             </div>
             <div class="mb-3">
-                <label>PIC Email</label>
+                <label>Email PIC</label>
                 <input class="form-control" name="email_pic" type="email">
             </div>
-            <button type="button" class="btn btn-primary" id="btnSubmitSupplier">Submit</button>
-            <a href="{{ route('suppliers.index') }}" class="btn btn-dark">Back</a>
+            <button type="button" class="btn btn-primary" id="btnSubmitSupplier">Simpan</button>
+            <a href="{{ route('suppliers.index') }}" class="btn btn-dark">Kembali</a>
         </form>
     </div>
 </div>
@@ -80,7 +80,7 @@
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             beforeSend: function () {
-                $('#btnSubmitSupplier').prop('disabled', true).text('Saving...');
+                $('#btnSubmitSupplier').prop('disabled', true).text('Menyimpan...');
             },
             success: function (res) {
                 Swal.fire({
@@ -111,7 +111,7 @@
                     Swal.fire({
                         icon: 'error',
                         title: 'Error!',
-                        text: res && res.message ? res.message : 'An unexpected error occurred. Please try again later.'
+                        text: res && res.message ? res.message : 'Terjadi kesalahan. Silakan coba lagi.'
                     });
                 }
             }

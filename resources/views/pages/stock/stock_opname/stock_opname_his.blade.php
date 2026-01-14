@@ -13,11 +13,11 @@
                                 <button type="button" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal">
                                     <i class="fa fa-filter"></i> Filter
                                 </button>
-                                <a href="{{route('stock_opname.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Add</a>
+                                <a href="{{route('stock_opname.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Tambah</a>
                                 a href="#" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal"><i class="fa fa-upload"></i> Upload Excel</a>
                                 <a download="Template_po.xlsx" href="{{ Storage::url('tpl/template_po.xlsx') }}" class="btn btn-primary btn-flat btn-sm" title="Template_po.xlsx"><i class="fa fa-download"></i> Download Template Excel</a>
                             @elseif(Auth::user()->position=='MARKETING') 
-                                <a href="{{route('stock_opname.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Add</a>
+                                <a href="{{route('stock_opname.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Tambah</a>
                                 <a href="#" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal"><i class="fa fa-upload"></i> Upload Excel</a>
                                 <a download="Template_po.xlsx" href="{{ Storage::url('tpl/template_po.xlsx') }}" class="btn btn-primary btn-flat btn-sm" title="Template_po.xlsx"><i class="fa fa-download"></i> Download Template Excel</a>
                             @else 
@@ -34,17 +34,17 @@
             <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                 <thead>
                     <tr>
-                        <th colspan="2" class="text-center">Warehouse</th>
-                        <th colspan="2" class="text-center">Product</th>
+                        <th colspan="2" class="text-center">Gudang</th>
+                        <th colspan="2" class="text-center">Produk</th>
                         <th colspan="3" class="text-center">QTY</th>
                         <th rowspan="2" class="text-center align-middle">Date Opname</th>
-                        <!-- <th rowspan="2" colspan="3" class="text-center align-middle">Action</th> -->
+                        <!-- <th rowspan="2" colspan="3" class="text-center align-middle">Aksi</th> -->
                     </tr>
                     <tr>
                         <th class="text-center">Code</th>
-                        <th class="text-center">Name</th>
+                        <th class="text-center">Nama</th>
                         <th class="text-center">Code</th>
-                        <th class="text-center">Name</th>
+                        <th class="text-center">Nama</th>
                         <th class="text-center">In</th>
                         <th class="text-center">Out</th>
                         <th class="text-center">Last</th>
@@ -56,8 +56,8 @@
                                         ?>
                     @foreach($stock_opname_his as $f)
                     <tr>
-                        <td>{{$f->warehouse->code_wh}}</td>
-                        <td>{{$f->warehouse->nama_wh}}</td>
+                        <td>{{$f->Gudang->code_wh}}</td>
+                        <td>{{$f->Gudang->nama_wh}}</td>
                         <td>{{$f->product->SKU}}</td>
                         <td>{{$f->product->nama_barang}}</td>
                         <td>{{$f->qty_in}}</td>
@@ -85,7 +85,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel"><i class="fa fa-filter"></i> Filter</h5>
+                <h5 class="modal-title" id="exampleModalLabel"><i class="fa fa-filter"></i> Saring</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -93,7 +93,7 @@
             <div class="modal-body">
                 {{-- <form method="GET" action="{{route('report_courier.filter')}}">
                     <div class="mb-3">
-                        <label for="exampleFormControlInput1">Product</label>
+                        <label for="exampleFormControlInput1">Produk</label>
                         <select class="form-control select2" id="search-type" name="id_unit" value="{{old('id_unit')}}"
                             required>
                             <option value="#">....</option>

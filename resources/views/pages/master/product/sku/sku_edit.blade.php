@@ -14,19 +14,19 @@
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Kode</label>
                 <input class="form-control" id="exampleFormControlInput1" name="kode" type="text"
-                    value="{{ $sku->kode }}" placeholder="Input Kode" readonly>
+                    value="{{ $sku->kode }}" placeholder="Masukkan Kode" readonly>
             </div>
             <div class="validation"></div>
 
             {{-- <div class="mb-3">
-                <label for="exampleFormControlInput1">Name</label>
+                <label for="exampleFormControlInput1">Nama</label>
                 <input class="form-control" id="exampleFormControlInput1" name="nama" type="text"
-                    value="{{ $sku->nama }}" placeholder="Input  Name">
+                    value="{{ $sku->nama }}" placeholder="Masukkan  Name">
             </div>
             <div class="validation"></div> --}}
 
-            <button type="button" class="btn btn-primary" id="btnUpdateSKU">Submit</button>
-            <a href="{{ route('sku.index') }}" class="btn btn-dark">Back</a>
+            <button type="button" class="btn btn-primary" id="btnUpdateSKU">Simpan</button>
+            <a href="{{ route('sku.index') }}" class="btn btn-dark">Kembali</a>
         </form>
 
     </div>

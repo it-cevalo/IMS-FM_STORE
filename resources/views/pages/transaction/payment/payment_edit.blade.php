@@ -25,7 +25,7 @@
                   <div class="alert alert-danger">{{ $message }}</div>
                 @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Purchase Order</label>
+                <label for="exampleFormControlInput1">Pemesanan Barang</label>
                     <div class="input-group">
                             <select class="form-control" name="id_po" value="{{old('id_po')}}" disabled>
                                 <option value="">....</option>
@@ -77,14 +77,14 @@
                 @enderror
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Invoice Paid</label>
-                <input class="form-control" id="exampleFormControlInput1" value="{{$payment->invoice_paid}}" name="invoice_paid" type="number" min="0" placeholder="Input Invoice Paid" onkeypress="return /[0-9a-zA-Z]/i.test(event.key)" disabled>
+                <input class="form-control" id="exampleFormControlInput1" value="{{$payment->invoice_paid}}" name="invoice_paid" type="number" min="0" placeholder="Masukkan Invoice Paid" onkeypress="return /[0-9a-zA-Z]/i.test(event.key)" disabled>
             </div>
             <div class="validation"></div>
                 @error('invoice_paid')
                   <div class="alert alert-danger">{{ $message }}</div>
                 @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Date</label>
+                <label for="exampleFormControlInput1">Tanggal</label>
                 <input class="form-control" id="exampleFormControlInput1" value="{{$payment->payment_date}}" name="payment_date" type="date" required>
             </div>
             <div class="validation"></div>
@@ -93,13 +93,13 @@
                 @enderror
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Amount Paid</label>
-                <input class="form-control" id="exampleFormControlInput1" value="{{$payment->amount_paid}}" name="amount_paid" type="number" min="0" placeholder="Input Amount Paid" onkeypress="return /[0-9a-zA-Z]/i.test(event.key)" required>
+                <input class="form-control" id="exampleFormControlInput1" value="{{$payment->amount_paid}}" name="amount_paid" type="number" min="0" placeholder="Masukkan Amount Paid" onkeypress="return /[0-9a-zA-Z]/i.test(event.key)" required>
             </div>
             <div class="validation"></div>
                 @error('amount_paid')
                   <div class="alert alert-danger">{{ $message }}</div>
                 @enderror
-            <button type="submit" class="btn btn-primary">Submit</button>
+            <button type="submit" class="btn btn-primary">Simpan</button>
         </form>
     </div>
 </div>

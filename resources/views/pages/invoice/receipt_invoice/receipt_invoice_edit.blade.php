@@ -26,7 +26,7 @@
                 @enderror
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Number</label>
-                <input class="form-control" id="exampleFormControlInput1" name="no_tti" value="{{$receipt_invoice->no_tti}}" type="text" placeholder="Input Receipt Invoice Number" disabled>
+                <input class="form-control" id="exampleFormControlInput1" name="no_tti" value="{{$receipt_invoice->no_tti}}" type="text" placeholder="Masukkan Receipt Invoice Number" disabled>
             </div>
             <div class="validation"></div>
                 @error('no_tti')
@@ -47,7 +47,7 @@
                 @error('code_courier')
                   <div class="alert alert-danger">{{ $message }}</div>
                 @enderror
-            <button type="submit" class="btn btn-primary">Submit</button>
+            <button type="submit" class="btn btn-primary">Simpan</button>
         </form>
     </div>
 </div>

@@ -51,7 +51,7 @@
             <h2 class="m-0 font-weight-bold text-primary" style="text-align:center;">Report Payment : {{$tanggal}}</h2>
         </div>
         <div class="card-header py-3">
-            <!-- <a href="{{route('tax_invoice.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Add</a> -->
+            <!-- <a href="{{route('tax_invoice.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Tambah</a> -->
             <!-- <a href="{{route('tax_invoice.bin')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-archive"></i> See Archive</a> -->
         </div>
         <div class="card-body">
@@ -66,9 +66,9 @@
                         <tr>
 
                             <th class="text-center align-middle text-wrap">Code</th>
-                            <th class="text-center align-middle text-wrap">Name</th>
+                            <th class="text-center align-middle text-wrap">Nama</th>
 
-                            <th class="text-center align-middle text-wrap">Date</th>
+                            <th class="text-center align-middle text-wrap">Tanggal</th>
                             <th class="text-center align-middle text-wrap">Code</th>
 
                             <th class="text-center align-middle text-wrap">Payment Via</th>

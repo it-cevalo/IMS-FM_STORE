@@ -3,34 +3,34 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Store</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Data Master Toko</h6>
     </div>
     <div class="card-body">
         <form id="formStore" action="{{ route('stores.store') }}" method="POST">
             @csrf
             <div class="mb-3">
-                <label for="code_store">Store Code</label>
-                <input class="form-control" name="code_store" type="text" placeholder="Input Store Code">
+                <label for="code_store">Kode Toko</label>
+                <input class="form-control" name="code_store" type="text" placeholder="Masukkan Kode Toko">
             </div>
             <div class="mb-3">
-                <label for="nama_store">Store Name</label>
-                <input class="form-control" name="nama_store" type="text" placeholder="Input Store Name">
+                <label for="nama_store">Nama Toko</label>
+                <input class="form-control" name="nama_store" type="text" placeholder="Masukkan Nama Toko">
             </div>
             <div class="mb-3">
-                <label for="phone">Store Phone</label>
-                <input class="form-control" name="phone" type="number" min="0" placeholder="Input Store Phone">
+                <label for="phone">No HP Toko</label>
+                <input class="form-control" name="phone" type="number" min="0" placeholder="Masukkan No HP Toko">
             </div>
             <div class="mb-3">
-                <label for="email">Store Email</label>
-                <input class="form-control" name="email" type="email" placeholder="Input Store Email">
+                <label for="email">Email Toko</label>
+                <input class="form-control" name="email" type="email" placeholder="Masukkan Email Toko">
             </div>
             <div class="mb-3">
-                <label for="address">Store Address</label>
-                <input class="form-control" name="address" type="text" placeholder="Input Store Address">
+                <label for="address">Alamat Toko</label>
+                <input class="form-control" name="address" type="text" placeholder="Masukkan Alamat Toko">
             </div>
 
-            <button type="button" class="btn btn-primary" id="btnStore">Submit</button>
-            <a href="{{ route('stores.index') }}" class="btn btn-dark">Back</a>
+            <button type="button" class="btn btn-primary" id="btnStore">Simpan</button>
+            <a href="{{ route('stores.index') }}" class="btn btn-dark">Kembali</a>
         </form>
     </div>
 </div>

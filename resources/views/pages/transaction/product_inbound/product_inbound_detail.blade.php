@@ -45,7 +45,7 @@
         <div class="alert alert-success d-flex justify-content-between align-items-center">
             <div>
                 <i class="fa fa-check-circle mr-2"></i>
-                <b>Semua barang inbound pada tanggal ini sudah masuk gudang.</b>
+                <b>Semua barang masuk pada tanggal ini sudah masuk  gudang.</b>
             </div>
             <a href="{{ route('product_inbound.index') }}" class="btn btn-dark btn-sm">
                 Back
@@ -124,7 +124,7 @@
 
                                 @if($item->id_warehouse != 0)
                                     <span class="badge badge-secondary ml-2">
-                                        Sudah masuk gudang
+                                        Sudah masuk  gudang
                                     </span>
                                 @endif
                             </div>
@@ -137,7 +137,7 @@
             </div>
             @empty
             <div class="alert alert-warning">
-                Tidak ada data inbound pada tanggal ini
+                Tidak ada data masuk pada tanggal ini
             </div>
             @endforelse
 

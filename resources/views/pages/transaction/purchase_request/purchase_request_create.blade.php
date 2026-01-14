@@ -29,7 +29,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Date</label>
+                <label for="exampleFormControlInput1">Tanggal</label>
                 <div class="input-group">
                     <input class="form-control" id="exampleFormControlInput1" name="request_date" type="date" required>
                 </div>
@@ -39,7 +39,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Warehouse</label>
+                <label for="exampleFormControlInput1">Gudang</label>
                 <select class="form-control select2" id="search-type" name="id_warehouse_from"
                     value="{{old('id_warehouse_from')}}" required>
                     <option value="#">....</option>
@@ -57,7 +57,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="table-responsive">
-                <label for="exampleFormControlInput1">Product</label>
+                <label for="exampleFormControlInput1">Produk</label>
                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
@@ -80,8 +80,8 @@
                     </tfoot>
                 </table>
             </div>
-            <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="{{route('purchase_request.index')}}" class="btn btn-dark">Cancel</a>
+            <button type="submit" class="btn btn-primary">Simpan</button>
+            <a href="{{route('purchase_request.index')}}" class="btn btn-dark">Batal</a>
         </form>
     </div>
 </div>
@@ -147,7 +147,7 @@ $(document).ready(function() {
             width: '100%'
         });
 
-        // Mengambil data SKU dari purchase_request.product dan memasukkannya ke Select2 SKU
+        // Mengambil data SKU dari purchase_request.product dan memasuk kannya ke Select2 SKU
         $.ajax({
             url: "{{ route('purchase_request.product') }}",
             type: 'GET',

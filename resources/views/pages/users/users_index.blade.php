@@ -4,7 +4,7 @@
                     <!-- DataTales Example -->
                     <div class="card shadow mb-4">
                         <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">{{$pageTitle}}</h6>
+                            <h6 class="m-0 font-weight-bold text-primary">Pengelolaan Pengguna</h6>
                         </div>
                         <div class="card-header py-3">
                             {{-- <div class="input-group">
@@ -17,7 +17,7 @@
                                     </button>
                                 </form>
                             </div> --}}
-                            <a href="{{route('users.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Add</a>
+                            <a href="{{route('users.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Tambah</a>
 
                         </div>
                         <div class="card-body">
@@ -27,9 +27,9 @@
                                         <tr>
                                             <th>No</th>
                                             <th>Username</th>
-                                            <th>Name</th>
+                                            <th>Nama</th>
                                             <th>Role</th>
-                                            <th>Action</th>
+                                            <th>Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody>

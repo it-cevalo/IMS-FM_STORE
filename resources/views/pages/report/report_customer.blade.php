@@ -26,14 +26,14 @@
                     <tr>
                         <th class="text-center align-middle" rowspan="2">No</th>
                         <th class="text-center align-middle" rowspan="2">Code</th>
-                        <th class="text-center align-middle" rowspan="2">Name</th>
-                        <th class="text-center align-middle" rowspan="2">Address Shipping</th>
+                        <th class="text-center align-middle" rowspan="2">Nama</th>
+                        <th class="text-center align-middle" rowspan="2">Alamat Pengiriman</th>
                         <th class="text-center align-middle" colspan="2">NPWP</th>
-                        <th class="text-center align-middle" colspan="2">Date</th>
+                        <th class="text-center align-middle" colspan="2">Tanggal</th>
                     </tr>
                     <tr>
                         <th class="text-center align-middle">Code</th>
-                        <th class="text-center align-middle">Address</th>
+                        <th class="text-center align-middle">Alamat</th>
 
 
                         <th class="text-center align-middle">Created</th>
@@ -86,7 +86,7 @@
                         <label for="exampleFormControlInput1">Filter / Export</label>
                         <div class="input-group">
                             <select class="form-control" name="opt" value="{{old('opt')}}" required>
-                                <option value="filter">Filter</option>
+                                <option value="filter">Saring</option>
                                 <option value="export">Export to PDF</option>
                             </select>
                         </div>

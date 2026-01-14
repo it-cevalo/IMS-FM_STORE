@@ -13,7 +13,7 @@
     <div class="card-header py-3">
         @if(Auth::user()->position!='DIRECTOR')
         <a href="{{route('invoice.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i>
-            Add</a>
+            Tambah</a>
         <!-- <a href="{{route('invoice.bin')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-archive"></i> See
             Archive</a> -->
         @else
@@ -40,13 +40,13 @@
                 <thead>
                     <tr>
                         <th>No</th>
-                        <th>Customer Code</th>
-                        <th>Customer Name</th>
+                        <th>Kode Pelanggan</th>
+                        <th>Nama Pelanggan</th>
                         <th>Invoice Date</th>
                         <th>Invoice No</th>
                         <th>Grand Total</th>
                         <th>Bank Pembayaran</th>
-                        <th>Action</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
             </table>

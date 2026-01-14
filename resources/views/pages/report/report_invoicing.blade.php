@@ -32,9 +32,9 @@
                     <tr>
 
                         <th class="text-center align-middle text-wrap">Code</th>
-                        <th class="text-center align-middle text-wrap">Name</th>
+                        <th class="text-center align-middle text-wrap">Nama</th>
 
-                        <th class="text-center align-middle text-wrap">Date</th>
+                        <th class="text-center align-middle text-wrap">Tanggal</th>
                         <th class="text-center align-middle text-wrap">Code</th>
 
                     </tr>
@@ -89,7 +89,7 @@
                         <label for="exampleFormControlInput1">Filter / Export</label>
                         <div class="input-group">
                             <select class="form-control" name="opt" value="{{old('opt')}}" required>
-                                <option value="filter">Filter</option>
+                                <option value="filter">Saring</option>
                                 <option value="export">Export to PDF</option>
                             </select>
                         </div>

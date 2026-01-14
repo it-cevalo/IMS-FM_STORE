@@ -29,7 +29,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Date</label>
+                <label for="exampleFormControlInput1">Tanggal</label>
                 <div class="input-group">
                     <input class="form-control" id="exampleFormControlInput1" name="tgl_trf" type="date" required>
                 </div>
@@ -39,7 +39,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Warehouse From</label>
+                <label for="exampleFormControlInput1">Gudang From</label>
                 <select class="form-control select2" id="search-type" name="id_warehouse_from"
                     value="{{old('id_warehouse_from')}}" required>
                     <option value="#">....</option>
@@ -49,7 +49,7 @@
                 </select>
             </div>
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Warehouse To</label>
+                <label for="exampleFormControlInput1">Gudang To</label>
                 <select class="form-control select2" id="search-type" name="id_warehouse_to"
                     value="{{old('id_warehouse_to')}}" required>
                     <option value="#">....</option>
@@ -67,7 +67,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="table-responsive">
-                <label for="exampleFormControlInput1">Product</label>
+                <label for="exampleFormControlInput1">Produk</label>
                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
@@ -90,8 +90,8 @@
                     </tfoot>
                 </table>
             </div>
-            <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="{{route('product_transfer.index')}}" class="btn btn-dark">Cancel</a>
+            <button type="submit" class="btn btn-primary">Simpan</button>
+            <a href="{{route('product_transfer.index')}}" class="btn btn-dark">Batal</a>
         </form>
     </div>
 </div>
@@ -157,7 +157,7 @@ $(document).ready(function() {
             width: '100%'
         });
 
-        // Mengambil data SKU dari product_transfer.product dan memasukkannya ke Select2 SKU
+        // Mengambil data SKU dari product_transfer.product dan memasuk kannya ke Select2 SKU
         $.ajax({
             url: "{{ route('product_transfer.product') }}",
             type: 'GET',

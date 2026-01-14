@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Supplier</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Data Master Pemasok</h6>
     </div>
     <div class="card-body">
         @if(\Session::has('error'))
@@ -25,7 +25,7 @@
             @csrf
             {{ method_field('PUT') }}
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Supplier Code</label>
+                <label for="exampleFormControlInput1">Kode Pemasok</label>
                 <input class="form-control" id="exampleFormControlInput1" name="code_spl" type="text"
                     value="{{$suppliers->code_spl}}">
             </div>
@@ -34,7 +34,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Supplier Name</label>
+                <label for="exampleFormControlInput1">Nama Pemasok</label>
                 <input class="form-control" id="exampleFormControlInput1" name="nama_spl" type="text"
                     value="{{$suppliers->nama_spl}}">
             </div>
@@ -43,7 +43,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Supplier Phone</label>
+                <label for="exampleFormControlInput1">No HP Pemasok</label>
                 <input class="form-control" id="exampleFormControlInput1" name="phone" type="number" min="0"
                     value="{{$suppliers->phone}}">
             </div>
@@ -52,7 +52,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Supplier Email</label>
+                <label for="exampleFormControlInput1">Email Pemasok</label>
                 <input class="form-control" id="exampleFormControlInput1" name="email" type="email"
                     value="{{$suppliers->email}}">
             </div>
@@ -61,7 +61,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Supplier NPWP</label>
+                <label for="exampleFormControlInput1">NPWP Pemasok</label>
                 <input class="form-control" id="exampleFormControlInput1" name="npwp_spl" type="text"
                     value="{{$suppliers->npwp_spl}}">
             </div>
@@ -70,7 +70,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Supplier Address</label>
+                <label for="exampleFormControlInput1">Alamat Pemasok</label>
                 <input class="form-control" id="exampleFormControlInput1" name="address_spl" type="text"
                     value="{{$suppliers->address_spl}}">
             </div>
@@ -79,7 +79,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Supplier Address NPWP</label>
+                <label for="exampleFormControlInput1">Alamat Pemasok NPWP</label>
                 <input class="form-control" id="exampleFormControlInput1" name="address_npwp" type="text"
                     value="{{$suppliers->address_npwp}}">
             </div>
@@ -88,7 +88,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Supplier PIC Name</label>
+                <label for="exampleFormControlInput1">Nama PIC</label>
                 <input class="form-control" id="exampleFormControlInput1" name="name_pic" type="text"
                     value="{{$suppliers->name_pic}}">
             </div>
@@ -97,7 +97,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Supplier PIC Phone</label>
+                <label for="exampleFormControlInput1">No HP PIC</label>
                 <input class="form-control" id="exampleFormControlInput1" name="phone_pic" type="number" min="0"
                     value="{{$suppliers->phone_pic}}">
             </div>
@@ -106,7 +106,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Supplier PIC Email</label>
+                <label for="exampleFormControlInput1">Email PIC</label>
                 <input class="form-control" id="exampleFormControlInput1" name="email_pic" type="email"
                     value="{{$suppliers->email_pic}}">
             </div>
@@ -114,8 +114,8 @@
             @error('email_pic')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
-            <button type="button" class="btn btn-primary" id="btnUpdateSupplier">Submit</button>
-            <a href="{{route('suppliers.index')}}" class="btn btn-dark">Back</a>
+            <button type="button" class="btn btn-primary" id="btnUpdateSupplier">Simpan</button>
+            <a href="{{route('suppliers.index')}}" class="btn btn-dark">Kembali</a>
         </form>
     </div>
 </div>
@@ -135,7 +135,7 @@
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             beforeSend: function () {
-                $('#btnUpdateSupplier').prop('disabled', true).text('Saving...');
+                $('#btnUpdateSupplier').prop('disabled', true).text('Menyimpan...');
             },
             success: function (res) {
                 Swal.fire({
@@ -168,7 +168,7 @@
                     Swal.fire({
                         icon: 'error',
                         title: 'Error!',
-                        text: res && res.message ? res.message : 'An unexpected error occurred. Please try again later.'
+                        text: res && res.message ? res.message : 'Terjadi kesalahan. Silakan coba lagi.'
                     });
                 }
             }

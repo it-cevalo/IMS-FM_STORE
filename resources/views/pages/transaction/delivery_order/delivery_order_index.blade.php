@@ -5,7 +5,7 @@
 <div class="card shadow mb-4">
     <div class="card-header py-3">
         <h6 class="m-0 font-weight-bold text-primary">
-            <a href="{{route('delivery_order.index')}}">Delivery Order</a>
+            <a href="{{route('delivery_order.index')}}">Pengiriman Barang</a>
         </h6>
     </div>
 
@@ -15,7 +15,7 @@
             <i class="fa fa-upload"></i> Upload File DO
         </button> --}}
         <a href="{{route('delivery_order.create')}}" class="btn btn-primary btn-flat btn-sm">
-            <i class="fa fa-plus"></i> Add
+            <i class="fa fa-plus"></i> Tambah
         </a>
         {{-- <a href="{{route('delivery_order.bin')}}" class="btn btn-primary btn-flat btn-sm">
             <i class="fa fa-archive"></i> See Archive
@@ -25,7 +25,7 @@
             <i class="fa fa-upload"></i> Upload File DO
         </button> --}}
         <a href="{{route('delivery_order.create')}}" class="btn btn-primary btn-flat btn-sm">
-            <i class="fa fa-plus"></i> Add
+            <i class="fa fa-plus"></i> Tambah
         </a>
         {{-- <a href="{{route('delivery_order.bin')}}" class="btn btn-primary btn-flat btn-sm">
             <i class="fa fa-archive"></i> See Archive
@@ -44,17 +44,17 @@
             <table class="table table-bordered" id="deliveryOrderTable" width="100%" cellspacing="0">
                 <thead>
                     <tr>
-                        <th>Date</th>
-                        {{-- <th>Supplier</th> --}}
-                        {{-- <th>PO Number</th> --}}
-                        <th>DO Number</th>
-                        <th>Shipping Via</th>
+                        <th>Tanggal</th>
+                        {{-- <th>Pemasok</th> --}}
+                        {{-- <th>Nomor</th> --}}
+                        <th>Nomor</th>
+                        <th>Metode Pengiriman</th>
                         {{-- <th>File</th>
                         <th>Upload Date</th>
                         <th>Attachment Status</th> --}}
-                        <th>Note</th>
+                        <th>Catatan</th>
                         <th>Status</th>
-                        <th>Action</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -158,8 +158,8 @@ function loadDeliveryOrderData() {
 
 function approveDO(id, noDo) {
     Swal.fire({
-        title: 'Approve Delivery Order?',
-        html: `<b>DO Number:</b> ${noDo}`,
+        title: 'Approve Pengiriman Barang?',
+        html: `<b>Nomor:</b> ${noDo}`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, Approve',
@@ -191,7 +191,7 @@ function approveDO(id, noDo) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
-                        text: res.message || 'Delivery Order berhasil di-approve'
+                        text: res.message || 'Pengiriman Barang berhasil di-approve'
                     });
 
                     $('#deliveryOrderTable')
@@ -213,8 +213,8 @@ function approveDO(id, noDo) {
 
 // function approveDO(id, noDo) {
 //     Swal.fire({
-//         title: 'Approve Delivery Order?',
-//         html: `<b>DO Number:</b> ${noDo}`,
+//         title: 'Approve Pengiriman Barang?',
+//         html: `<b>Nomor:</b> ${noDo}`,
 //         icon: 'warning',
 //         showCancelButton: true,
 //         confirmButtonText: 'Yes, Approve',
@@ -225,7 +225,7 @@ function approveDO(id, noDo) {
 //             $.get(
 //                 "{{ route('delivery_order.approve', ':id') }}".replace(':id', id),
 //                 function () {
-//                     Swal.fire('Success', 'Delivery Order berhasil di-approve', 'success');
+//                     Swal.fire('Success', 'Pengiriman Barang berhasil di-approve', 'success');
 //                     $('#deliveryOrderTable').DataTable().ajax.reload(null, false);
 //                 }
 //             ).fail(err => {
@@ -241,8 +241,8 @@ function approveDO(id, noDo) {
 
 function deleteDO(id, noDo) {
     Swal.fire({
-        title: 'Delete Delivery Order?',
-        html: `<b>DO Number:</b> ${noDo}<br><span class="text-danger">Data akan dihapus permanen</span>`,
+        title: 'Delete Pengiriman Barang?',
+        html: `<b>Nomor:</b> ${noDo}<br><span class="text-danger">Data akan dihapus permanen</span>`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, Delete',

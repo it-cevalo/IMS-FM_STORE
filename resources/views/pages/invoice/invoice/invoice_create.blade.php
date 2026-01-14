@@ -58,7 +58,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Date</label>
+                <label for="exampleFormControlInput1">Tanggal</label>
                 <input class="form-control" id="exampleFormControlInput1" name="tgl_inv" type="date" required>
             </div>
             <div class="validation"></div>
@@ -68,13 +68,13 @@
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Code</label>
                 <input class="form-control" id="exampleFormControlInput1" name="no_inv" type="text"
-                    placeholder="Input Invoice Number" required>
+                    placeholder="Masukkan Invoice Number" required>
             </div>
             <div class="validation"></div>
             @error('no_inv')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror <div class="table-responsive">
-                <label for="exampleFormControlInput1">Product</label>
+                <label for="exampleFormControlInput1">Produk</label>
                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
@@ -113,8 +113,8 @@
                     </tfoot>
                 </table>
             </div>
-            <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="{{route('invoice.index')}}" class="btn btn-dark">Cancel</a>
+            <button type="submit" class="btn btn-primary">Simpan</button>
+            <a href="{{route('invoice.index')}}" class="btn btn-dark">Batal</a>
         </form>
     </div>
 </div>
@@ -181,7 +181,7 @@ $(document).ready(function() {
             width: '100%'
         });
 
-        // Mengambil data SKU dari delivery_order_transfer.product dan memasukkannya ke Select2 SKU
+        // Mengambil data SKU dari delivery_order_transfer.product dan memasuk kannya ke Select2 SKU
         $.ajax({
             url: "{{ route('invoice.product') }}",
             type: 'GET',

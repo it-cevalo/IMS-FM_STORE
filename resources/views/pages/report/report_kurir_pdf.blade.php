@@ -52,7 +52,7 @@
             </h2>
         </div>
         <div class="card-header py-3">
-            <!-- <a href="{{route('tax_invoice.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Add</a> -->
+            <!-- <a href="{{route('tax_invoice.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Tambah</a> -->
             <!-- <a href="{{route('tax_invoice.bin')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-archive"></i> See Archive</a> -->
         </div>
         <div class="card-body">
@@ -61,9 +61,9 @@
                     <thead>
                         <tr>
                             <th class="text-center align-middle" rowspan="2">No</th>
-                            <th class="text-center align-middle" rowspan="2">Courier Code</th>
-                            <th class="text-center align-middle" rowspan="2">Courier Name</th>
-                            <th class="text-center align-middle" colspan="2">Date</th>
+                            <th class="text-center align-middle" rowspan="2">Kode Kurir</th>
+                            <th class="text-center align-middle" rowspan="2">Nama Kurir</th>
+                            <th class="text-center align-middle" colspan="2">Tanggal</th>
                         </tr>
                         <tr>
                             <th class="text-center align-middle">Created</th>

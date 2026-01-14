@@ -3,8 +3,8 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Product Type</h6>
-        <a href="{{ route('product_type.create') }}" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i> Add</a>
+        <h6 class="m-0 font-weight-bold text-primary">Data Jenis Produk</h6>
+        <a href="{{ route('product_type.create') }}" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i> Tambah</a>
     </div>
 
     <div class="card-body">
@@ -19,8 +19,8 @@
                 <thead>
                     <tr>
                         <th class="text-center align-middle">No</th>
-                        <th class="text-center align-middle">Name</th>
-                        <th class="text-center align-middle">Action</th>
+                        <th class="text-center align-middle">Nama Jenis Produk</th>
+                        <th class="text-center align-middle">Aksi</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -55,13 +55,13 @@
         let url = $(this).data('url');
 
         Swal.fire({
-            title: 'Are you sure?',
-            text: 'This data will be permanently deleted!',
+            title: 'Yakin ingin menghapus data ini?',
+            text: 'Data yang dihapus tidak bisa dikembalikan.',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, delete it!',
+            confirmButtonText: 'Ya, Hapus!',
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
@@ -73,7 +73,7 @@
                     },
                     success: function (res) {
                         Swal.fire(
-                            'Deleted!',
+                            'Berhasil Dihapus',
                             res.message,
                             'success'
                         );
@@ -82,8 +82,8 @@
                     },
                     error: function (xhr) {
                         Swal.fire(
-                            'Error!',
-                            xhr.responseJSON?.message || 'Something went wrong',
+                            'Terjadi Kesalahan',
+                            xhr.responseJSON?.message || 'Terjadi kesalahan sistem',
                             'error'
                         );
                     }

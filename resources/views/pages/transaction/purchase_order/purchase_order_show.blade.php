@@ -4,14 +4,14 @@
 <div class="card shadow mb-4">
     <div class="card-header py-3">
         <h6 class="m-0 font-weight-bold text-primary">
-            <a href="{{route('purchase_order.index')}}">Purchase Order</a>
+            <a href="{{route('purchase_order.index')}}">Pemesanan Barang</a>
         </h6>
     </div>
 
     <div class="card-body">
 
         <div class="mb-3">
-            <label>Supplier</label>
+            <label>Pemasok</label>
             <div class="input-group">
                 <select class="form-control" name="id_supplier" disabled>
                     @forelse($suppliers as $sup)
@@ -26,7 +26,7 @@
         </div>
 
         <div class="mb-3">
-            <label>PO Date</label>
+            <label>Tanggal</label>
             <input class="form-control" 
                 name="tgl_po" 
                 value="{{ \Carbon\Carbon::parse($purchase_order->tgl_po)->format('Y-m-d')}}"
@@ -35,7 +35,7 @@
         </div>
 
         <div class="mb-3">
-            <label>PO Number</label>
+            <label>Nomor</label>
             <input class="form-control" 
                 name="no_po" 
                 value="{{$purchase_order->no_po}}" 
@@ -55,7 +55,7 @@
         </div> --}}
 
         <div class="mb-3">
-            <label>Note</label>
+            <label>Catatan</label>
             <input class="form-control" 
                 name="reason_po" 
                 value="{{$purchase_order->reason_po}}" 
@@ -81,7 +81,7 @@
         </div>
 
         <div class="table-responsive mt-3">
-            <label>Product</label>
+            <label>Produk</label>
             <table class="table table-bordered" width="100%">
                 <thead>
                     <tr>
@@ -174,7 +174,7 @@
             </table>
         </div>
 
-        <a href="{{route('purchase_order.index')}}" class="btn btn-dark mt-2">Back</a>
+        <a href="{{route('purchase_order.index')}}" class="btn btn-dark mt-2">Kembali</a>
         <!-- ===================== LOADING SPINNER ===================== -->
         <div id="printLoading"
             style="

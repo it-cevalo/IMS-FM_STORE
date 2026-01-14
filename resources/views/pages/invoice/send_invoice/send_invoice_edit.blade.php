@@ -27,7 +27,7 @@
                 @enderror
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Resi Number / Receipt Number </label>
-                <input class="form-control" id="exampleFormControlInput1" name="no_resi" value="{{$send_invoice->no_resi}}" type="text" placeholder="Input Resi Number" required>
+                <input class="form-control" id="exampleFormControlInput1" name="no_resi" value="{{$send_invoice->no_resi}}" type="text" placeholder="Masukkan Resi Number" required>
             </div>
             <div class="validation"></div>
                 @error('no_resi')
@@ -41,7 +41,7 @@
                 @error('bukti_tanda_terima')
                   <div class="alert alert-danger">{{ $message }}</div>
                 @enderror
-            <button type="submit" class="btn btn-primary">Submit</button>
+            <button type="submit" class="btn btn-primary">Simpan</button>
         </form>
     </div>
 </div>

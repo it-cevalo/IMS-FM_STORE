@@ -12,7 +12,7 @@
                 <i class="fa fa-upload"></i> Import Excel
             </button>
             <a href="{{ route('sku.create') }}" class="btn btn-primary btn-sm">
-                <i class="fa fa-plus"></i> Add
+                <i class="fa fa-plus"></i> Tambah
             </a>
         </div>
     </div>
@@ -30,8 +30,8 @@
                     <tr>
                         <th class="text-center align-middle">No</th>
                         <th class="text-center align-middle">SKU Code</th>
-                        {{-- <th class="text-center align-middle">Name</th> --}}
-                        <th class="text-center align-middle">Action</th>
+                        {{-- <th class="text-center align-middle">Nama</th> --}}
+                        <th class="text-center align-middle">Aksi</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -57,7 +57,7 @@
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                             <button type="submit" class="btn btn-primary">Upload</button>
                         </div>
                     </div>

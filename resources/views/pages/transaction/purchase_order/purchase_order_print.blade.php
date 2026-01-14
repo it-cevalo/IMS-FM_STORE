@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Purchase Order</title>
+    <title>Pemesanan Barang</title>
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;
@@ -50,12 +50,12 @@
 </head>
 <body>
 
-    <div class="title">PURCHASE ORDER</div>
+    <div class="title">Pemesanan Barang</div>
 
     <table class="header">
         <tr>
             <td width="60%">
-                <strong>Supplier</strong><br>
+                <strong>Pemasok</strong><br>
                 {{ $po->code_spl }} - {{ $po->nama_spl }}<br>
                 {{ $po->supplier->address_spl ?? '-' }}<br>
                 Telp: {{ $po->supplier->phone ?? '-' }}

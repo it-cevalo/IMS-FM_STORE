@@ -12,14 +12,14 @@
         </div><br />
     @endif
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">User Management</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Pengelolaan Pengguna</h6>
     </div>
     <div class="card-body">
         <form id="userEditForm">
             @csrf
             @method('PUT')
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Name</label>
+                <label for="exampleFormControlInput1">Nama</label>
                 <input class="form-control" id="exampleFormControlInput1" name="name" value="{{$user->name}}" type="text" placeholder="Jhon Doe">
             </div>
             <div class="mb-3">
@@ -46,7 +46,8 @@
                     @endforeach
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary">Submit</button>
+            <button type="submit" class="btn btn-primary">Simpan</button>
+            <a href="{{ route('users.index') }}" class="btn btn-dark">Kembali</a>
         </form>
     </div>
 </div>

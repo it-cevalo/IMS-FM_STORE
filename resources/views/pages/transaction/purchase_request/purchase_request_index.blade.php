@@ -13,7 +13,7 @@
             <i class="fa fa-filter"></i> Filter
         </button> -->
         <a href="{{route('purchase_request.create')}}" class="btn btn-primary btn-flat btn-sm"><i
-                class="fa fa-plus"></i> Add</a>
+                class="fa fa-plus"></i> Tambah</a>
         <!-- <a href="#" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal"><i class="fa fa-upload"></i> Upload Excel</a>
                 <a download="Template_po.xlsx" href="{{ Storage::url('tpl/template_po.xlsx') }}" class="btn btn-primary btn-flat btn-sm" title="Template_po.xlsx"><i class="fa fa-download"></i> Download Template Excel</a> -->
     </div>
@@ -28,15 +28,15 @@
                 <thead>
                     <tr>
                         <th class="text-center">Code</th>
-                        <th class="text-center">Warehouse Code</th>
-                        <th class="text-center">Warehouse Name</th>
+                        <th class="text-center">Kode Gudang</th>
+                        <th class="text-center">Nama Gudang</th>
                         <th class="text-center">Qty Request</th>
                         <th class="text-center">Desc Request</th>
                         <th class="text-center">Requested By</th>
                         <th class="text-center">Request Date</th>
                         <th class="text-center">Approved By</th>
                         <th class="text-center">Approve Date</th>
-                        <th class="text-center">Action</th>
+                        <th class="text-center">Aksi</th>
                     </tr>
                 </thead>                
             </table>

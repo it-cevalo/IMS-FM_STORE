@@ -3,8 +3,8 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data UOM</h6>
-        <a href="{{ route('product_unit.create') }}" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i> Add</a>
+        <h6 class="m-0 font-weight-bold text-primary">Data Satuan Barang</h6>
+        <a href="{{ route('product_unit.create') }}" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i> Tambah</a>
     </div>
 
     <div class="card-body">
@@ -13,8 +13,8 @@
                 <thead>
                     <tr>
                         <th class="text-center align-middle">No</th>
-                        <th class="text-center align-middle">Name</th>
-                        <th class="text-center align-middle">Action</th>
+                        <th class="text-center align-middle">Nama Satuan</th>
+                        <th class="text-center align-middle">Aksi</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -52,12 +52,12 @@
             let deleteUrl = form.attr('action');
 
             Swal.fire({
-                title: 'Are you sure you want to delete this?',
-                text: "This UOM data cannot be recovered once deleted.",
+                title: 'Yakin ingin menghapus data ini?',
+                text: 'Data satuan barang yang dihapus tidak bisa dikembalikan.',
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: 'Yes, Delete it!',
-                cancelButtonText: 'Cancel',
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal',
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#6c757d',
             }).then((result) => {
@@ -72,7 +72,7 @@
                         success: function (res) {
                             Swal.fire({
                                 icon: 'success',
-                                title: 'Deleted!',
+                                title: 'Berhasil Dihapus',
                                 text: res.message
                             });
                             $('#productUnitTable').DataTable().ajax.reload();
@@ -81,7 +81,7 @@
                             let res = xhr.responseJSON;
                             Swal.fire({
                                 icon: 'error',
-                                title: 'Error!',
+                                title: 'Terjadi Kesalahan',
                                 text: res && res.message ? res.message : 'An error occurred while deleting the data.'
                             });
                         }

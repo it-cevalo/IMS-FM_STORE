@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Create Delivery Order</h6>
+        <h6 class="m-0 font-weight-bold text-primary">TambahPengiriman Barang</h6>
     </div>
     <div class="card-body">
 
@@ -12,7 +12,7 @@
 
             {{-- Tanggal DO --}}
             <div class="mb-3">
-                <label>DO Date *</label>
+                <label>Tanggal *</label>
                 <input type="date" class="form-control" name="tgl_do" required>
             </div>
 
@@ -20,7 +20,7 @@
             <div class="mb-3"> 
                 <label>Number</label> 
                 <div class="input-group"> 
-                    <input class="form-control" id="no_do" name="no_do" type="text" placeholder="Input DO Number" required> 
+                    <input class="form-control" id="no_do" name="no_do" type="text" placeholder="Masukkan Nomor" required> 
                     <div class="input-group-append"> 
                         <div class="input-group-text"> 
                             <input type="checkbox" id="autoGenerate"> Auto 
@@ -34,7 +34,7 @@
             @enderror
 
             <div class="mb-3">
-                <label>Shipping Via *</label>
+                <label>Metode Pengiriman *</label>
                 <select class="form-control" name="shipping_via" required>
                     @foreach($shipping_via as $k=>$v)
                         <option value="{{ $k }}">{{ $v }}</option>
@@ -44,13 +44,13 @@
 
             {{-- Reason --}}
             <div class="mb-3">
-                <label>Note *</label>
+                <label>Catatan *</label>
                 <textarea class="form-control" name="reason_do" required></textarea>
             </div>
 
             {{-- Produk --}}
             <div class="table-responsive">
-                <label>Product</label>
+                <label>Produk</label>
                 <table class="table table-bordered">
                     <thead>
                         <tr>
@@ -69,8 +69,8 @@
                 </table>
             </div>
 
-            <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="{{ route('delivery_order.index') }}" class="btn btn-dark">Back</a>
+            <button type="submit" class="btn btn-primary">Simpan</button>
+            <a href="{{ route('delivery_order.index') }}" class="btn btn-dark">Kembali</a>
         </form>
 
     </div>
@@ -84,7 +84,7 @@ $(document).ready(function(){
         if ($(this).is(':checked')) {
             let tgl = $('input[name="tgl_do"]').val();
             if (!tgl) {
-                alert("Please select DO Date first!");
+                alert("Pilih Tanggal DO terlebih dahulu");
                 $(this).prop('checked', false);
                 return;
             }
@@ -97,12 +97,12 @@ $(document).ready(function(){
                         // Set field jadi readonly
                         $('#no_do').prop('readonly', true);
                     } else {
-                        alert('Failed to generate DO Number!');
+                        alert('Failed to generate Nomor!');
                         $('#autoGenerate').prop('checked', false);
                     }
                 },
                 error: function() {
-                    alert('Error while generating DO Number!');
+                    alert('Error while generating Nomor!');
                     $('#autoGenerate').prop('checked', false);
                 }
             });
@@ -130,7 +130,7 @@ $(document).ready(function(){
         return opt;
     }
 
-    // Auto-generate DO Number
+    // Auto-generate Nomor
     $('input[name="tgl_do"]').change(function(){
         let tgl = $(this).val();
         if(!tgl) return;

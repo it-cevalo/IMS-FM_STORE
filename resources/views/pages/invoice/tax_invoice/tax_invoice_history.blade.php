@@ -20,7 +20,7 @@
                                 </form>
                             </div> --}}
                             <a href="{{route('tax_invoice.index')}}" class="btn btn-primary">                                        
-                                <i class="fa fa-arrow-left"> Go Back</i>
+                                <i class="fa fa-arrow-left"> Go Kembali</i>
                             </a>
                         </div>
                         <div class="card-body">
@@ -35,7 +35,7 @@
                                     </tr>
                                     <tr>
                                         <th class="text-center">Code</th>
-                                        <th class="text-center">Name</th>
+                                        <th class="text-center">Nama</th>
                                     </tr>
                                 </thead>
                                 <tbody>

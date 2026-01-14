@@ -4,7 +4,7 @@
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
         <h6 class="m-0 font-weight-bold text-primary">Request Reprint QR</h6>
-        <a href="{{ route('purchase_order.index') }}" class="btn btn-secondary btn-sm">Back</a>
+        <a href="{{ route('purchase_order.index') }}" class="btn btn-secondary btn-sm">Kembali</a>
     </div>
     <div class="card-body">
         @foreach($requestsGrouped as $poNo => $items)
@@ -90,7 +90,7 @@ function bulkAction(poNo, action) {
         ids.push($(this).data('id'));
     });
     if(ids.length === 0){
-        Swal.fire('Oops', 'Please select at least one item.', 'warning');
+        Swal.fire('Oops', 'Pilih minimal 1 barang.', 'warning');
         return;
     }
 

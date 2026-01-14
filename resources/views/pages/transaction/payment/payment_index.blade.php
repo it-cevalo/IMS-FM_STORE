@@ -7,7 +7,7 @@
             <h6 class="m-0 font-weight-bold text-primary">Payment</h6>
         </div>
         <div class="card-header py-3">
-            <a href="{{route('payment.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Add</a>
+            <a href="{{route('payment.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Tambah</a>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -22,14 +22,14 @@
                             <th rowspan="2" class="text-center align-middle">Payment Via</th>
                             <th rowspan="2" class="text-center align-middle">Bank Account</th>
                             <th colspan="4" class="text-center">Paid</th>
-                            <th rowspan="2" colspan="2" class="text-center align-middle">Action</th>
+                            <th rowspan="2" colspan="2" class="text-center align-middle">Aksi</th>
                         </tr>
                         <tr>
 
                                 <th class="text-center align-middle text-wrap">Code</th>
-                                <th class="text-center align-middle text-wrap">Name</th>
+                                <th class="text-center align-middle text-wrap">Nama</th>
                                 
-                                <th class="text-center align-middle text-wrap">Date</th>
+                                <th class="text-center align-middle text-wrap">Tanggal</th>
                                 <th class="text-center align-middle text-wrap">No</th>
                                 <th class="text-center align-middle text-wrap">Status</th>
                                 <th class="text-center align-middle text-wrap">Reason</th>

@@ -4,10 +4,10 @@
 <!-- DataTales Example -->
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Customer</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Data Master Pelanggan</h6>
         
         <a href="{{ route('customers.create') }}" class="btn btn-primary btn-flat btn-sm">
-            <i class="fa fa-plus"></i> Add
+            <i class="fa fa-plus"></i> Tambah
         </a>
     </div>
     <div class="card-body">
@@ -17,12 +17,12 @@
                     <tr>
                         <th>No</th>
                         <th>Code</th>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Address Shipping</th>
+                        <th>Nama</th>
+                        <th>Tipe</th>
+                        <th>Alamat Pengiriman</th>
                         <th>NPWP No</th>
-                        <th>NPWP Address</th>
-                        <th>Action</th>
+                        <th>Alamat NPWP</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody></tbody> <!-- Biarkan kosong, diisi oleh AJAX -->

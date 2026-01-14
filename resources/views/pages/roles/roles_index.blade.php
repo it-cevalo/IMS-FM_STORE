@@ -6,9 +6,9 @@
 
     {{-- HEADER --}}
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">Role Management</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Pengelolaan Hak Akses</h6>
         <a href="{{ route('roles.create') }}" class="btn btn-primary btn-sm">
-            <i class="fas fa-plus"></i> Tambah Role
+            <i class="fas fa-plus"></i> Tambah
         </a>
     </div>
 

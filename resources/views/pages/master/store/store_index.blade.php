@@ -3,9 +3,9 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Store</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Data Master Toko</h6>
         <a href="{{ route('stores.create') }}" class="btn btn-primary btn-sm">
-            <i class="fa fa-plus"></i> Add
+            <i class="fa fa-plus"></i> Tambah
         </a>
     </div>
 
@@ -22,11 +22,11 @@
                     <tr>
                         <th class="text-center align-middle">No</th>
                         <th class="text-center align-middle">Code</th>
-                        <th class="text-center align-middle">Name</th>
-                        <th class="text-center align-middle">Address</th>
-                        <th class="text-center align-middle">Phone</th>
+                        <th class="text-center align-middle">Nama</th>
+                        <th class="text-center align-middle">Alamat</th>
+                        <th class="text-center align-middle">No HP</th>
                         <th class="text-center align-middle">Email</th>
-                        <th class="text-center align-middle">Action</th>
+                        <th class="text-center align-middle">Aksi</th>
                     </tr>
                 </thead>
                 <tbody></tbody>

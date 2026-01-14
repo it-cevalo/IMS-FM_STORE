@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Courier</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Data Master Kurir</h6>
     </div>
     <div class="card-body">
 
@@ -12,19 +12,19 @@
             @method('PUT')
 
             <div class="mb-3">
-                <label for="codeCourier">Courier Code</label>
+                <label for="codeCourier">Kode Kurir</label>
                 <input class="form-control" id="codeCourier" name="code_courier" type="text"
-                    value="{{ $courier->code_courier }}" placeholder="Enter Courier Code">
+                    value="{{ $courier->code_courier }}" placeholder="Masukkan Kode Kurir">
             </div>
 
             <div class="mb-3">
-                <label for="namaCourier">Courier Name</label>
+                <label for="namaCourier">Nama Kurir</label>
                 <input class="form-control" id="namaCourier" name="nama_courier" type="text"
-                    value="{{ $courier->nama_courier }}" placeholder="Enter Courier Name">
+                    value="{{ $courier->nama_courier }}" placeholder="Masukkan Nama Kurir">
             </div>
 
-            <button type="button" class="btn btn-primary" id="btnUpdateCourier">Submit</button>
-            <a href="{{ route('couriers.index') }}" class="btn btn-dark">Cancel</a>
+            <button type="button" class="btn btn-primary" id="btnUpdateCourier">Simpan</button>
+            <a href="{{ route('couriers.index') }}" class="btn btn-dark">Batal</a>
         </form>
 
     </div>
@@ -84,7 +84,7 @@
                             title: 'Error!',
                             text: res && res.message
                                 ? res.message
-                                : 'An unexpected system error occurred. Please try again later.'
+                                : 'Terjadi kesalahan. Silakan coba lagi.'
                         });
                     }
                 }

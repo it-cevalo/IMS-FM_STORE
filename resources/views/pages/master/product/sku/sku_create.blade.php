@@ -12,19 +12,19 @@
             <div class="mb-3">
                 <label for="exampleFormControlInput1">SKU </label>
                 <input class="form-control" id="exampleFormControlInput1" name="kode" type="text"
-                    placeholder="Input kode">
+                    placeholder="Masukkan kode">
             </div>
             <div class="validation"></div>
             
             {{-- <div class="mb-3">
                 <label for="exampleFormControlInput1">Nama </label>
                 <input class="form-control" id="exampleFormControlInput1" name="nama" type="text"
-                    placeholder="Input nama">
+                    placeholder="Masukkan nama">
             </div>
             <div class="validation"></div> --}}
 
-            <button type="button" class="btn btn-primary" id="btnSaveType">Submit</button>
-            <a href="{{ route('sku.index') }}" class="btn btn-dark">Back</a>
+            <button type="button" class="btn btn-primary" id="btnSaveType">Simpan</button>
+            <a href="{{ route('sku.index') }}" class="btn btn-dark">Kembali</a>
         </form>
 
     </div>
@@ -45,7 +45,7 @@
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
                 beforeSend: function () {
-                    $('#btnSaveType').prop('disabled', true).text('Saving...');
+                    $('#btnSaveType').prop('disabled', true).text('Menyimpan...');
                     $('.validation').html('');
                 },
                 success: function (res) {

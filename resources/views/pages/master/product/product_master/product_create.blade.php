@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Product</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Master Data Produk</h6>
     </div>
 
     <div class="card-body">
@@ -18,13 +18,13 @@
 
             {{-- NAME --}}
             <div class="mb-3">
-                <label for="nama_barang">Name</label>
+                <label for="nama_barang">Nama</label>
                 <input class="form-control" id="nama_barang" name="nama_barang" type="text" required>
             </div>
 
             {{-- TYPE --}}
             <div class="mb-3">
-                <label>Type</label>
+                <label>Tipe</label>
                 <select class="form-control select2" id="id_type" name="id_type" required>
                     <option value="">....</option>
                     @foreach($product_type as $p)
@@ -35,7 +35,7 @@
 
             {{-- UOM --}}
             <div class="mb-3">
-                <label>UOM</label>
+                <label>Satuan Barang</label>
                 <select class="form-control select2" id="id_unit" name="id_unit" required>
                     <option value="">....</option>
                     @foreach($product_unit as $p)
@@ -52,7 +52,7 @@
 
             {{-- ACTIVE --}}
             <div class="mb-3">
-                <label>Active Status</label>
+                <label>Status Aktif</label>
                 <select class="form-control select2" id="flag_active" name="flag_active" required>
                     <option value="">....</option>
                     <option value="Y">Yes</option>
@@ -60,8 +60,8 @@
                 </select>
             </div>
 
-            <button type="button" class="btn btn-primary" id="btnSubmit">Submit</button>
-            <a href="{{ route('product.index') }}" class="btn btn-dark">Back</a>
+            <button type="button" class="btn btn-primary" id="btnSubmit">Simpan</button>
+            <a href="{{ route('product.index') }}" class="btn btn-dark">Kembali</a>
         </form>
     </div>
 </div>

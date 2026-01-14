@@ -9,14 +9,14 @@
     ======================= --}}
     <div class="row">
 
-        {{-- PURCHASE ORDER --}}
+        {{-- Pemesanan Barang --}}
         <div class="col-xl-3 col-md-6 mb-4">
             <a href="{{ route('purchase_order.index') }}">
                 <div class="card border-left-primary shadow h-100 py-2">
                     <div class="card-body d-flex justify-content-between align-items-center">
                         <div>
                             <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                Purchase Order
+                                Pemesanan Barang
                             </div>
                             <div class="h4 font-weight-bold">
                                 {{ $total_po }}
@@ -28,14 +28,14 @@
             </a>
         </div>
 
-        {{-- DELIVERY ORDER --}}
+        {{-- Pengiriman Barang --}}
         <div class="col-xl-3 col-md-6 mb-4">
             <a href="{{ route('delivery_order.index') }}">
                 <div class="card border-left-success shadow h-100 py-2">
                     <div class="card-body d-flex justify-content-between align-items-center">
                         <div>
                             <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                Delivery Order
+                                Pengiriman Barang
                             </div>
                             <div class="h4 font-weight-bold">
                                 {{ $total_do }}
@@ -58,7 +58,7 @@
             <div class="card shadow position-relative">
 
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="font-weight-bold">Product In vs Product Out (Monthly)</span>
+                    <span class="font-weight-bold">Barang Masuk vs Barang Keluar (Bulanan)</span>
 
                     <div class="d-flex align-items-center">
                         <button id="btnRefresh" class="btn btn-sm btn-outline-primary mr-2">
@@ -92,10 +92,10 @@
         {{-- SUMMARY --}}
         <div class="col-md-4 mb-4">
             <div class="card shadow h-100">
-                <div class="card-header font-weight-bold">Month Summary</div>
+                <div class="card-header font-weight-bold">Ringkasan Bulanan</div>
                 <div class="card-body">
-                    <p>Product In : <strong id="sumInbound">0</strong></p>
-                    <p>Product Out : <strong id="sumOutbound">0</strong></p>
+                    <p>Barang Masuk : <strong id="sumInbound">0</strong></p>
+                    <p>Barang Keluar : <strong id="sumOutbound">0</strong></p>
                     <p id="sumBalance" class="text-danger">
                         Balance : <strong>0</strong>
                     </p>
@@ -149,12 +149,12 @@ function loadChart() {
                     labels: res.labels,
                     datasets: [
                         {
-                            label: 'Product In',
+                            label: 'Barang Masuk',
                             data: res.inbound,
                             backgroundColor: 'rgba(54, 185, 204, 0.6)'
                         },
                         {
-                            label: 'Product Out',
+                            label: 'Barang Keluar',
                             data: res.outbound,
                             backgroundColor: 'rgba(246, 194, 62, 0.6)'
                         }

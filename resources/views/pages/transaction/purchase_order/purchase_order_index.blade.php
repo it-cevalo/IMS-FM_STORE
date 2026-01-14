@@ -5,13 +5,13 @@
 <div class="card shadow mb-4">
     <div class="card-header py-3">
         <h6 class="m-0 font-weight-bold text-primary">
-            <a href="{{route('purchase_order.index')}}">Purchase Order</a>
+            <a href="{{route('purchase_order.index')}}">Pemesanan Barang</a>
         </h6>
     </div>
     <div class="card-header py-3">
         @if(Auth::user()->position=='MANAGER' || Auth::user()->position=='SUPERADMIN' || Auth::user()->position=='PURCHASING')
         <a href="{{route('purchase_order.create')}}" class="btn btn-primary btn-flat btn-sm">
-            <i class="fa fa-plus"></i> Add
+            <i class="fa fa-plus"></i> Tambah
         </a>
         <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#filterModal">
             <i class="fa fa-filter"></i> Filter
@@ -31,12 +31,12 @@
             <table class="table table-bordered" id="purchaseOrderTable" width="100%" cellspacing="0">
                 <thead>
                     <tr>
-                        <th class="text-center">Date</th>
-                        <th class="text-center">Supplier</th>
-                        <th class="text-center">PO Number</th>
+                        <th class="text-center">Tanggal</th>
+                        <th class="text-center">Pemasok</th>
+                        <th class="text-center">Nomor</th>
                         <th class="text-center">Status</th>
-                        <th class="text-center">Note</th>
-                        <th class="text-center">Action</th>
+                        <th class="text-center">Catatan</th>
+                        <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -50,7 +50,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Filter Purchase Order</h5>
+                <h5 class="modal-title">Filter Pemesanan Barang</h5>
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
             <div class="modal-body">
@@ -259,7 +259,7 @@ $(document).ready(function() {
     
     window.confirmOrder = function (id, noPo) {
         Swal.fire({
-            title: 'Konfirmasi Purchase Order',
+            title: 'Konfirmasi Pemesanan Barang',
             html: `
                 <p>Apakah Anda yakin ingin <b>Confirm</b> PO berikut?</p>
                 <p><strong>PO Number:</strong> ${noPo}</p>

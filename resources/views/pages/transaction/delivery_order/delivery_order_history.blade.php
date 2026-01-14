@@ -5,7 +5,7 @@
 <div class="card shadow mb-4">
     <div class="card-header py-3">
         <h6 class="m-0 font-weight-bold text-primary">
-            Delivery Order History
+            Pengiriman Barang History
         </h6>
     </div>
     <div class="card-header py-3">
@@ -20,7 +20,7 @@
                                 </form>
                             </div> --}}
         <a href="{{route('delivery_order.index')}}" class="btn btn-primary">
-            <i class="fa fa-arrow-left"> Go Back</i>
+            <i class="fa fa-arrow-left"> Go Kembali</i>
         </a>
     </div>
     <div class="card-body">
@@ -29,13 +29,13 @@
             <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                 <thead>
                     <tr>
-                        <th colspan="2" class="text-center">Supplier</th>
+                        <th colspan="2" class="text-center">Pemasok</th>
                         <th rowspan="2" class="text-center align-middle">Reason</th>
                         <th rowspan="2" class="text-center align-middle">Update Date</th>
                     </tr>
                     <tr>
                         <th class="text-center">Code</th>
-                        <th class="text-center">Name</th>
+                        <th class="text-center">Nama</th>
                     </tr>
                 </thead>
                 <tbody>

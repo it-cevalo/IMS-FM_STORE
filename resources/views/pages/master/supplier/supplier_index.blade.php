@@ -3,9 +3,9 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Supplier</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Data Master Pemasok</h6>
         <a href="{{ route('suppliers.create') }}" class="btn btn-primary btn-sm">
-            <i class="fa fa-plus"></i> Add
+            <i class="fa fa-plus"></i> Tambah
         </a>
     </div>
 
@@ -16,12 +16,12 @@
                     <tr>
                         <th>No</th>
                         <th>Code</th>
-                        <th>Name</th>
-                        <th>PIC Name</th>
-                        <th>PIC Phone</th>
-                        <th>PIC Email</th>
-                        <th>Address Shipping</th>
-                        <th>Action</th>
+                        <th>Nama</th>
+                        <th>Nama PIC</th>
+                        <th>No HP PIC</th>
+                        <th>Email PIC</th>
+                        <th>Alamat Pengiriman</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -60,7 +60,7 @@ $(document).ready(function () {
 
         Swal.fire({
             title: 'Yakin ingin menghapus?',
-            text: 'Data supplier ini tidak dapat dikembalikan setelah dihapus.',
+            text: 'Data pemasok ini tidak dapat dikembalikan setelah dihapus.',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Ya, hapus!',

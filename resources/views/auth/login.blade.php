@@ -6,7 +6,7 @@
     <div class="p-5">
         <div class="text-center">
                 <img src="assets/img/logo_customer.png" width="100px" height="100px"/>
-            <h1 class="h4 text-gray-900 mb-4">SIGN IN</h1>
+            {{-- <h1 class="h4 text-gray-900 mb-4">SIGN IN</h1> --}}
         </div>
 
         @if(\Session::has('fail'))
@@ -60,7 +60,7 @@
                 <div class="col-md-8 offset-md-4">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-fw fa-sign-in-alt"></i>
-                        {{ __('SIGN IN') }}
+                        {{ __('Masuk') }}
                     </button>
                 </div>
             </div>

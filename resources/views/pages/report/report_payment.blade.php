@@ -26,14 +26,14 @@
                             <th colspan="2" class="text-center">Customer</th>
                             <th colspan="2" class="text-center">Invoice</th>
                             <th colspan="7" class="text-center">Payment</th>
-                            <th rowspan="2" colspan="2" class="text-center align-middle">Action</th>
+                            <th rowspan="2" colspan="2" class="text-center align-middle">Aksi</th>
                         </tr>
                         <tr>
 
                             <th class="text-center align-middle text-wrap">Code</th>
-                            <th class="text-center align-middle text-wrap">Name</th>
+                            <th class="text-center align-middle text-wrap">Nama</th>
                             
-                            <th class="text-center align-middle text-wrap">Date</th>
+                            <th class="text-center align-middle text-wrap">Tanggal</th>
                             <th class="text-center align-middle text-wrap">Code</th>
                             
                             <th class="text-center align-middle text-wrap">Payment Via</th>
@@ -91,7 +91,7 @@
                                     <div class="input-group">
                                             <select class="form-control" name="opt" value="{{old('opt')}}" required>
                                                 <option value="">All</option>
-                                                <option value="filter">Filter</option>
+                                                <option value="filter">Saring</option>
                                                 <option value="export">Export to PDF</option>
                                             </select>
                                     </div> 

@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Product</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Master Data Produk</h6>
     </div>
     <div class="card-body">
         @if(\Session::has('error'))
@@ -33,7 +33,7 @@
             </div>
             
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Name</label>
+                <label for="exampleFormControlInput1">Nama</label>
                 <input class="form-control" id="exampleFormControlInput1" name="nama_barang" type="text"
                     value="{{$products->nama_barang}}" readonly>
             </div>
@@ -42,7 +42,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Type</label>
+                <label for="exampleFormControlInput1">Tipe</label>
                 <select class="form-control select2" id="search-type" name="id_type" value="{{old('id_type')}}"
                     required>
                     <option value="">....</option>
@@ -58,7 +58,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">UOM</label>
+                <label for="exampleFormControlInput1">Satuan Barang</label>
                 <select class="form-control select2" id="search-type" name="id_unit" value="{{old('id_unit')}}" required>
                     <option value="">....</option>
                     @forelse($product_unit as $p)
@@ -99,14 +99,14 @@
             {{-- <div class="mb-3">
                 <label for="exampleFormControlInput1">Average Price</label>
                 <input class="form-control" id="exampleFormControlInput1" name="harga_rata_rata" type="number"
-                    value="{{$products->harga_rata_rata}}" placeholder="Input Average Price">
+                    value="{{$products->harga_rata_rata}}" placeholder="Masukkan Average Price">
             </div>
             <div class="validation"></div>
             @error('harga_rata_rata')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror --}}
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Active Status</label>
+                <label for="exampleFormControlInput1">Status Aktif</label>
                 <select class="form-control form-control-sm" name="flag_active">
                     @foreach($flag_active as $k => $v)
                     @if($products->flag_active == $k)
@@ -121,8 +121,8 @@
             @error('flag_active')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror            
-            <button type="button" class="btn btn-primary" id="btnUpdate">Submit</button>
-            <a href="{{route('product.index')}}" class="btn btn-dark">Back</a>
+            <button type="button" class="btn btn-primary" id="btnUpdate">Simpan</button>
+            <a href="{{route('product.index')}}" class="btn btn-dark">Kembali</a>
         </form>
     </div>
 </div>
@@ -175,7 +175,7 @@
                         Swal.fire({
                             icon: 'error',
                             title: 'Error!',
-                            text: res && res.message ? res.message : 'An unexpected error occurred. Please try again later.'
+                            text: res && res.message ? res.message : 'Terjadi kesalahan. Silakan coba lagi.'
                         });
                     }
                 }

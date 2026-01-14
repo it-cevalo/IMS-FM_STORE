@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Product Type</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Data Jenis Produk</h6>
     </div>
     <div class="card-body">
 
@@ -12,14 +12,14 @@
             @method('PUT')
 
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Name</label>
+                <label for="exampleFormControlInput1">Nama Jenis Produk</label>
                 <input class="form-control" id="exampleFormControlInput1" name="nama_tipe" type="text"
                     value="{{ $product_type->nama_tipe }}">
             </div>
             <div class="validation"></div>
 
-            <button type="button" class="btn btn-primary" id="btnUpdateProductType">Submit</button>
-            <a href="{{ route('product_type.index') }}" class="btn btn-dark">Back</a>
+            <button type="button" class="btn btn-primary" id="btnUpdateProductType">Simpan</button>
+            <a href="{{ route('product_type.index') }}" class="btn btn-dark">Kembali</a>
         </form>
 
     </div>
@@ -72,8 +72,8 @@
                     } else {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Error!',
-                            text: res && res.message ? res.message : 'An unexpected error occurred. Please try again later.'
+                            title: 'Terjadi Kesalahan',
+                            text: res && res.message ? res.message : 'Terjadi kesalahan. Silakan coba lagi.'
                         });
                     }
                 }

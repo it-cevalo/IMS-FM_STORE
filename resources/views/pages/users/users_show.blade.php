@@ -12,11 +12,11 @@
         </div><br />
     @endif
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">User Management</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Pengelolaan Pengguna</h6>
     </div>
     <div class="card-body">
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Name</label> :
+                <label for="exampleFormControlInput1">Nama</label> :
                 {{$user->name}}            
             </div>
             <div class="mb-3">

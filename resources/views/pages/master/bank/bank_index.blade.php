@@ -8,7 +8,7 @@
     </div>
     <div class="card-header py-3">
         <a href="{{ route('bank.create') }}" class="btn btn-primary btn-flat btn-sm">
-            <i class="fa fa-plus"></i> Add
+            <i class="fa fa-plus"></i> Tambah
         </a>
     </div>
     <div class="card-body">

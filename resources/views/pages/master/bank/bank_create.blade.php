@@ -26,7 +26,7 @@
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Kode Bank</label>
                 <input class="form-control" id="exampleFormControlInput1" name="code_bank" type="text"
-                    placeholder="Input Kode Bank">
+                    placeholder="Masukkan Kode Bank">
             </div>
             <div class="validation"></div>
             @error('code_bank')
@@ -35,7 +35,7 @@
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Nama Bank</label>
                 <input class="form-control" id="exampleFormControlInput1" name="nama_bank" type="text"
-                    placeholder="Input Nama Bank">
+                    placeholder="Masukkan Nama Bank">
             </div>
             <div class="validation"></div>
             @error('nama_bank')
@@ -44,7 +44,7 @@
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Nomor Rekening Bank</label>
                 <input class="form-control" id="exampleFormControlInput1" name="norek_bank" type="text"
-                    placeholder="Input No Rekening Bank">
+                    placeholder="Masukkan No Rekening Bank">
             </div>
             <div class="validation"></div>
             @error('norek_bank')
@@ -53,14 +53,14 @@
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Nama Pemilik /Atas Nama Bank</label>
                 <input class="form-control" id="exampleFormControlInput1" name="atasnama_bank" type="text"
-                    placeholder="Input Nama Pemilik / Atas Nama Bank">
+                    placeholder="Masukkan Nama Pemilik / Atas Nama Bank">
             </div>
             <div class="validation"></div>
             @error('atasnama_bank')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
-            <button type="button" class="btn btn-primary" id="btnStoreBank">Submit</button>
-            <a href="{{route('bank.index')}}" class="btn btn-dark">Cancel</a>
+            <button type="button" class="btn btn-primary" id="btnStoreBank">Simpan</button>
+            <a href="{{route('bank.index')}}" class="btn btn-dark">Batal</a>
         </form>
     </div>
 </div>

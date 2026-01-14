@@ -25,7 +25,7 @@
             @csrf
             @method('PUT')
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Warehouse</label>
+                <label for="exampleFormControlInput1">Gudang</label>
                 <select class="form-control select2" id="search-type" name="id_warehouse" value="{{old('id_warehouse')}}" readonly>
                     <option value="">....</option>
                     @foreach($warehouse as $p)
@@ -38,7 +38,7 @@
                   <div class="alert alert-danger">{{ $message }}</div>
                 @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Product</label>
+                <label for="exampleFormControlInput1">Produk</label>
                 <select class="form-control select2" id="search-type" name="id_product" value="{{old('id_product')}}" readonly>
                     <option value="">....</option>
                     @foreach($product as $p)
@@ -51,39 +51,39 @@
                   <div class="alert alert-danger">{{ $message }}</div>
                 @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Qty In</label>
-                <input class="form-control" id="exampleFormControlInput1" name="qty_in" type="number" min="0" value="{{$stock_opname->qty_in}}" placeholder="Input Qty In">
+                <label for="exampleFormControlInput1">QTY Masuk</label>
+                <input class="form-control" id="exampleFormControlInput1" name="qty_in" type="number" min="0" value="{{$stock_opname->qty_in}}" placeholder="Masukkan QTY Masuk">
             </div>
             <div class="validation"></div>
                 @error('qty_in')
                   <div class="alert alert-danger">{{ $message }}</div>
                 @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Qty Out</label>
-                <input class="form-control" id="exampleFormControlInput1" name="qty_out" type="number" min="0" value="{{$stock_opname->qty_out}}" placeholder="Input Qty Out">
+                <label for="exampleFormControlInput1">QTY Keluar</label>
+                <input class="form-control" id="exampleFormControlInput1" name="qty_out" type="number" min="0" value="{{$stock_opname->qty_out}}" placeholder="Masukkan QTY Keluar">
             </div>
             <div class="validation"></div>
                 @error('qty_out')
                   <div class="alert alert-danger">{{ $message }}</div>
                 @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Last Qty</label>
-                <input class="form-control" id="exampleFormControlInput1" name="qty_last" value="{{$stock_opname->qty_last}}" type="number" min="0" placeholder="Input Last Qty">
+                <label for="exampleFormControlInput1">QTY Terakhir</label>
+                <input class="form-control" id="exampleFormControlInput1" name="qty_last" value="{{$stock_opname->qty_last}}" type="number" min="0" placeholder="Masukkan QTY Terakhir">
             </div>
             <div class="validation"></div>
                 @error('qty_last')
                   <div class="alert alert-danger">{{ $message }}</div>
                 @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Date</label>
+                <label for="exampleFormControlInput1">Tanggal</label>
                 <input class="form-control" id="exampleFormControlInput1" name="tgl_opname" type="date" value="{{$stock_opname->tgl_opname}}" required>
             </div>
             <div class="validation"></div>
                 @error('tgl_opname')
                   <div class="alert alert-danger">{{ $message }}</div>
                 @enderror
-            <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="{{route('stock_opname.index')}}" class="btn btn-dark">Back</a>
+            <button type="submit" class="btn btn-primary">Simpan</button>
+            <a href="{{route('stock_opname.index')}}" class="btn btn-dark">Kembali</a>
         </form>
     </div>
 </div>

@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Stock Opname Add</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Stock Opname Tambah</h6>
     </div>
     <div class="card-body">
         @if(\Session::has('error'))
@@ -24,7 +24,7 @@
         <form action="{{route('stock_opname.store')}}" method="POST">
             @csrf
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Warehouse</label>
+                <label for="exampleFormControlInput1">Gudang</label>
                 <select class="form-control select2" id="search-type" name="id_warehouse"
                     value="{{old('id_warehouse')}}" required>
                     <option value="">....</option>
@@ -38,7 +38,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Product</label>
+                <label for="exampleFormControlInput1">Produk</label>
                 <select class="form-control select2" id="search-type" name="id_product" value="{{old('id_product')}}"
                     required>
                     <option value="">....</option>
@@ -52,42 +52,42 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Qty In</label>
+                <label for="exampleFormControlInput1">QTY Masuk</label>
                 <input class="form-control" id="exampleFormControlInput1" name="qty_in" type="number" min="0"
-                    placeholder="Input Qty In">
+                    placeholder="Masukkan QTY Masuk">
             </div>
             <div class="validation"></div>
             @error('qty_in')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Qty Out</label>
+                <label for="exampleFormControlInput1">QTY Keluar</label>
                 <input class="form-control" id="exampleFormControlInput1" name="qty_out" type="number" min="0"
-                    placeholder="Input Qty Out">
+                    placeholder="Masukkan QTY Keluar">
             </div>
             <div class="validation"></div>
             @error('qty_out')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Last Qty</label>
+                <label for="exampleFormControlInput1">QTY Terakhir</label>
                 <input class="form-control" id="exampleFormControlInput1" name="qty_last" type="number" min="0"
-                    placeholder="Input Last Qty">
+                    placeholder="Masukkan QTY Terakhir">
             </div>
             <div class="validation"></div>
             @error('qty_last')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Date</label>
+                <label for="exampleFormControlInput1">Tanggal</label>
                 <input class="form-control" id="exampleFormControlInput1" name="tgl_opname" type="date" required>
             </div>
             <div class="validation"></div>
             @error('tgl_opname')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
-            <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="{{route('stock_opname.index')}}" class="btn btn-dark">Back</a>
+            <button type="submit" class="btn btn-primary">Simpan</button>
+            <a href="{{route('stock_opname.index')}}" class="btn btn-dark">Kembali</a>
         </form>
     </div>
 </div>

@@ -20,7 +20,7 @@
                                 </form>
                             </div> --}}
                             <a href="{{route('receipt_invoice.index')}}" class="btn btn-primary">                                        
-                                <i class="fa fa-arrow-left"> Go Back</i>
+                                <i class="fa fa-arrow-left"> Go Kembali</i>
                             </a>
                         </div>
                         <div class="card-body">
@@ -31,16 +31,16 @@
                                     <tr>
                                         <th colspan="2" class="text-center">Courier</th>
                                         <th colspan="2" class="text-center">Receipt</th>
-                                        <th rowspan="2" class="text-center align-middle">Shipping Via</th>
+                                        <th rowspan="2" class="text-center align-middle">Metode Pengiriman</th>
                                         <th rowspan="2" class="text-center align-middle">Grand Total</th>
                                         <th rowspan="2" class="text-center align-middle">Term</th>
                                         <th rowspan="2" class="text-center align-middle">Update Date</th>
                                     </tr>
                                     <tr>
                                         <th class="text-center">Code</th>
-                                        <th class="text-center">Name</th>
+                                        <th class="text-center">Nama</th>
                                         <th class="text-center">Number</th>
-                                        <th class="text-center">Date</th>
+                                        <th class="text-center">Tanggal</th>
 
                                     </tr>
                                 </thead>

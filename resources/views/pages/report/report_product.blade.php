@@ -4,7 +4,7 @@
 <!-- DataTales Example -->
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Report Product</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Report Produk</h6>
     </div>
     <div class="card-header py-3">
         <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
@@ -35,10 +35,10 @@
                 <thead>
                     <th class="text-center align-middle">No</th>
                     <th class="text-center align-middle">SKU</th>
-                    <th class="text-center align-middle">Name</th>
-                    <th class="text-center align-middle">Type</th>
-                    <th class="text-center align-middle">UOM</th>
-                    <th class="text-center align-middle">Active</th>
+                    <th class="text-center align-middle">Nama</th>
+                    <th class="text-center align-middle">Tipe</th>
+                    <th class="text-center align-middle">Satuan Barang</th>
+                    <th class="text-center align-middle">Aktif</th>
                 </thead>
                 <tbody>
                     <?php
@@ -82,7 +82,7 @@
                         <label for="exampleFormControlInput1">Filter / Export</label>
                         <div class="input-group">
                             <select class="form-control" name="opt" value="{{old('opt')}}" required>
-                                <option value="filter">Filter</option>
+                                <option value="filter">Saring</option>
                                 <option value="export">Export to PDF</option>
                             </select>
                         </div>

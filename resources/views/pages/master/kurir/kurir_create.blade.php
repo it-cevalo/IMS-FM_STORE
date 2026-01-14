@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Courier</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Data Master Kurir</h6>
     </div>
 
     <div class="card-body">
@@ -11,19 +11,19 @@
             @csrf
 
             <div class="mb-3">
-                <label for="codeCourier">Courier Code</label>
+                <label for="codeCourier">Kode Kurir</label>
                 <input class="form-control" id="codeCourier" name="code_courier" type="text"
-                    placeholder="Enter Courier Code">
+                    placeholder="Masukkan Kode Kurir">
             </div>
 
             <div class="mb-3">
-                <label for="nameCourier">Courier Name</label>
+                <label for="nameCourier">Nama Kurir</label>
                 <input class="form-control" id="nameCourier" name="nama_courier" type="text"
-                    placeholder="Enter Courier Name">
+                    placeholder="Masukkan Nama Kurir">
             </div>
 
-            <button type="button" class="btn btn-primary" id="btnSaveCourier">Submit</button>
-            <a href="{{ route('couriers.index') }}" class="btn btn-dark">Back</a>
+            <button type="button" class="btn btn-primary" id="btnSaveCourier">Simpan</button>
+            <a href="{{ route('couriers.index') }}" class="btn btn-dark">Kembali</a>
         </form>
     </div>
 </div>
@@ -44,7 +44,7 @@
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
                 beforeSend: function () {
-                    $('#btnSaveCourier').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
+                    $('#btnSaveCourier').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Menyimpan...');
                 },
                 success: function (res) {
                     Swal.fire({
@@ -80,7 +80,7 @@
                             title: 'Error!',
                             text: res && res.message
                                 ? res.message
-                                : 'An unexpected system error occurred. Please try again later.'
+                                : 'Terjadi kesalahan. Silakan coba lagi.'
                         });
                     }
                 }

@@ -6,7 +6,7 @@
 <div class="card shadow mb-4">
     <div class="card-header py-3">
         <h6 class="m-0 font-weight-bold text-primary">
-            <a href="{{route('purchase_order.bin')}}">Purchase Order BIN</a>
+            <a href="{{route('purchase_order.bin')}}">Pemesanan Barang BIN</a>
         </h6>
     </div>
     <div class="card-body">
@@ -15,16 +15,16 @@
                 <thead>
                     <tr>
                         <th rowspan="2" class="text-center align-middle">No</th>
-                        <th rowspan="2" class="text-center align-middle">Date</th>
-                        <th colspan="2" class="text-center">Supplier</th>
-                        <th rowspan="2" class="text-center align-middle">PO Number</th>
+                        <th rowspan="2" class="text-center align-middle">Tanggal</th>
+                        <th colspan="2" class="text-center">Pemasok</th>
+                        <th rowspan="2" class="text-center align-middle">Nomor</th>
                         <th rowspan="2" class="text-center align-middle">Status PO</th>
                         <th rowspan="2" class="text-center align-middle">Reason</th>
-                        <th rowspan="2" class="text-center align-middle">Action</th>
+                        <th rowspan="2" class="text-center align-middle">Aksi</th>
                     </tr>
                     <tr>
                         <th class="text-center">Code</th>
-                        <th class="text-center">Name</th>
+                        <th class="text-center">Nama</th>
                     </tr>
                 </thead>
                 <tbody></tbody>

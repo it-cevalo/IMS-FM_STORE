@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Customer</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Data Master Pelanggan</h6>
     </div>
     <div class="card-body">
         @if(\Session::has('error'))
@@ -24,43 +24,43 @@
         <form id="formCustomerStore" method="POST">
             @csrf
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Customer Code</label>
+                <label for="exampleFormControlInput1">Kode Pelanggan</label>
                 <input class="form-control" id="exampleFormControlInput1" name="code_cust" type="text"
-                    placeholder="Input Customer Code">
+                    placeholder="Masukkan Kode Pelanggan">
             </div>
             <div class="validation"></div>
             @error('code_cust')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Customer Name</label>
+                <label for="exampleFormControlInput1">Nama Pelanggan</label>
                 <input class="form-control" id="exampleFormControlInput1" name="nama_cust" type="text"
-                    placeholder="Input Customer Name">
+                    placeholder="Masukkan Nama Pelanggan">
             </div>
             <div class="validation"></div>
             @error('nama_cust')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Customer Phone</label>
+                <label for="exampleFormControlInput1">No HP Pelanggan</label>
                 <input class="form-control" id="exampleFormControlInput1" name="phone" type="number" min="0"
-                    placeholder="Input Customer Phone">
+                    placeholder="Masukkan No HP Pelanggan">
             </div>
             <div class="validation"></div>
             @error('phone')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Customer Email</label>
+                <label for="exampleFormControlInput1">Email Pelanggan</label>
                 <input class="form-control" id="exampleFormControlInput1" name="email" type="email"
-                    placeholder="Input Customer Email">
+                    placeholder="Masukkan Email Pelanggan">
             </div>
             <div class="validation"></div>
             @error('email')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Customer Type</label>
+                <label for="exampleFormControlInput1">Tipe Pelanggan</label>
                 <select class="form-control select2" id="type_cust" name="type_cust" value="{{old('type_cust')}}"
                     required>
                     <option value="#">....</option>
@@ -73,34 +73,34 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Customer NPWP</label>
+                <label for="exampleFormControlInput1">NPWP Pelanggan</label>
                 <input class="form-control" id="exampleFormControlInput1" name="npwp_cust" type="number" max="16"
-                    placeholder="Input Customer NPWP">
+                    placeholder="Masukkan NPWP Pelanggan">
             </div>
             <div class="validation"></div>
             @error('npwp_cust')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Customer Address</label>
+                <label for="exampleFormControlInput1">Alamat Pelanggan</label>
                 <input class="form-control" id="exampleFormControlInput1" name="address_cust" type="text"
-                    placeholder="Input Customer Address">
+                    placeholder="Masukkan Alamat Pelanggan">
             </div>
             <div class="validation"></div>
             @error('address_cust')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Customer Address NPWP</label>
+                <label for="exampleFormControlInput1">Alamat Pelanggan NPWP</label>
                 <input class="form-control" id="exampleFormControlInput1" name="address_npwp" type="text"
-                    placeholder="Input Customer Address NPWP">
+                    placeholder="Masukkan Alamat Pelanggan NPWP">
             </div>
             <div class="validation"></div>
             @error('address_npwp')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
-            <button type="button" class="btn btn-primary" id="btnStoreCustomer">Submit</button>
-            <a href="{{route('customers.index')}}" class="btn btn-dark">Cancel</a>
+            <button type="button" class="btn btn-primary" id="btnStoreCustomer">Simpan</button>
+            <a href="{{route('customers.index')}}" class="btn btn-dark">Batal</a>
         </form>
     </div>
 </div>

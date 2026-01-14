@@ -8,20 +8,10 @@
         </div>
         <div class="sidebar-brand-text mx-3">IMS</div>
     </a>
+    
+    <div class="sidebar-heading">MENU</div>
 
     <hr class="sidebar-divider my-0">
-
-    {{-- DASHBOARD (OPTIONAL: BISA JUGA FULL DARI DB) --}}
-    <li class="nav-item">
-        <a class="nav-link" href="{{ route('dashboard') }}">
-            <i class="fas fa-fw fa-home"></i>
-            <span>Dashboard</span>
-        </a>
-    </li>
-
-    <hr class="sidebar-divider">
-
-    <div class="sidebar-heading">MENU</div>
 
     {{-- MENU DINAMIS BERDASARKAN ROLE --}}
     @foreach($menus[null] ?? [] as $menu)
@@ -77,7 +67,7 @@
         <a href="#" class="nav-link"
            onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
             <i class="fas fa-fw fa-sign-out-alt"></i>
-            <span>Sign Out</span>
+            <span>Keluar</span>
         </a>
     </li>
 

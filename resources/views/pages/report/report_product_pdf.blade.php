@@ -1,7 +1,7 @@
 <html>
 
 <head>
-    <title>Report Product</title>
+    <title>Report Produk</title>
     <!-- Start CSS Style -->
     <style>
     table,
@@ -53,7 +53,7 @@
             </h2>
         </div>
         <div class="card-header py-3">
-            <!-- <a href="{{route('tax_invoice.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Add</a> -->
+            <!-- <a href="{{route('tax_invoice.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Tambah</a> -->
             <!-- <a href="{{route('tax_invoice.bin')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-archive"></i> See Archive</a> -->
         </div>
         <div class="card-body">
@@ -62,10 +62,10 @@
                     <thead>
                         <th class="text-center align-middle">No</th>
                         <th class="text-center align-middle">SKU</th>
-                        <th class="text-center align-middle">Name</th>
-                        <th class="text-center align-middle">Type</th>
-                        <th class="text-center align-middle">UOM</th>
-                        <th class="text-center align-middle">Active</th>
+                        <th class="text-center align-middle">Nama</th>
+                        <th class="text-center align-middle">Tipe</th>
+                        <th class="text-center align-middle">Satuan Barang</th>
+                        <th class="text-center align-middle">Aktif</th>
                     </thead>
                     <tbody>
                         <?php
