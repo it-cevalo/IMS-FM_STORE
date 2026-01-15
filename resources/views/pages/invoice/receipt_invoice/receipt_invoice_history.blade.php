@@ -37,7 +37,7 @@
                                         <th rowspan="2" class="text-center align-middle">Update Date</th>
                                     </tr>
                                     <tr>
-                                        <th class="text-center">Code</th>
+                                        <th class="text-center">Kode</th>
                                         <th class="text-center">Nama</th>
                                         <th class="text-center">Number</th>
                                         <th class="text-center">Tanggal</th>

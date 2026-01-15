@@ -70,8 +70,8 @@ class ProductUnitController extends Controller
             $this->validate($request, [
                 'nama_unit' => 'required|unique:mproduct_unit,nama_unit'
             ], [
-                'nama_unit.required' => 'UOM field is required.',
-                'nama_unit.unique'   => 'UOM already exists. Please use another UOM.',
+                'nama_unit.required' => 'Satuan Produk harus diisi.',
+                'nama_unit.unique'   => 'Satuan Produk telah digunakan.',
             ]);
     
             // Attempt to create new product unit
@@ -83,14 +83,14 @@ class ProductUnitController extends Controller
             if ($product_unit) {
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'UOM has been successfully added!'
+                    'message' => 'Satuan Produk telah berhasil ditambahkan!'
                 ], 200);
             }
     
             // Failed to create record (unexpected reason)
             return response()->json([
                 'status' => 'error',
-                'message' => 'Unable to add UOM. Please try again or contact support if the issue persists.'
+                'message' => 'Gagal menambahkan Satuan Produk. Silahkan coba lagi nanti.'
             ], 500);
     
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -104,7 +104,7 @@ class ProductUnitController extends Controller
     
             return response()->json([
                 'status' => 'validation_error',
-                'message' => 'Some input fields are invalid. Please review and try again.',
+                'message' => 'Gagal menambahkan Satuan Produk. Slahkan coba lagi nanti.',
                 'errors' => $messages
             ], 422);
     
@@ -112,7 +112,7 @@ class ProductUnitController extends Controller
             // Handle any unexpected system errors
             return response()->json([
                 'status' => 'error',
-                'message' => 'An unexpected error occurred while saving data. Please try again later.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi nanti.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -158,8 +158,8 @@ class ProductUnitController extends Controller
             $this->validate($request, [
                 'nama_unit' => 'required|unique:mproduct_unit,nama_unit'
             ], [
-                'nama_unit.required' => 'UOM field is required.',
-                'nama_unit.unique'   => 'UOM already exists. Please use another UOM.'
+                'nama_unit.required' => 'Satuan Produk harus diisi.',
+                'nama_unit.unique'   => 'Satuan Produk sudah digunakan.'
             ]);
             
             // Attempt to update record
@@ -170,14 +170,14 @@ class ProductUnitController extends Controller
             if ($updated) {
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'UOM has been successfully updated!'
+                    'message' => 'Satuan Produk telah berhasil diubah!'
                 ], 200);
             }
 
             // No rows affected (possibly invalid ID)
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to update UOM. Please check if the data exists or try again.'
+                'message' => 'Gagal mengubah Satuan Produk. Silahkan coba lagi nanti.'
             ], 500);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -191,7 +191,7 @@ class ProductUnitController extends Controller
 
             return response()->json([
                 'status' => 'validation_error',
-                'message' => 'Some input fields are invalid. Please review and try again.',
+                'message' => 'Gagal menampilkan Satuan Produk.',
                 'errors' => $messages
             ], 422);
 
@@ -199,7 +199,7 @@ class ProductUnitController extends Controller
             // System error
             return response()->json([
                 'status' => 'error',
-                'message' => 'An unexpected error occurred while updating data. Please try again later.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi. Silahkan coba lagi nanti.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -216,19 +216,19 @@ class ProductUnitController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'UOM has been successfully deleted!'
+                'message' => 'Satuan Produk telah berhasil dihapus!'
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'UOM not found. It may have been deleted already.'
+                'message' => 'Satuan Produk tidak ditemukan.'
             ], 404);
 
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'An unexpected error occurred while deleting data. Please try again later.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi. Silahkan coba lagi nanti.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

@@ -87,13 +87,13 @@ class ProductController extends Controller
                 'stock_minimum'     => 'required',
                 'flag_active'       => 'required'
             ],[
-                'sku.required'              => 'SKU is required.',
-                'sku.unique'                => 'SKU already exists. Please use another code.',
-                'nama_barang.required'      => 'Product name is required.',
-                'id_type.required'          => 'Product type must be selected.',
-                'id_unit.required'          => 'Product unit must be selected.',
-                'stock_minimum.required'    => 'Minimum stock is required.',
-                'flag_active.required'      => 'Active status must be selected.'
+                'sku.required'              => 'SKU harus diisi.',
+                'sku.unique'                => 'SKU telah digunakan',
+                'nama_barang.required'      => 'Nama produk harus diisi.',
+                'id_type.required'          => 'Tipe produk harus diisi.',
+                'id_unit.required'          => 'Satuan produk harus diisi',
+                'stock_minimum.required'    => 'Stok minimal harus diisi.',
+                'flag_active.required'      => 'Status aktif harus diisi.'
             ]);
 
             // Save product to the database
@@ -112,12 +112,12 @@ class ProductController extends Controller
             if ($product) {
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'New product has been successfully added.'
+                    'message' => 'Data produk telah berhasil ditambahkan.'
                 ], 200);
             } else {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'An error occurred while saving the data. Please try again.'
+                    'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.'
                 ], 500);
             }
 
@@ -132,13 +132,13 @@ class ProductController extends Controller
 
             return response()->json([
                 'status' => 'validation_error',
-                'message' => 'Invalid input',
+                'message' => 'Gagal menyimpan data produk',
                 'errors' => $messages
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'A system error occurred. Please try again later.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -154,8 +154,8 @@ class ProductController extends Controller
         // HEADER
         // =========================
         $headers = [
-            'A1' => 'SKU (WAJIB)',
-            'B1' => 'NAMA PRODUK (WAJIB)',
+            'A1' => 'SKU (harus)',
+            'B1' => 'NAMA PRODUK (harus)',
             'C1' => 'TIPE PRODUK',
             'D1' => 'UOM PRODUK',
             'E1' => 'STOCK MINIMUM',
@@ -249,7 +249,7 @@ class ProductController extends Controller
                     DB::rollBack();
                     return response()->json([
                         'status'  => 'error',
-                        'message' => "SKU wajib diisi. Cek baris ke-{$rowNumber}."
+                        'message' => "SKU harus diisi. Cek baris ke-{$rowNumber}."
                     ], 422);
                 }
 
@@ -396,10 +396,10 @@ class ProductController extends Controller
                 'stock_minimum'     => 'required',
                 'flag_active'       => 'required'
             ], [
-                'id_type.required'          => 'Product type must be selected.',
-                'id_unit.required'          => 'Product unit must be selected.',
-                'stock_minimum.required'    => 'Minimum stock is required.',
-                'flag_active.required'      => 'Active status must be selected.'
+                'id_type.required'          => 'Tipe produk harus diisi.',
+                'id_unit.required'          => 'Satuan produk harus diisi.',
+                'stock_minimum.required'    => 'Stok minimal harus diisi.',
+                'flag_active.required'      => 'Status aktif harus diisi.'
             ]);
 
             $product = Mproduct::findOrFail($id);
@@ -415,7 +415,7 @@ class ProductController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Product data has been successfully updated.'
+                'message' => 'Data produk telah berhasil diubah.'
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -428,14 +428,14 @@ class ProductController extends Controller
 
             return response()->json([
                 'status' => 'validation_error',
-                'message' => 'There are errors in the submitted data.',
+                'message' => 'Gagal menyimpan data produk.',
                 'errors' => $messages
             ], 422);
 
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'A system error occurred. Please try again later.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

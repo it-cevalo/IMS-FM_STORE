@@ -4,7 +4,7 @@
 <div class="card shadow">
     <div class="card-body">
 
-        <h5 class="mb-3">Scan Barang Masuk - {{ $tgl }}</h5>
+        <h5 class="mb-3">Pindai Barang Masuk - {{ $tgl }}</h5>
 
         @php
             // ===============================

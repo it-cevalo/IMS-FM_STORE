@@ -37,13 +37,13 @@
                         <th colspan="2" class="text-center">Gudang</th>
                         <th colspan="2" class="text-center">Produk</th>
                         <th colspan="3" class="text-center">QTY</th>
-                        <th rowspan="2" class="text-center align-middle">Date Opname</th>
+                        <th rowspan="2" class="text-center align-middle">Tanggal Opname</th>
                         <!-- <th rowspan="2" colspan="3" class="text-center align-middle">Aksi</th> -->
                     </tr>
                     <tr>
-                        <th class="text-center">Code</th>
+                        <th class="text-center">Kode</th>
                         <th class="text-center">Nama</th>
-                        <th class="text-center">Code</th>
+                        <th class="text-center">Kode</th>
                         <th class="text-center">Nama</th>
                         <th class="text-center">In</th>
                         <th class="text-center">Out</th>

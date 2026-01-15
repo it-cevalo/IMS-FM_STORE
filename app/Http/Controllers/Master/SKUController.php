@@ -81,9 +81,9 @@ class SKUController extends Controller
                 // 'nama' => 'required',
                 'kode' => 'required|unique:msku,kode',
             ], [
-                // 'nama.required' => 'SKU name is required.',
-                'kode.required' => 'SKU is required.',
-                'kode.unique'   => 'SKU already exists. Please use another SKU.'
+                // 'nama.required' => 'SKU name harus diisi.',
+                'kode.required' => 'SKU harus diisi.',
+                'kode.unique'   => 'SKU sudah digunakan.'
             ]);
     
             $sku = MSku::create([
@@ -94,12 +94,12 @@ class SKUController extends Controller
             if ($sku) {
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'SKU has been successfully added.'
+                    'message' => 'SKU telah berhasil ditambahkan.'
                 ], 200);
             } else {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'An error occurred while saving the data.'
+                    'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.'
                 ], 500);
             }
     
@@ -113,13 +113,13 @@ class SKUController extends Controller
     
             return response()->json([
                 'status' => 'validation_error',
-                'message' => 'Invalid input',
+                'message' => 'Gagal menambahkan data SKU',
                 'errors' => $messages
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'A system error occurred. Please try again later.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -201,7 +201,7 @@ class SKUController extends Controller
             DB::rollBack();
             return response()->json([
                 'status' => 'error',
-                'message' => 'Terjadi kesalahan saat import data.',
+                'message' => 'Terjadi kesalahan saat memasukan data.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -245,7 +245,7 @@ class SKUController extends Controller
                 'nama' => 'required|string|max:150',
             ],
             [
-                'nama.required' => 'Nama SKU wajib diisi',
+                'nama.required' => 'Nama SKU harus diisi',
                 'nama.max'      => 'Nama SKU maksimal 150 karakter',
             ]
         );
@@ -285,17 +285,17 @@ class SKUController extends Controller
     
             return response()->json([
                 'status' => 'success',
-                'message' => 'SKU data has been successfully deleted.'
+                'message' => 'Data SKU telah berhasil dihapus.'
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'SKU data not found.'
+                'message' => 'Data SKU tidak ditemukan.'
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'An error occurred while deleting the data.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

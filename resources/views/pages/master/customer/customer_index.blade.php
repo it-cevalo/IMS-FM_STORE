@@ -16,7 +16,7 @@
                 <thead>
                     <tr>
                         <th>No</th>
-                        <th>Code</th>
+                        <th>Kode</th>
                         <th>Nama</th>
                         <th>Tipe</th>
                         <th>Alamat Pengiriman</th>

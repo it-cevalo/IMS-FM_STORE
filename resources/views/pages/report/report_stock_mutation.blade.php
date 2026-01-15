@@ -32,10 +32,10 @@
                         <th class="text-center align-middle" rowspan="2">Tanggal</th>
                     </tr>
                     <tr>
-                        <th class="text-center align-middle">Code</th>
+                        <th class="text-center align-middle">Kode</th>
                         <th class="text-center align-middle">Nama</th>
 
-                        <th class="text-center align-middle">Code</th>
+                        <th class="text-center align-middle">Kode</th>
                         <th class="text-center align-middle">Nama</th>
 
 

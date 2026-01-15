@@ -72,8 +72,8 @@ class ProductTypeController extends Controller
             $this->validate($request, [
                 'nama_tipe' => 'required|unique:mproduct_type,nama_tipe'
             ], [
-                'nama_tipe.required' => 'Product Type name field is required.',
-                'nama_tipe.unique'   => 'Product Type already exists. Please use another Product Type.'
+                'nama_tipe.required' => 'Nama Tipe Produk harus diisi.',
+                'nama_tipe.unique'   => 'Tipe Produk sudah digunakan.'
             ]);
     
             $product_type = MproductType::create([
@@ -83,12 +83,12 @@ class ProductTypeController extends Controller
             if ($product_type) {
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Product Type has been successfully added!'
+                    'message' => 'Tipe Poduk telah berhasil ditambahkan!'
                 ], 200);
             } else {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Unable to add Product Type. Please try again or contact support if the issue persists.'
+                    'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.'
                 ], 500);
             }
     
@@ -102,13 +102,13 @@ class ProductTypeController extends Controller
     
             return response()->json([
                 'status' => 'validation_error',
-                'message' => 'Some input fields are invalid. Please review and try again.',
+                'message' => 'Gagal menambahkan data tipe produk.',
                 'errors' => $messages
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'An unexpected error occurred while saving data. Please try again later.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi. Silahkan coba lagi nanti.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -153,8 +153,8 @@ class ProductTypeController extends Controller
             $this->validate($request, [
                 'nama_tipe' => 'required|unique:mproduct_type,nama_tipe'
             ], [
-                'nama_tipe.required' => 'Product Type name field is required.',
-                'nama_tipe.unique'   => 'Product Type already exists. Please use another Product Type.'
+                'nama_tipe.required' => 'Nama Tipe Produk harus diisi.',
+                'nama_tipe.unique'   => 'Tipe Produk harus diisi.'
             ]);
     
             $updated = MproductType::whereId($id)->update([
@@ -164,12 +164,12 @@ class ProductTypeController extends Controller
             if ($updated) {
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Product Type has been successfully updated!'
+                    'message' => 'Tipe Produk telah berhasil diubah!'
                 ]);
             } else {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Failed to update Product Type. Please check if the data exists or try again.'
+                    'message' => 'Gagal mengubah Tipe Produk.'
                 ], 500);
             }
     
@@ -183,13 +183,13 @@ class ProductTypeController extends Controller
     
             return response()->json([
                 'status' => 'validation_error',
-                'message' => 'Some input fields are invalid. Please review and try again.',
+                'message' => 'Gagal menambahkan data tipe produk.',
                 'errors' => $messages
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'An unexpected error occurred while updating data. Please try again later.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi. Silahkan coba lagi nanti.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -210,19 +210,19 @@ class ProductTypeController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Product Type has been successfully deleted!'
+                'message' => 'Tipe Produk telah berhasil dihapus!'
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Product Type not found. It may have been deleted already.'
+                'message' => 'Tipe Produk tidak ditemukan.'
             ], 404);
 
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'An unexpected error occurred while deleting data. Please try again later.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi. Silahkan coba lagi nanti.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

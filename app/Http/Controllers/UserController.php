@@ -68,7 +68,7 @@ class UserController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Gagal menyimpan user'
+                'message' => 'Gagal menyimpan  user'
             ], 500);
         }
     }

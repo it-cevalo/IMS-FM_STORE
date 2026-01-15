@@ -65,7 +65,7 @@
         
         @if(!in_array($purchase_order->status_po, ['0']))
             <button type="button" class="btn btn-primary" id="btnPrintQR">
-                <i class="fas fa-print"></i> Print QR
+                <i class="fas fa-print"></i> Cetak QR
             </button>
         @endif
         {{-- ===================== INPUT NOMOR URUT (INLINE) ===================== --}}
@@ -188,7 +188,7 @@
             ">
             <div class="bg-white p-4 rounded shadow text-center">
                 <div class="spinner-border text-primary mb-3" role="status"></div>
-                <div class="font-weight-bold">Menyiapkan Print QR...</div>
+                <div class="font-weight-bold">Menyiapkan Cetak QR...</div>
                 <small class="text-muted">Mohon tunggu sebentar</small>
             </div>
         </div>
@@ -253,7 +253,7 @@
             }
         });
     
-        // ===================== PRINT QR (EXTENDED WITH REPRINT FLOW) =====================
+        // ===================== Cetak QR (EXTENDED WITH REPRINT FLOW) =====================
         $("#btnPrintQR").on("click", function(){
     
             const selected   = $(".chkProduct:checked");
@@ -318,19 +318,19 @@
                     if(xhr.status === 403){
                         Swal.fire({
                             title: 'QR Sudah Pernah Dicetak',
-                            text : 'Silakan isi alasan untuk reprint',
+                            text : 'Silakan isi alasan untuk Cetak Ulang',
                             icon : 'warning',
                             input: 'textarea',
                             inputPlaceholder: 'Contoh: QR rusak, label hilang, dll',
                             inputAttributes: {
-                                'aria-label': 'Alasan Reprint'
+                                'aria-label': 'Alasan Cetak Ulang'
                             },
                             showCancelButton: true,
-                            confirmButtonText: 'Ajukan Reprint',
+                            confirmButtonText: 'Ajukan Cetak Ulang',
                             cancelButtonText: 'Batal',
                             preConfirm: (reason) => {
                                 if (!reason) {
-                                    Swal.showValidationMessage('Alasan reprint wajib diisi');
+                                    Swal.showValidationMessage('Alasan Cetak Ulang wajib diisi');
                                     return false;
                                 }
                                 return reason;
@@ -357,10 +357,10 @@
                                 }).get()
                             })
                             .done(() => {
-                                Swal.fire('Berhasil', 'Request reprint berhasil dikirim', 'success');
+                                Swal.fire('Berhasil', 'Pengajuan Cetak Ulang berhasil dikirim', 'success');
                             })
                             .fail(() => {
-                                Swal.fire('Error', 'Gagal mengirim request reprint', 'error');
+                                Swal.fire('Error', 'Gagal mengirim Pengajuan Cetak Ulang', 'error');
                             });
                         });
                     }
@@ -368,7 +368,7 @@
                     // ===================== MULTIPLE / ALL =====================
                     if (xhr.status === 409) {
                         Swal.fire({
-                            title: 'Gagal Print QR',
+                            title: 'Gagal Cetak QR',
                             text : 'QR Code ada yang sudah terprint. Silakan ajukan request print per barang.',
                             icon : 'error',
                             confirmButtonText: 'OK'

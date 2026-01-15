@@ -70,18 +70,17 @@ class BankController extends Controller
                 'norek_bank'        => 'required',
                 'atasnama_bank'     => 'required',
             ], [
-                'code_bank.required'        => 'Kode bank wajib diisi.',
-                'nama_bank.required'        => 'Nama bank wajib diisi.',
-                'norek_bank.required'       => 'Nomor rekening bank wajib diisi.',
-                // 'norek_bank.unique'         => 'Nomor rekening bank sudah digunakan.',
-                'atasnama_bank.required'    => 'Atas Nama bank wajib diisi.',
+                'code_bank.required'        => 'Kode bank harus diisi.',
+                'nama_bank.required'        => 'Nama bank harus diisi.',
+                'norek_bank.required'       => 'Nomor rekening bank harus diisi.',
+                'atasnama_bank.required'    => 'Atas Nama bank harus diisi.',
             ]);
 
             MBank::create($validatedData);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Bank berhasil ditambahkan.'
+                'message' => 'Data Bank berhasil ditambahkan.'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -91,7 +90,7 @@ class BankController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Terjadi kesalahan saat menyimpan Bank.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -158,7 +157,7 @@ class BankController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Terjadi kesalahan saat memperbarui data bank.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

@@ -61,13 +61,13 @@ class StoreController extends Controller
                 'phone' => 'required|max:15',
                 'email' => 'required|email',
             ], [
-                'code_store.required' => 'Store code is required.',
-                'code_store.unique'   => 'Store code must be unique.',
-                'nama_store.required' => 'Store name is required.',
-                'address.required'    => 'Store address is required.',
-                'phone.required'      => 'Phone number is required.',
-                'email.required'      => 'Email address is required.',
-                'email.email'         => 'Invalid email format.',
+                'code_store.required' => 'Kode Toko harus diisi.',
+                'code_store.unique'   => 'Kode Toko telah digunakan.',
+                'nama_store.required' => 'Nama Toko harus diisi.',
+                'address.required'    => 'Alamat Toko harus diisi.',
+                'phone.required'      => 'No HP harus diisi.',
+                'email.required'      => 'Alamat Email harus diisi.',
+                'email.email'         => 'Format Email Toko salah.',
             ]);
 
             $store = MStore::create([
@@ -83,13 +83,13 @@ class StoreController extends Controller
             if ($store) {
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Store has been successfully added.'
+                    'message' => 'Toko telah berhasil ditambahkan.'
                 ], 200);
             }
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to save store data.'
+                'message' => 'Gagal menyimpan data Toko.'
             ], 500);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -102,13 +102,13 @@ class StoreController extends Controller
 
             return response()->json([
                 'status' => 'validation_error',
-                'message' => 'Invalid input.',
+                'message' => 'Gagal menambahkan data.',
                 'errors' => $messages
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'A system error occurred.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -130,12 +130,12 @@ class StoreController extends Controller
                 'phone'      => 'required|max:15',
                 'email'      => 'required|email',
             ], [
-                'code_store.required' => 'Store code is required.',
-                'nama_store.required' => 'Store name is required.',
-                'address.required'    => 'Store address is required.',
-                'phone.required'      => 'Phone number is required.',
-                'email.required'      => 'Email address is required.',
-                'email.email'         => 'Invalid email format.',
+                'code_store.required' => 'Kode Toko harus diisi.',
+                'nama_store.required' => 'Nama Toko harus diisi.',
+                'address.required'    => 'Alamat Toko harus diisi.',
+                'phone.required'      => 'No HP harus diisi.',
+                'email.required'      => 'Alamat Email harus diisi.',
+                'email.email'         => 'Format Email Toko salah.',
             ]);
 
             $updated = MStore::whereId($id)->update([
@@ -150,13 +150,13 @@ class StoreController extends Controller
             if ($updated) {
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Store data has been successfully updated.'
+                    'message' => 'Data Toko telah berhasil diubah.'
                 ]);
             }
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to update store data.'
+                'message' => 'Gagal mengubah data toko.'
             ], 500);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -169,13 +169,13 @@ class StoreController extends Controller
 
             return response()->json([
                 'status' => 'validation_error',
-                'message' => 'Invalid input.',
+                'message' => 'Gagal menambahkan data.',
                 'errors' => $messages
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'A system error occurred.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -189,17 +189,17 @@ class StoreController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Store has been successfully deleted.'
+                'message' => 'Toko telah berhasil dihapus.'
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Store not found.'
+                'message' => 'Toko tidak ditemukan.'
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to delete store data.',
+                'message' => 'Gagal menghapus data toko.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

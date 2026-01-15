@@ -15,7 +15,7 @@
                 <thead>
                     <tr>
                         <th>No</th>
-                        <th>Code</th>
+                        <th>Kode</th>
                         <th>Nama</th>
                         <th>Nama PIC</th>
                         <th>No HP PIC</th>

@@ -75,22 +75,22 @@ class SupplierController extends Controller
                 'phone_pic'     => 'required|max:13',
                 'email_pic'     => 'required|email',
             ], [
-                'code_spl.required'     => 'Supplier code is required.',
-                'code_spl.unique'       => 'Supplier code has already been used.',
-                'nama_spl.required'     => 'Supplier name is required.',
-                'npwp_spl.required'     => 'Tax number is required.',
-                'npwp_spl.max'          => 'Tax number cannot exceed 16 characters.',
-                'address_spl.required'  => 'Supplier address is required.',
-                'address_npwp.required' => 'Tax address is required.',
-                'phone.required'        => 'Phone number is required.',
-                'phone.max'             => 'Phone number cannot exceed 13 characters.',
-                'email.required'        => 'Email is required.',
-                'email.email'           => 'Invalid email format.',
-                'name_pic.required'     => 'PIC name is required.',
-                'phone_pic.required'    => 'PIC phone number is required.',
-                'phone_pic.max'         => 'PIC phone number cannot exceed 13 characters.',
-                'email_pic.required'    => 'PIC email is required.',
-                'email_pic.email'       => 'Invalid PIC email format.',
+                'code_spl.required'     => 'Kode Pemasok harus diisi.',
+                'code_spl.unique'       => 'Kode Pemasok telah digunakan.',
+                'nama_spl.required'     => 'Nama Pemasok harus diisi.',
+                'npwp_spl.required'     => 'Nomor Pajak harus diisi.',
+                'npwp_spl.max'          => 'Nomor Pajak tidak lebih dari 16 karakter.',
+                'address_spl.required'  => 'Alamat Pemasok harus diisi.',
+                'address_npwp.required' => 'Alamat Pajak harus diisi.',
+                'phone.required'        => 'No HP harus diisi.',
+                'phone.max'             => 'No HP tidak lebih dari 13 karakter.',
+                'email.required'        => 'Email harus diisi.',
+                'email.email'           => 'Format Email Pemasok salah.',
+                'name_pic.required'     => 'Nama PIC harus diisi.',
+                'phone_pic.required'    => 'HP PIC number harus diisi.',
+                'phone_pic.max'         => 'No HP PIC tidak lebih dari 13 karakter.',
+                'email_pic.required'    => 'Email PIC harus diisi.',
+                'email_pic.email'       => 'Format Email PIC salah.',
             ]);
 
             MSupplier::create([
@@ -109,18 +109,18 @@ class SupplierController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Supplier has been successfully added.'
+                'message' => 'Pemasok telah berhasil ditambahkan.'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'status' => 'fail',
-                'message' => 'Invalid input.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'An error occurred while saving supplier data.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -153,36 +153,36 @@ class SupplierController extends Controller
                 'phone_pic'     => 'required',
                 'email_pic'     => 'required|email',
             ], [
-                'code_spl.required'     => 'Supplier code is required.',
-                'nama_spl.required'     => 'Supplier name is required.',
-                'npwp_spl.required'     => 'Tax number is required.',
-                'address_spl.required'  => 'Supplier address is required.',
-                'address_npwp.required' => 'Tax address is required.',
-                'phone.required'        => 'Phone number is required.',
-                'email.required'        => 'Email is required.',
-                'email.email'           => 'Invalid email format.',
-                'name_pic.required'     => 'PIC name is required.',
-                'phone_pic.required'    => 'PIC phone number is required.',
-                'email_pic.required'    => 'PIC email is required.',
-                'email_pic.email'       => 'Invalid PIC email format.',
+                'code_spl.required'     => 'Kode Pemasok harus diisi.',
+                'nama_spl.required'     => 'Nama Pemasok harus diisi.',
+                'npwp_spl.required'     => 'Nomor Pajak harus diisi.',
+                'address_spl.required'  => 'Alamat Pemasok harus diisi.',
+                'address_npwp.required' => 'Alamat Pajak harus diisi.',
+                'phone.required'        => 'No HP harus diisi.',
+                'email.required'        => 'Email harus diisi.',
+                'email.email'           => 'Format Email Pemasok salah.',
+                'name_pic.required'     => 'Nama PIC harus diisi.',
+                'phone_pic.required'    => 'No HP PIC harus diisi.',
+                'email_pic.required'    => 'Email PIC harus diisi.',
+                'email_pic.email'       => 'Format Email PIC Salah.',
             ]);
 
             MSupplier::whereId($id)->update($validatedData);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Supplier data has been successfully updated.'
+                'message' => 'Pemasok data telah berhasil diubah.'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'status' => 'fail',
-                'message' => 'Invalid input.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'An error occurred while updating supplier data.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -199,17 +199,17 @@ class SupplierController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Supplier has been successfully deleted.'
+                'message' => 'Pemasok telah berhasil dihapus.'
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Supplier data not found.'
+                'message' => 'Pemasok tidak ditemukan.'
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'An error occurred while deleting supplier data.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

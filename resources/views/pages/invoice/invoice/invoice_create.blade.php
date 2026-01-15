@@ -66,7 +66,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Code</label>
+                <label for="exampleFormControlInput1">Kode</label>
                 <input class="form-control" id="exampleFormControlInput1" name="no_inv" type="text"
                     placeholder="Masukkan Invoice Number" required>
             </div>

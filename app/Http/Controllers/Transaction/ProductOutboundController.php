@@ -146,7 +146,7 @@ class ProductOutboundController extends Controller
     
             foreach ($doIds as $doId) {
     
-                // 🔹 DO DETAIL (SKU WAJIB)
+                // 🔹 DO DETAIL (SKU harus)
                 $doDetails = DB::table('tdo_detail')
                     ->where('id_do', $doId)
                     ->select('sku', 'qty')

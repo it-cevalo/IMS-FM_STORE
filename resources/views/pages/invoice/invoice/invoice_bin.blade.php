@@ -44,23 +44,23 @@
                                         </tr>
                                         <tr>
 
-                                                <th class="text-center align-middle text-wrap">Code</th>
+                                                <th class="text-center align-middle text-wrap">Kode</th>
                                                 <th class="text-center align-middle text-wrap">Nama</th>
 
                                                 <th class="text-center align-middle text-wrap">Tanggal</th>
-                                                <th class="text-center align-middle text-wrap">Code</th>
+                                                <th class="text-center align-middle text-wrap">Kode</th>
                                                 <th class="text-center align-middle text-wrap">Status</th>
                                                 <th class="text-center align-middle text-wrap">Reason</th>
 
                                                 
                                                 <th class="text-center align-middle text-wrap">Tanggal</th>
-                                                <th class="text-center align-middle text-wrap">Code</th>
+                                                <th class="text-center align-middle text-wrap">Kode</th>
                                                 <th class="text-center align-middle text-wrap">Status</th>
                                                 <th class="text-center align-middle text-wrap">Reason</th>
 
                                                 
                                                 <th class="text-center align-middle text-wrap">Tanggal</th>
-                                                <th class="text-center align-middle text-wrap">Code</th>
+                                                <th class="text-center align-middle text-wrap">Kode</th>
                                                 <th class="text-center align-middle text-wrap">Status</th>
                                                 <th class="text-center align-middle text-wrap">Reason</th>
 

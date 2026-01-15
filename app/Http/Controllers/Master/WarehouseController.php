@@ -69,12 +69,12 @@ class WarehouseController extends Controller
             ], [
                 'id_store.required' => 'Store must be selected.',
                 'id_store.exists'   => 'Selected store was not found.',
-                'code_wh.required'  => 'Warehouse code is required.',
+                'code_wh.required'  => 'Warehouse code harus diisi.',
                 'code_wh.unique'    => 'Warehouse code must be unique.',
-                'nama_wh.required'  => 'Warehouse name is required.',
-                'address.required'  => 'Address is required.',
-                'phone.required'    => 'Phone number is required.',
-                'email.required'    => 'Email address is required.',
+                'nama_wh.required'  => 'Warehouse name harus diisi.',
+                'address.required'  => 'Address harus diisi.',
+                'phone.required'    => 'Phone number harus diisi.',
+                'email.required'    => 'Email address harus diisi.',
                 'email.email'       => 'Invalid email format.',
             ]);
 
@@ -94,7 +94,7 @@ class WarehouseController extends Controller
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Warehouse has been successfully added.'
+                'message' => 'Warehouse telah berhasil ditambahkan.'
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -137,14 +137,14 @@ class WarehouseController extends Controller
                 'phone'    => 'required|max:15',
                 'email'    => 'required|email',
             ], [
-                'id_store.required' => 'Store must be selected.',
-                'id_store.exists'   => 'Selected store was not found.',
-                'code_wh.required'  => 'Warehouse code is required.',
-                'nama_wh.required'  => 'Warehouse name is required.',
-                'address.required'  => 'Address is required.',
-                'phone.required'    => 'Phone number is required.',
-                'email.required'    => 'Email address is required.',
-                'email.email'       => 'Invalid email format.',
+                'id_store.required' => 'Toko harus diisi.',
+                'id_store.exists'   => 'Pilihan Toko tidak ditemukan.',
+                'code_wh.required'  => 'Kode Gudang harus diisi.',
+                'nama_wh.required'  => 'Nama Gudang harus diisi.',
+                'address.required'  => 'Alamat harus diisi.',
+                'phone.required'    => 'No HP harus diisi.',
+                'email.required'    => 'Alamat Email harus diisi.',
+                'email.email'       => 'Format Email Gudang salah.',
             ]);
 
             $store = MStore::findOrFail($request->id_store);
@@ -162,7 +162,7 @@ class WarehouseController extends Controller
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Warehouse data has been successfully updated.'
+                'message' => 'Data Gudang telah berhasil diubah.'
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -175,13 +175,13 @@ class WarehouseController extends Controller
 
             return response()->json([
                 'status'  => 'validation_error',
-                'message' => 'Invalid input.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'errors'  => $messages
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Something went wrong while updating data.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug'   => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -195,17 +195,17 @@ class WarehouseController extends Controller
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Warehouse has been successfully deleted.'
+                'message' => 'Gudang telah berhasil dihapus.'
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Warehouse not found.'
+                'message' => 'Gudang tidak ditemukan.'
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Something went wrong while deleting data.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug'   => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

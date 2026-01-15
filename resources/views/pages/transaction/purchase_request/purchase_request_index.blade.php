@@ -27,7 +27,7 @@
             <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                 <thead>
                     <tr>
-                        <th class="text-center">Code</th>
+                        <th class="text-center">Kode</th>
                         <th class="text-center">Kode Gudang</th>
                         <th class="text-center">Nama Gudang</th>
                         <th class="text-center">Qty Request</th>

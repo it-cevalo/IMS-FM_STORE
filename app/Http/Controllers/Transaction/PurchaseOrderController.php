@@ -224,7 +224,7 @@ class PurchaseOrderController extends Controller
 
             if ($request->po_type === 'tambahan') {
                 if (!$request->base_po_id) {
-                    throw new \Exception('PO asal wajib dipilih');
+                    throw new \Exception('PO asal harus dipilih');
                 }
 
                 $basePo = Tpo::findOrFail($request->base_po_id);
@@ -553,7 +553,7 @@ class PurchaseOrderController extends Controller
     {
         $po = Tpo::findOrFail($id);
 
-        // safety check (backend tetap wajib)
+        // safety check (backend tetap harus)
         if (in_array($po->status_po, [2, 3])) {
             return response()->json([
                 'success' => false,
@@ -917,7 +917,7 @@ class PurchaseOrderController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | MODE AKTIF (WAJIB PRODUKSI)
+        | MODE AKTIF (harus PRODUKSI)
         |--------------------------------------------------------------------------
         | Dibuka di NEW TAB sebagai PDF
         | Print dilakukan dari PDF viewer

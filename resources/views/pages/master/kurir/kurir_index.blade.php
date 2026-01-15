@@ -21,7 +21,7 @@
                 <thead>
                     <tr>
                         <th class="text-center align-middle">No</th>
-                        <th class="text-center align-middle">Code</th>
+                        <th class="text-center align-middle">Kode</th>
                         <th class="text-center align-middle">Nama</th>
                         <th class="text-center align-middle">Aksi</th>
                     </tr>

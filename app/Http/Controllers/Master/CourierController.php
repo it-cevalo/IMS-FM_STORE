@@ -54,9 +54,9 @@ class CourierController extends Controller
                 'code_courier' => 'required|unique:m_couriers,code_courier',
                 'nama_courier' => 'required',
             ], [
-                'code_courier.required' => 'Courier code is required.',
-                'nama_courier.required' => 'Courier name is required.',
-                'code_courier.unique' => 'This courier code has already been used.',
+                'code_courier.required' => 'Kode kurir harus diisi.',
+                'nama_courier.required' => 'Nama kurir harus diisi.',
+                'code_courier.unique'   => 'Kode kurir telah digunakan.',
             ]);
 
             $courier = MCourier::create([
@@ -69,13 +69,13 @@ class CourierController extends Controller
             if ($courier) {
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Courier has been successfully added.'
+                    'message' => 'Data kurir berhasil ditambahkan.'
                 ]);
             }
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to save courier data.'
+                'message' => 'Gagal menyimpan data kurir.'
             ], 500);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -86,7 +86,7 @@ class CourierController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'A system error occurred. Please try again later.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -105,8 +105,8 @@ class CourierController extends Controller
                 'code_courier' => 'required',
                 'nama_courier' => 'required',
             ], [
-                'code_courier.required' => 'Courier code is required.',
-                'nama_courier.required' => 'Courier name is required.',
+                'code_courier.required' => 'Kode kurir harus diisi.',
+                'nama_courier.required' => 'Nama kurir harus diisi.',
             ]);
 
             $updated = MCourier::whereId($id)->update([
@@ -118,13 +118,13 @@ class CourierController extends Controller
             if ($updated) {
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Courier information has been successfully updated.'
+                    'message' => 'Data kurir berhasil diperbarui.'
                 ]);
             }
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to update courier data.'
+                'message' => 'Gagal mengubah data kurir.'
             ], 500);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -135,7 +135,7 @@ class CourierController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'A system error occurred. Please try again later.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -149,12 +149,12 @@ class CourierController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Courier has been successfully deleted.'
+                'message' => 'Data kurir berhasil dihapus.'
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to delete courier data. Please try again later.',
+                'message' => 'Gagal menghapus Data kurir. Silahkan coba lagi nanti.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

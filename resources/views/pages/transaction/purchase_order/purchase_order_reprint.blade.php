@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">Request Reprint QR</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Ajukan Ulang Cetak QR</h6>
         <a href="{{ route('purchase_order.index') }}" class="btn btn-secondary btn-sm">Kembali</a>
     </div>
     <div class="card-body">
@@ -95,7 +95,7 @@ function bulkAction(poNo, action) {
     }
 
     Swal.fire({
-        title: (action === 'approve' ? 'Approving...' : 'Rejecting...'),
+        title: (action === 'approve' ? 'Proses Persetujuan...' : 'Proses Menolak...'),
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();

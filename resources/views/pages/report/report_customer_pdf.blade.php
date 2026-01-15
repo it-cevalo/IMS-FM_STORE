@@ -61,14 +61,14 @@
                     <thead>
                         <tr>
                             <th class="text-center align-middle" rowspan="2">No</th>
-                            <th class="text-center align-middle" rowspan="2">Code</th>
+                            <th class="text-center align-middle" rowspan="2">Kode</th>
                             <th class="text-center align-middle" rowspan="2">Nama</th>
                             <th class="text-center align-middle" rowspan="2">Alamat Pengiriman</th>
                             <th class="text-center align-middle" colspan="2">NPWP</th>
                             <th class="text-center align-middle" colspan="2">Tanggal</th>
                         </tr>
                         <tr>
-                            <th class="text-center align-middle">Code</th>
+                            <th class="text-center align-middle">Kode</th>
                             <th class="text-center align-middle">Alamat</th>
 
 

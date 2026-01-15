@@ -66,25 +66,24 @@ class CustomerController extends Controller
             $validatedData = $request->validate([
                 'code_cust'    => 'required|unique:m_customers,code_cust',
                 'nama_cust'    => 'required',
-                'npwp_cust'    => 'required|max:16',
+                'npwp_cust'    => 'max:16',
                 'type_cust'    => 'required',
                 'address_cust' => 'required',
-                'address_npwp' => 'required',
                 'phone'        => 'required|max:13',
                 'email'        => 'required|email'
             ], [
-                'code_cust.required'    => 'Customer code is required.',
-                'code_cust.unique'      => 'Customer code has already been used.',
-                'nama_cust.required'    => 'Customer name is required.',
-                'npwp_cust.required'    => 'Tax number is required.',
-                'npwp_cust.max'         => 'Tax number cannot exceed 16 characters.',
-                'type_cust.required'    => 'Customer type is required.',
-                'address_cust.required' => 'Customer address is required.',
-                'address_npwp.required' => 'Tax address is required.',
-                'phone.required'        => 'Phone number is required.',
-                'phone.max'             => 'Phone number cannot exceed 13 characters.',
-                'email.required'        => 'Email is required.',
-                'email.email'           => 'Invalid email format.',
+                'code_cust.required'    => 'Kode Pelanggan harus diisi.',
+                'code_cust.unique'      => 'Kode Pelanggan telah digunakan.',
+                'nama_cust.required'    => 'Nama Pelanggan harus diisi.',
+                // 'npwp_cust.required'    => 'NPWP harus diisi.',
+                'npwp_cust.max'         => 'NPWP Pelanggan Tidak boleh lebih dari 16 karakter.',
+                'type_cust.required'    => 'Tipe pelanggan harus diisi.',
+                'address_cust.required' => 'Alamat pelanggan harus diisi.',
+                // 'address_npwp.required' => 'Tax address harus diisi.',
+                'phone.required'        => 'No HP Pelanggan harus diisi.',
+                'phone.max'             => 'No HP Pelanggan tidak boleh lebih dari 13 karakter.',
+                'email.required'        => 'Email Pelanggan harus diisi.',
+                'email.email'           => 'Format email Pelanggan salah.',
             ]);
 
             $validatedData['tgl_cust'] = now();
@@ -93,18 +92,18 @@ class CustomerController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Customer has been successfully added.'
+                'message' => 'Data Pelanggan telah berhasil ditambahkan.'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'status' => 'fail',
-                'message' => 'Invalid input.',
+                'message' => 'Gagal menyimpan data pelanggan.',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'An error occurred while saving the customer.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -141,32 +140,32 @@ class CustomerController extends Controller
                 'phone'        => 'required',
                 'email'        => 'required|email'
             ], [
-                'code_cust.required'    => 'Customer code is required.',
-                'nama_cust.required'    => 'Customer name is required.',
-                'npwp_cust.required'    => 'Tax number is required.',
-                'type_cust.required'    => 'Customer type is required.',
-                'address_cust.required' => 'Customer address is required.',
-                'phone.required'        => 'Phone number is required.',
-                'email.required'        => 'Email is required.',
-                'email.email'           => 'Invalid email format.',
+                'code_cust.required'    => 'Kode Pelanggan harus diisi.',
+                'nama_cust.required'    => 'Nama Pelanggan harus diisi.',
+                'npwp_cust.required'    => 'NPWP Pelanggan harus diisi.',
+                'type_cust.required'    => 'Tipe pelanggan harus diisi.',
+                'address_cust.required' => 'Alamat Pelanggan harus diisi.',
+                'phone.required'        => 'No HP Pelanggan harus diisi.',
+                'email.required'        => 'Email Pelangga harus diisi.',
+                'email.email'           => 'Format email Pelanggan salah.',
             ]);
 
             MCustomer::whereId($id)->update($validated);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Customer data has been successfully updated.'
+                'message' => 'Data pelanggan berhasil diperbarui.'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'status' => 'fail',
-                'message' => 'Invalid input.',
+                'message' => 'Gagal merubah data pelanggan.',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'An error occurred while updating the customer data.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -184,17 +183,17 @@ class CustomerController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Customer has been successfully deleted.'
+                'message' => 'Data pelanggan berhasil dihapus.'
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Customer data not found.'
+                'message' => 'Gagal menghapus Data pelanggan.'
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'An error occurred while deleting the customer.',
+                'message' => 'Gagal menghapus Data pelanggan. Silahkan coba lagi nanti.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
