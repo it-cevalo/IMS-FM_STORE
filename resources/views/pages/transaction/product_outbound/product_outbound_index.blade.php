@@ -13,7 +13,7 @@
             <thead class="bg-light">
                 <tr>
                     <th>Tanggal Masuk</th>
-                    <th class="text-center">Jumlah Pengiriman Barang</th>
+                    <th class="text-center">Jumlah Nomor Pengiriman Barang</th>
                     <th class="text-center">Total Barang</th>
                     <th class="text-center">Aksi</th>
                 </tr>

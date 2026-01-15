@@ -13,7 +13,7 @@
             <thead class="bg-light">
                 <tr>
                     <th>Tanggal Masuk</th>
-                    <th class="text-center">Jumlah Penerimaan Barang</th>
+                    <th class="text-center">Jumlah Nomor Pemesanan Barang</th>
                     <th class="text-center">Jumlah Retur (Barang) </th>
                     {{-- <th class="text-center">Total Barang</th> --}}
                     <th class="text-center">Aksi</th>

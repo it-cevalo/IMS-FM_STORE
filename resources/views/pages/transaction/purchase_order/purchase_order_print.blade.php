@@ -74,12 +74,12 @@
                         <td>Status</td>
                         <td>:
                             @switch($po->status_po)
-                                @case('0') Created @break
-                                @case('1') Progress @break
-                                @case('2') Partial @break
-                                @case('3') Complete @break
-                                @case('4') Confirmed @break
-                                @case('5') Canceled @break
+                                @case('0') Dibuat @break
+                                @case('1') Proses @break
+                                @case('2') Berkala @break
+                                @case('3') Lengkap @break
+                                @case('4') Terkonfirmasi @break
+                                @case('5') Dibatalkan @break
                                 @default Unknown
                             @endswitch
                         </td>
@@ -121,7 +121,7 @@
                 ( __________________ )
             </td>
             <td width="33%">
-                Supplier<br><br><br>
+                Pemasok<br><br><br>
                 ( __________________ )
             </td>
         </tr>

@@ -33,60 +33,79 @@ class DashboardController extends Controller
         return view('pages.dashboard',compact('total_po','total_do','total_inb','total_outb'));
     }
     
-    public function chartInOut(Request $request)
+    public function chartFastSlow(Request $request)
     {
-        $month = (int) $request->month;
-        $year  = (int) $request->year;
-
-        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
-
-        // init array tanggal 1 - akhir bulan
-        $labels = [];
-        $inbound = array_fill(1, $daysInMonth, 0);
-        $outbound = array_fill(1, $daysInMonth, 0);
-
-        for ($i = 1; $i <= $daysInMonth; $i++) {
-            $labels[] = (string) $i;
+        $mode  = $request->mode; // monthly | yearly
+        $month = $request->month;
+        $year  = $request->year;
+    
+        /* =============================
+           FILTER TANGGAL
+        ============================== */
+        if ($mode === 'monthly') {
+            $dateFilterInbound  = "YEAR(tpi.received_at) = $year AND MONTH(tpi.received_at) = $month";
+            $dateFilterOutbound = "YEAR(tpo.out_at) = $year AND MONTH(tpo.out_at) = $month";
+        } else {
+            $dateFilterInbound  = "YEAR(tpi.received_at) = $year";
+            $dateFilterOutbound = "YEAR(tpo.out_at) = $year";
         }
-
-        // ================= INBOUND =================
-        $inData = TProductInbound::select(
-                DB::raw('DAY(received_at) as day'),
-                DB::raw('SUM(qty) as total')
-            )
-            ->whereMonth('received_at', $month)
-            ->whereYear('received_at', $year)
-            ->groupBy(DB::raw('DAY(received_at)'))
-            ->get();
-
-        foreach ($inData as $row) {
-            $inbound[(int)$row->day] = (int)$row->total;
-        }
-
-        // ================= OUTBOUND =================
-        $outData = TProductOutbound::select(
-                DB::raw('DAY(out_at) as day'),
-                DB::raw('SUM(qty) as total')
-            )
-            ->whereMonth('out_at', $month)
-            ->whereYear('out_at', $year)
-            ->whereNotNull('sync_by')
-            ->where('sync_by', '!=', '')
-            ->groupBy(DB::raw('DAY(out_at)'))
-            ->get();
-
-        foreach ($outData as $row) {
-            $outbound[(int)$row->day] = (int)$row->total;
-        }
-
+    
+        /* =============================
+           FAST MOVING (OUT TERBESAR)
+        ============================== */
+        $fast = DB::select("
+            SELECT 
+                mp.nama_barang,
+                IFNULL(SUM(tpi.qty),0) AS inbound,
+                IFNULL(SUM(tpo.qty),0) AS outbound
+            FROM mproduct mp
+            LEFT JOIN tproduct_inbound tpi 
+                ON mp.id = tpi.id_product
+                AND $dateFilterInbound
+            LEFT JOIN tproduct_outbound tpo 
+                ON mp.id = tpo.id_product
+                AND $dateFilterOutbound
+                AND tpo.sync_by IS NOT NULL
+                AND tpo.sync_by != ''
+            GROUP BY mp.id
+            HAVING outbound > 0
+            ORDER BY outbound DESC
+            LIMIT 10
+        ");
+    
+        /* =============================
+           SLOW MOVING (OUT TERKECIL)
+        ============================== */
+        $slow = DB::select("
+            SELECT 
+                mp.nama_barang,
+                IFNULL(SUM(tpi.qty),0) AS inbound,
+                IFNULL(SUM(tpo.qty),0) AS outbound
+            FROM mproduct mp
+            LEFT JOIN tproduct_inbound tpi 
+                ON mp.id = tpi.id_product
+                AND $dateFilterInbound
+            LEFT JOIN tproduct_outbound tpo 
+                ON mp.id = tpo.id_product
+                AND $dateFilterOutbound
+                AND tpo.sync_by IS NOT NULL
+                AND tpo.sync_by != ''
+            GROUP BY mp.id
+            HAVING inbound > 0
+            ORDER BY outbound ASC
+            LIMIT 10
+        ");
+    
         return response()->json([
-            'labels'   => $labels,
-            'inbound'  => array_values($inbound),
-            'outbound' => array_values($outbound),
-            'summary'  => [
-                'inbound'  => array_sum($inbound),
-                'outbound' => array_sum($outbound),
-                'balance'  => array_sum($inbound) - array_sum($outbound)
+            'fast' => [
+                'labels'   => array_column($fast, 'nama_barang'),
+                'inbound'  => array_map('intval', array_column($fast, 'inbound')),
+                'outbound' => array_map('intval', array_column($fast, 'outbound')),
+            ],
+            'slow' => [
+                'labels'   => array_column($slow, 'nama_barang'),
+                'inbound'  => array_map('intval', array_column($slow, 'inbound')),
+                'outbound' => array_map('intval', array_column($slow, 'outbound')),
             ]
         ]);
     }

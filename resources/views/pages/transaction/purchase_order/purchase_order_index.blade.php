@@ -66,17 +66,17 @@
                     <label>Status PO</label>
                     <select id="filter_status" class="form-control">
                         <option value="">-- All Status --</option>
-                        <option value="0">Created</option>
-                        <option value="1">Progress</option>
-                        <option value="2">Partial</option>
-                        <option value="3">Complete</option>
-                        <option value="4">Confirmed</option>
+                        <option value="0">Dibuat</option>
+                        <option value="1">Proses</option>
+                        <option value="2">Berkala</option>
+                        <option value="3">Lengkap</option>
+                        <option value="4">Terkonfirmasi</option>
                     </select>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="btnApplyFilter">Go</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary" id="btnApplyFilter">Cek</button>
             </div>
         </div>
     </div>
@@ -135,19 +135,19 @@ $(document).ready(function() {
                     let statusText = '', badgeClass = '';
                     if (!data) {
                         switch(row.flag_approve) {
-                            case 'N': statusText='Waiting Approval'; badgeClass='badge badge-secondary'; break;
-                            case 'Y': statusText='Approved'; badgeClass='badge badge-success'; break;
-                            case 'C': statusText='Confirmed'; badgeClass='badge badge-light'; break;
+                            case 'N': statusText='Menunggu Persetujuan'; badgeClass='badge badge-secondary'; break;
+                            case 'Y': statusText='Disetujui'; badgeClass='badge badge-success'; break;
+                            case 'C': statusText='Terkonfirmasi'; badgeClass='badge badge-light'; break;
                             default: statusText='-'; badgeClass='badge badge-light';
                         }
                     } else {
                         switch(data.toString()) {
-                            case '0': statusText='Created'; badgeClass='badge badge-secondary'; break;
-                            case '1': statusText='Progress'; badgeClass='badge badge-warning'; break;
-                            case '2': statusText='Partial'; badgeClass='badge badge-info'; break;
-                            case '3': statusText='Complete'; badgeClass='badge badge-success'; break;
-                            case '4': statusText='Confirmed'; badgeClass='badge badge-primary'; break;
-                            case '5': statusText='Canceled'; badgeClass='badge badge-danger'; break;
+                            case '0': statusText='Dibuat'; badgeClass='badge badge-secondary'; break;
+                            case '1': statusText='Proses'; badgeClass='badge badge-warning'; break;
+                            case '2': statusText='Berkala'; badgeClass='badge badge-info'; break;
+                            case '3': statusText='Lengkap'; badgeClass='badge badge-success'; break;
+                            case '4': statusText='Terkonfirmasi'; badgeClass='badge badge-primary'; break;
+                            case '5': statusText='Dibatalkan'; badgeClass='badge badge-danger'; break;
                             default: statusText=data; badgeClass='badge badge-light';
                         }
                     }
@@ -179,8 +179,8 @@ $(document).ready(function() {
             e.preventDefault();
             let btn = $(this), id = btn.data('id'), noPo = btn.data('no-po');
             Swal.fire({
-                title:'Yakin ingin Cancel?',
-                html:`<strong>PO Number:</strong> ${noPo}`,
+                title:'Yakin ingin dibatalkan?',
+                html:`<strong>Number:</strong> ${noPo}`,
                 icon:'warning', showCancelButton:true,
                 confirmButtonText:'Ya, Cancel', cancelButtonText:'Batal', reverseButtons:true
             }).then(result=>{
@@ -190,7 +190,7 @@ $(document).ready(function() {
                         type:'DELETE',
                         data:{_token:'{{ csrf_token() }}'},
                         success:function(res){ Swal.fire({icon:'success',title:'Berhasil',text:res.message}); purchaseOrderTable.ajax.reload(null,false); },
-                        error:function(xhr){ Swal.fire({icon:'error',title:'Gagal',text:xhr.responseJSON?.message||'Cancel gagal'}); }
+                        error:function(xhr){ Swal.fire({icon:'error',title:'Gagal',text:xhr.responseJSON?.message||'Gagal dibatalkan'}); }
                     });
                 }
             });
@@ -213,14 +213,13 @@ $(document).ready(function() {
     // ================= Reprint =================
     // Tombol Reprint
     $("#btnReprintRequest").on("click", function(){
-        alert('ucup'); // test
         // Pastikan modal Bootstrap 4 sudah tersedia
-        if (typeof $.fn.modal === 'function') {
+        // if (typeof $.fn.modal === 'function') {
             $("#modalReprintList").modal('show');
             loadReprintRequest();
-        } else {
-            alert("Bootstrap Modal tidak tersedia. Pastikan bootstrap.js sudah dimuat di layout.");
-        }
+        // } else {
+        //     alert("Bootstrap Modal tidak tersedia. Pastikan bootstrap.js sudah dimuat di layout.");
+        // }
     });
 
     // Fungsi load reprint request
@@ -238,8 +237,8 @@ $(document).ready(function() {
                     <td>${r.sequence_no}</td>
                     <td>${r.reason}</td>
                     <td>
-                        <button class="btn btn-success btn-sm" onclick="approveReq(${r.id})">Approve</button>
-                        <button class="btn btn-danger btn-sm" onclick="rejectReq(${r.id})">Reject</button>
+                        <button class="btn btn-success btn-sm" onclick="approveReq(${r.id})">Setujui</button>
+                        <button class="btn btn-danger btn-sm" onclick="rejectReq(${r.id})">Tolak</button>
                     </td>
                 </tr>`;
             });

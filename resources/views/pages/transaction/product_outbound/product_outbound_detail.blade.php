@@ -27,12 +27,12 @@
 
                 @if(!$allDone)
                     <button class="btn btn-success" id="btnConfirm">
-                        Confirm Selected
+                        Konfirmasi
                     </button>
                 @endif
 
                 <a href="{{ route('product_outbound.index') }}" class="btn btn-dark">
-                    Back
+                    Kembali
                 </a>
             </div>
         </div>
@@ -120,7 +120,7 @@
             </div>
             @empty
             <div class="alert alert-warning">
-                Tidak ada data outbound pada tanggal ini
+                Tidak ada data barang keluar pada tanggal ini
             </div>
             @endforelse
 

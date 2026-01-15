@@ -123,24 +123,24 @@ function loadDeliveryOrderData() {
 
                     // Jika belum approve → kondisi lama
                     if (data !== 'Y') {
-                        return `<span class="badge badge-secondary">Created</span>`;
+                        return `<span class="badge badge-secondary">Dibuat</span>`;
                     }
 
                     // Flag approve Y
                     if (!row.status_do) {
-                        return `<span class="badge badge-success">Approved</span>`;
+                        return `<span class="badge badge-success">Disetujui</span>`;
                     }
 
                     if (row.status_do == 2) {
-                        return `<span class="badge badge-warning">Partial</span>`;
+                        return `<span class="badge badge-warning">Berkala</span>`;
                     }
 
                     if (row.status_do == 3) {
-                        return `<span class="badge badge-primary">Complete</span>`;
+                        return `<span class="badge badge-primary">Lengkap</span>`;
                     }
 
                     // fallback safety
-                    return `<span class="badge badge-success">Approved</span>`;
+                    return `<span class="badge badge-success">Disetujui</span>`;
                 }
             },
             { 

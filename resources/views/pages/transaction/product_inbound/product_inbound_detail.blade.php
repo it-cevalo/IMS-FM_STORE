@@ -34,10 +34,10 @@
             </div>
             <div class="col-md-8 text-right">
                 <button class="btn btn-success" id="btnConfirm">
-                    Confirm Selected
+                    Konfirmasi
                 </button>
                 <a href="{{ route('product_inbound.index') }}" class="btn btn-dark">
-                    Back
+                    Kembali
                 </a>
             </div>
         </div>
@@ -45,7 +45,7 @@
         <div class="alert alert-success d-flex justify-content-between align-items-center">
             <div>
                 <i class="fa fa-check-circle mr-2"></i>
-                <b>Semua barang masuk pada tanggal ini sudah masuk  gudang.</b>
+                <b>Semua barang masuk pada tanggal ini sudah masuk gudang.</b>
             </div>
             <a href="{{ route('product_inbound.index') }}" class="btn btn-dark btn-sm">
                 Back
@@ -137,7 +137,7 @@
             </div>
             @empty
             <div class="alert alert-warning">
-                Tidak ada data masuk pada tanggal ini
+                Tidak ada data barang masuk pada tanggal ini
             </div>
             @endforelse
 
@@ -200,7 +200,7 @@ $('#btnConfirm').click(function () {
 
             // 🔄 LOADING
             Swal.fire({
-                title: 'Processing Inbound...',
+                title: 'Processing Memasukkan...',
                 text: 'Mohon tunggu, sedang memproses data',
                 allowOutsideClick: false,
                 didOpen: () => {

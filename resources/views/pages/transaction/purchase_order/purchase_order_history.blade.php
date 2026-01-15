@@ -20,7 +20,7 @@
                                 </form>
                             </div> --}}
                             <a href="{{route('purchase_order.index')}}" class="btn btn-primary">                                        
-                                <i class="fa fa-arrow-left"> Go Kembali</i>
+                                <i class="fa fa-arrow-left"> Kembali</i>
                             </a>
                         </div>
                         <div class="card-body">
