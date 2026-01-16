@@ -568,7 +568,7 @@ class PurchaseOrderController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'PO berhasil dibatalkan'
+            'message' => 'Pemesanan Barang berhasil dibatalkan'
         ]);
     }
 

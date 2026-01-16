@@ -283,7 +283,7 @@ $(document).ready(function() {
                         Swal.fire({
                             icon: 'success',
                             title: 'Berhasil',
-                            text: res.message || 'PO berhasil dikonfirmasi'
+                            text: res.message || 'Pemesanan Barang berhasil dikonfirmasi'
                         });
 
                         $('#purchaseOrderTable')
