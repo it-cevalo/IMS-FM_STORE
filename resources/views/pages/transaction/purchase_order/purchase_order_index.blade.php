@@ -14,7 +14,7 @@
             <i class="fa fa-plus"></i> Tambah
         </a>
         <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#filterModal">
-            <i class="fa fa-filter"></i> Segarkan
+            <i class="fa fa-filter"></i> Saring
         </button>
         <button class="btn btn-secondary btn-sm" id="btnRefresh">
             <i class="fa fa-sync"></i> Segarkan

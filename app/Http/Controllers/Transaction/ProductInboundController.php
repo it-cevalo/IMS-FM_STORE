@@ -330,7 +330,14 @@ class ProductInboundController extends Controller
                         'updated_at' => now()
                     ]);
             }
-
+    
+            DB::table('tproduct_inbound')
+            ->whereIn('id', $request->items)
+            ->update([
+                'sync_at' => now(),
+                'sync_by' => Auth::user()->id,
+            ]);
+            
             DB::commit();
 
             return response()->json([

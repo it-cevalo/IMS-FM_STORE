@@ -134,7 +134,7 @@ class ProductOutboundController extends Controller
                 ->whereIn('id', $request->items)
                 ->update([
                     'sync_at' => now(),
-                    'sync_by' => Auth::user()->username,
+                    'sync_by' => Auth::user()->id,
                 ]);
     
             /**
