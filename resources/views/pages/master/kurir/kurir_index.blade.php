@@ -39,6 +39,9 @@ function loadCourierData() {
         serverSide: true,
         destroy: true,
         ajax: '{{ route('couriers.data') }}',
+        language: {
+            url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json"
+        },
         columns: [
             { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: "text-center" },
             { data: 'code_courier', name: 'code_courier' },

@@ -57,6 +57,9 @@ $(document).ready(function () {
             processing: true,
             serverSide: true,
             ajax: '{{ route('purchase_request.getData') }}',
+            language: {
+                url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json"
+            },
             columns: [
                 { data: 'code_pr', name: 'code_pr' },
                 { data: 'code_wh', name: 'code_wh' },

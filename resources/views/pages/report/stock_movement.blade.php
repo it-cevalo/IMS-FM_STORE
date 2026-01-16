@@ -122,6 +122,9 @@ function loadTable() {
                 d.movement_type = $('select[name=movement_type]').val();
             }
         },
+        language: {
+            url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json"
+        },
         columns: [
             { data: 'DT_RowIndex', orderable: false, searchable: false },
             { data: 'sku' },

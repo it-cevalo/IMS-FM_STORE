@@ -42,6 +42,9 @@ function loadInboundTable() {
             url: "{{ route('product_inbound.datatable') }}",
             type: "GET"
         },
+        language: {
+            url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json"
+        },
         columns: [
             {
                 data: 'tgl_inbound',

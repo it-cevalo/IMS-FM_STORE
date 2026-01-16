@@ -113,6 +113,9 @@
             serverSide: true,
             destroy: true,
             ajax: '{{ route('product_transfer.getData') }}',
+            language: {
+                url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json"
+            },
             columns: [
                 { data: 'SKU', name: 'SKU' },
                 { data: 'nama_barang', name: 'nama_barang' },

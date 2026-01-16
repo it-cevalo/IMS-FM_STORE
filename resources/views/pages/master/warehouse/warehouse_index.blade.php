@@ -43,6 +43,9 @@ function loadWarehouseData() {
         serverSide: true,
         destroy: true,
         ajax: '{{ route('warehouses.data') }}',
+        language: {
+            url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json"
+        },
         columns: [
             { data: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
             { data: 'store_name', name: 'store_name' },

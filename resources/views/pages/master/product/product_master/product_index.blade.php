@@ -70,6 +70,9 @@
             serverSide: true,
             destroy: true,
             ajax: '{{ route('product.data') }}',
+            language: {
+                url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json"
+            },
             columns: [
                 { data: 'DT_RowIndex', orderable: false },
                 { data: 'sku', name: 'sku' },

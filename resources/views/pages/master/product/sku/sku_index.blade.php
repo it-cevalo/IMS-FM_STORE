@@ -76,6 +76,9 @@
             serverSide: true,
             destroy: true,
             ajax: '{{ route('sku.data') }}',
+            language: {
+                url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json"
+            },
             columns: [
                 { data: 'DT_RowIndex', orderable: false, searchable: false, className: "text-center" },
                 { data: 'kode', name: 'kode' },

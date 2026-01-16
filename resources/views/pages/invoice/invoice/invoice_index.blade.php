@@ -63,6 +63,9 @@
             processing: true,
             serverSide: true,
             ajax: '{{ route('invoice.getdata') }}',
+            language: {
+                url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json"
+            },
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'code_cust', name: 'code_cust' },

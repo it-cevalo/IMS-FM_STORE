@@ -37,6 +37,9 @@
             serverSide: true,
             destroy: true, // penting agar bisa re-init jika perlu
             ajax: '{{ route('bank.data') }}',
+            language: {
+                url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json"
+            },
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'code_bank', name: 'code_bank' },

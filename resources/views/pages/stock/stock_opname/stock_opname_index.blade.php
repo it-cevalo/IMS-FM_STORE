@@ -104,6 +104,9 @@
                 url: '{{ route('stock_opname.data') }}',
                 data: params
             },
+            language: {
+                url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json"
+            },
             columns: [
                 { data: 'warehouse_code', name: 'warehouse.code_wh' },
                 { data: 'warehouse_name', name: 'warehouse.nama_wh' },
