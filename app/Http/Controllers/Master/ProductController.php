@@ -155,10 +155,10 @@ class ProductController extends Controller
         // =========================
         $headers = [
             'A1' => 'SKU (wajib)',
-            'B1' => 'NAMA PRODUK (wajib)',
-            'C1' => 'TIPE PRODUK',
-            'D1' => 'UOM PRODUK',
-            'E1' => 'STOCK MINIMUM',
+            'B1' => 'NAMA BARANG (wajib)',
+            'C1' => 'TIPE BARANG',
+            'D1' => 'SATUAN BARANG',
+            'E1' => 'STOK MINIMAL',
             'F1' => 'STATUS AKTIF (Y/N)',
         ];
     
