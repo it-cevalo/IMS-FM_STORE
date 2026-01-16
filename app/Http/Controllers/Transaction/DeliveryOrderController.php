@@ -58,7 +58,7 @@ class DeliveryOrderController extends Controller
                         <a href="javascript:void(0)"
                            onclick="approveDO('.$d->id.', \''.$d->no_do.'\')"
                            class="btn btn-sm btn-primary"
-                           title="Approve DO">
+                           title="Setujui Pengiriman">
                            <i class="fa fa-check"></i>
                         </a>
                     ';
@@ -70,7 +70,7 @@ class DeliveryOrderController extends Controller
                         <button 
                             class="btn btn-sm btn-danger"
                             onclick="deleteDO('.$d->id.', \''.$d->no_do.'\')"
-                            title="Delete DO">
+                            title="Hapus Pengiriman">
                             <i class="fa fa-times-circle"></i>
                         </button>
                     ';

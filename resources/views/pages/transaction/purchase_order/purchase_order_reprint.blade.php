@@ -12,8 +12,8 @@
 
         <!-- Bulk Action Buttons -->
         <div class="mb-2">
-            <button class="btn btn-success btn-sm" onclick="bulkApprove('{{ $poNo }}')">Approve Selected</button>
-            <button class="btn btn-danger btn-sm" onclick="bulkReject('{{ $poNo }}')">Reject Selected</button>
+            <button class="btn btn-success btn-sm" onclick="bulkApprove('{{ $poNo }}')">Setujui</button>
+            <button class="btn btn-danger btn-sm" onclick="bulkReject('{{ $poNo }}')">Tolak</button>
         </div>
 
         <table class="table table-bordered">

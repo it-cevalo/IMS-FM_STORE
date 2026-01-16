@@ -161,12 +161,12 @@ function loadDeliveryOrderData() {
 
 function approveDO(id, noDo) {
     Swal.fire({
-        title: 'Approve Pengiriman Barang?',
+        title: 'Setujui Pengiriman Barang?',
         html: `<b>Nomor:</b> ${noDo}`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Yes, Approve',
-        cancelButtonText: 'Cancel',
+        confirmButtonText: 'Ya',
+        cancelButtonText: 'Batal',
         reverseButtons: true
     }).then((result) => {
 
@@ -194,7 +194,7 @@ function approveDO(id, noDo) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
-                        text: res.message || 'Pengiriman Barang berhasil di-approve'
+                        text: res.message || 'Pengiriman Barang berhasil disetujui'
                     });
 
                     $('#deliveryOrderTable')
