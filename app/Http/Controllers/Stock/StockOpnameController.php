@@ -50,9 +50,7 @@ class StockOpnameController extends Controller
                 ->addColumn('tgl_opname', fn($row) => $row->tgl_opname)
                 ->addColumn('action', function($row) {
                     $edit = route('stock_opname.edit', $row->id);
-                    $history = route('stock_opname.history', $row->id);
                     return '
-                        <a href="'.$history.'" class="btn btn-success btn-sm"><i class="fa fa-history"></i></a>
                         <a href="'.$edit.'" class="btn btn-warning btn-sm"><i class="fa fa-edit"></i></a>
                     ';
                 })
