@@ -55,17 +55,17 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Date From</label>
+                    <label>Dari Tanggal</label>
                     <input type="date" id="filter_date_from" class="form-control">
                 </div>
                 <div class="form-group">
-                    <label>Date To</label>
+                    <label>Sampai Tanggal</label>
                     <input type="date" id="filter_date_to" class="form-control">
                 </div>
                 <div class="form-group">
-                    <label>Status PO</label>
+                    <label>Status Penerimaan Barang</label>
                     <select id="filter_status" class="form-control">
-                        <option value="">-- All Status --</option>
+                        <option value="">-- Semua Status --</option>
                         <option value="0">Dibuat</option>
                         <option value="1">Proses</option>
                         <option value="2">Berkala</option>
