@@ -64,13 +64,13 @@ class DeliveryOrderController extends Controller
                     ';
                 }
             
-                // DELETE hanya jika belum approve
+                // Cancel hanya jika belum approve
                 if ($d->flag_approve !== 'Y') {
                     $btn .= '
                         <button 
                             class="btn btn-sm btn-danger"
                             onclick="deleteDO('.$d->id.', \''.$d->no_do.'\')"
-                            title="Hapus Pengiriman">
+                            title="Batalkan Pengiriman">
                             <i class="fa fa-times-circle"></i>
                         </button>
                     ';

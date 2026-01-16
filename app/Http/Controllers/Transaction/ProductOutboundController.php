@@ -15,16 +15,30 @@ class ProductOutboundController extends Controller
 
     public function datatable()
     {
+        /**
+         * =====================================================
+         * TOTAL BARANG = QTY SESUAI DO (FIFO / AWAL MASUK)
+         * =====================================================
+         */
         $data = DB::table('tproduct_outbound as po')
             ->join('tdos as d', 'd.id', '=', 'po.id_do')
+            ->join('tdo_detail as dd', function ($join) {
+                $join->on('dd.id_do', '=', 'd.id')
+                    ->on('dd.sku', '=', 'po.sku');
+            })
             ->select(
                 DB::raw('DATE(po.out_at) as tgl_outbound'),
-                DB::raw('COUNT(po.id) as total_barang'),
+
+                // 🔹 jumlah DO unik
                 DB::raw('COUNT(DISTINCT po.id_do) as jumlah_do'),
+
+                // 🔹 TOTAL BARANG = SUM QTY DO DETAIL
+                DB::raw('SUM(dd.qty) as total_barang'),
+
                 DB::raw('GROUP_CONCAT(DISTINCT d.no_do ORDER BY d.no_do SEPARATOR ", ") as daftar_do')
             )
             ->groupBy(DB::raw('DATE(po.out_at)'))
-            ->orderByDesc('tgl_outbound')
+            ->orderBy('tgl_outbound', 'desc')
             ->get();
 
         return response()->json(['data' => $data]);
@@ -184,7 +198,7 @@ class ProductOutboundController extends Controller
             DB::commit();
     
             return response()->json([
-                'message' => 'Peniriman Baran berhasil dikonfirmasi'
+                'message' => 'Pengiriman Barang berhasil dikonfirmasi'
             ]);
     
         } catch (\Exception $e) {
