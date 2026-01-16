@@ -14,10 +14,10 @@
             <i class="fa fa-plus"></i> Tambah
         </a>
         <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#filterModal">
-            <i class="fa fa-filter"></i> Filter
+            <i class="fa fa-filter"></i> Segarkan
         </button>
         <button class="btn btn-secondary btn-sm" id="btnRefresh">
-            <i class="fa fa-sync"></i> Refresh
+            <i class="fa fa-sync"></i> Segarkan
         </button>
         @endif
     </div>
