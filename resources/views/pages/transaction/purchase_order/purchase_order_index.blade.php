@@ -263,12 +263,12 @@ $(document).ready(function() {
         Swal.fire({
             title: 'Konfirmasi Pemesanan Barang',
             html: `
-                <p>Apakah Anda yakin ingin <b>Confirm</b> PO berikut?</p>
-                <p><strong>PO Number:</strong> ${noPo}</p>
+                <p>Apakah Anda yakin ingin <b>Konfirmasi</b> Penerimaan Barang berikut?</p>
+                <p><strong>Nomor:</strong> ${noPo}</p>
             `,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Ya, Confirm',
+            confirmButtonText: 'Ya',
             cancelButtonText: 'Batal',
             reverseButtons: true
         }).then((result) => {

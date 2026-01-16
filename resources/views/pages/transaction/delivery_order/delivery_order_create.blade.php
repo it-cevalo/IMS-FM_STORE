@@ -235,7 +235,7 @@ $(document).ready(function(){
     // Submit via AJAX
     $('#formDO').submit(function(e){
         e.preventDefault();
-        Swal.fire({title:'Processing...', allowOutsideClick:false, didOpen:()=>Swal.showLoading()});
+        Swal.fire({title:'Memproses...', allowOutsideClick:false, didOpen:()=>Swal.showLoading()});
 
         $.ajax({
             url: "{{ route('delivery_order.store') }}",

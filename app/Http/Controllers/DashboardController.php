@@ -38,9 +38,9 @@ class DashboardController extends Controller
         $mode  = $request->mode; // monthly | yearly
         $month = $request->month;
         $year  = $request->year;
-    
+        
         /* =============================
-           FILTER TANGGAL
+        FILTER TANGGAL
         ============================== */
         if ($mode === 'monthly') {
             $dateFilterInbound  = "YEAR(tpi.received_at) = $year AND MONTH(tpi.received_at) = $month";
@@ -56,20 +56,36 @@ class DashboardController extends Controller
         $fast = DB::select("
             SELECT 
                 mp.nama_barang,
-                IFNULL(SUM(tpi.qty),0) AS inbound,
-                IFNULL(SUM(tpo.qty),0) AS outbound
+                IFNULL(inb.inbound, 0)   AS inbound,
+                IFNULL(outb.outbound, 0) AS outbound
             FROM mproduct mp
-            LEFT JOIN tproduct_inbound tpi 
-                ON mp.id = tpi.id_product
+        
+            LEFT JOIN (
+                SELECT 
+                    tpi.id_product,
+                    COUNT(*) AS inbound
+                FROM tproduct_inbound tpi
+                WHERE tpi.sync_by IS NOT NULL
+                AND tpi.sync_by != ''
                 AND $dateFilterInbound
-            LEFT JOIN tproduct_outbound tpo 
-                ON mp.id = tpo.id_product
-                AND $dateFilterOutbound
-                AND tpo.sync_by IS NOT NULL
+                GROUP BY tpi.id_product
+            ) inb ON mp.id = inb.id_product
+        
+            LEFT JOIN (
+                SELECT 
+                    tpo.id_product,
+                    COUNT(*) AS outbound
+                FROM tproduct_outbound tpo
+                WHERE tpo.sync_by IS NOT NULL
                 AND tpo.sync_by != ''
-            GROUP BY mp.id
-            HAVING outbound > 0
-            ORDER BY outbound DESC
+                AND $dateFilterOutbound
+                GROUP BY tpo.id_product
+            ) outb ON mp.id = outb.id_product
+        
+            -- 🔴 FILTER BERDASARKAN OUT
+            WHERE IFNULL(outb.outbound, 0) > 0
+        
+            ORDER BY outb.outbound DESC
             LIMIT 10
         ");
     
@@ -79,20 +95,36 @@ class DashboardController extends Controller
         $slow = DB::select("
             SELECT 
                 mp.nama_barang,
-                IFNULL(SUM(tpi.qty),0) AS inbound,
-                IFNULL(SUM(tpo.qty),0) AS outbound
+                IFNULL(inb.inbound, 0)   AS inbound,
+                IFNULL(outb.outbound, 0) AS outbound
             FROM mproduct mp
-            LEFT JOIN tproduct_inbound tpi 
-                ON mp.id = tpi.id_product
+
+            LEFT JOIN (
+                SELECT 
+                    tpi.id_product,
+                    COUNT(*) AS inbound
+                FROM tproduct_inbound tpi
+                WHERE tpi.sync_by IS NOT NULL
+                AND tpi.sync_by != ''
                 AND $dateFilterInbound
-            LEFT JOIN tproduct_outbound tpo 
-                ON mp.id = tpo.id_product
-                AND $dateFilterOutbound
-                AND tpo.sync_by IS NOT NULL
+                GROUP BY tpi.id_product
+            ) inb ON mp.id = inb.id_product
+
+            LEFT JOIN (
+                SELECT 
+                    tpo.id_product,
+                    COUNT(*) AS outbound
+                FROM tproduct_outbound tpo
+                WHERE tpo.sync_by IS NOT NULL
                 AND tpo.sync_by != ''
-            GROUP BY mp.id
-            HAVING inbound > 0
-            ORDER BY outbound ASC
+                AND $dateFilterOutbound
+                GROUP BY tpo.id_product
+            ) outb ON mp.id = outb.id_product
+
+            -- 🔴 PENTING: FILTER OUT, BUKAN IN
+            WHERE IFNULL(outb.outbound, 0) > 0
+
+            ORDER BY outb.outbound ASC
             LIMIT 10
         ");
     

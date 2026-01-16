@@ -93,7 +93,7 @@ class PurchaseOrderController extends Controller
                             class="btn btn-info btn-sm" 
                             title="Request Reprint">
                             <i class="fa fa-file-alt"></i>
-                            Reprint
+                            Cetak Ulang
                         </a> ';
                     }
 
@@ -285,7 +285,7 @@ class PurchaseOrderController extends Controller
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Purchase Order berhasil dibuat'
+                'message' => 'Pemesanan Barang berhasil dibuat'
             ]);
 
         } catch (\Exception $e) {
@@ -403,7 +403,7 @@ class PurchaseOrderController extends Controller
         if (!$confirm) {
             return response()->json([
                 'success' => false,
-                'error' => 'Purchase Order tidak ditemukan'
+                'error' => 'Pemesanan Barang tidak ditemukan'
             ]);
         }
     
@@ -525,7 +525,7 @@ class PurchaseOrderController extends Controller
     
             return redirect()
                 ->route('purchase_order.index')
-                ->with('success','Purchase Order berhasil diupdate');
+                ->with('success','Pemesanan Barang berhasil diperbarui');
     
         } catch (\Exception $e) {
             DB::rollBack();

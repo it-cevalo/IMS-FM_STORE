@@ -66,7 +66,7 @@
             const id = $(this).data('id');
 
             Swal.fire({
-                title: 'Yakin ingin rollback?',
+                title: 'Yakin ingin mengembalikan?',
                 text: 'Data akan dikembalikan dari arsip.',
                 icon: 'question',
                 showCancelButton: true,

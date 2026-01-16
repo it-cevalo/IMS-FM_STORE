@@ -229,9 +229,26 @@
                     ]
                 },
                 options: {
-                    responsive:true,
-                    interaction:{ mode:'index', intersect:false },
-                    scales:{ y:{ beginAtZero:true } }
+                    responsive: true,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        y: {
+                            min: 0,
+                            suggestedMax: Math.max(
+                                ...res.fast.inbound,
+                                ...res.fast.outbound,
+                                1
+                            ) + 1,
+                            grace: '5%',        // ⬅️ INI KUNCI TAMBAHAN
+                            ticks: {
+                                stepSize: 1,
+                                precision: 0,
+                                callback: function(value) {
+                                    return value; // ⬅️ PAKSA RENDER SEMUA
+                                }
+                            }
+                        }
+                    }
                 }
             });
 
@@ -256,9 +273,26 @@
                     ]
                 },
                 options: {
-                    responsive:true,
-                    interaction:{ mode:'index', intersect:false },
-                    scales:{ y:{ beginAtZero:true } }
+                    responsive: true,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        y: {
+                            min: 0,
+                            suggestedMax: Math.max(
+                                ...res.fast.inbound,
+                                ...res.fast.outbound,
+                                1
+                            ) + 1,
+                            grace: '5%',        // ⬅️ INI KUNCI TAMBAHAN
+                            ticks: {
+                                stepSize: 1,
+                                precision: 0,
+                                callback: function(value) {
+                                    return value; // ⬅️ PAKSA RENDER SEMUA
+                                }
+                            }
+                        }
+                    }
                 }
             });
 

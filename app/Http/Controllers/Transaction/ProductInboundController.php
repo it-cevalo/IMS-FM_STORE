@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Transaction;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Auth, DB;
 
 class ProductInboundController extends Controller
 {
@@ -341,7 +341,7 @@ class ProductInboundController extends Controller
             DB::commit();
 
             return response()->json([
-                'message' => 'Inbound berhasil dikonfirmasi'
+                'message' => 'Pemasukan Barang berhasil dikonfirmasi'
             ]);
 
         } catch (\Exception $e) {

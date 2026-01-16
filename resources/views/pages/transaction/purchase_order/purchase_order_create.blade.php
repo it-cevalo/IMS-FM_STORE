@@ -260,7 +260,7 @@ $(document).ready(function(){
         e.preventDefault();
 
         Swal.fire({
-            title: 'Processing...',
+            title: 'Memproses...',
             allowOutsideClick: false,
             didOpen: () => Swal.showLoading()
         });

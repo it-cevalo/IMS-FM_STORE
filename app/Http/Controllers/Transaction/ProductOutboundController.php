@@ -184,7 +184,7 @@ class ProductOutboundController extends Controller
             DB::commit();
     
             return response()->json([
-                'message' => 'Outbound berhasil dikonfirmasi & status DO tervalidasi per SKU'
+                'message' => 'Peniriman Baran berhasil dikonfirmasi'
             ]);
     
         } catch (\Exception $e) {
