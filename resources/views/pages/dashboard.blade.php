@@ -64,7 +64,7 @@
             </select>
 
             <select id="filterYearMonthly" class="form-control form-control-sm mr-4" style="width:120px">
-                @for ($y = now()->year - 2; $y <= now()->year; $y++)
+                @for ($y = now()->year; $y >= now()->year - 2; $y--)
                     <option value="{{ $y }}" {{ $y == now()->year ? 'selected' : '' }}>
                         {{ $y }}
                     </option>
@@ -80,7 +80,7 @@
             </div>
 
             <select id="filterYearOnly" class="form-control form-control-sm mr-4" style="width:120px" disabled>
-                @for ($y = now()->year - 5; $y <= now()->year; $y++)
+                @for ($y = now()->year; $y >= now()->year - 5; $y--)
                     <option value="{{ $y }}" {{ $y == now()->year ? 'selected' : '' }}>
                         {{ $y }}
                     </option>
