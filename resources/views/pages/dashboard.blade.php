@@ -57,13 +57,17 @@
 
             <select id="filterMonth" class="form-control form-control-sm mr-2" style="width:140px">
                 @for ($m = 1; $m <= 12; $m++)
-                    <option value="{{ $m }}">{{ \Carbon\Carbon::create()->month($m)->format('F') }}</option>
+                    <option value="{{ $m }}" {{ $m == now()->month ? 'selected' : '' }}>
+                        {{ \Carbon\Carbon::create()->month($m)->format('F') }}
+                    </option>
                 @endfor
             </select>
 
             <select id="filterYearMonthly" class="form-control form-control-sm mr-4" style="width:120px">
                 @for ($y = now()->year - 2; $y <= now()->year; $y++)
-                    <option value="{{ $y }}">{{ $y }}</option>
+                    <option value="{{ $y }}" {{ $y == now()->year ? 'selected' : '' }}>
+                        {{ $y }}
+                    </option>
                 @endfor
             </select>
 
@@ -77,7 +81,9 @@
 
             <select id="filterYearOnly" class="form-control form-control-sm mr-4" style="width:120px" disabled>
                 @for ($y = now()->year - 5; $y <= now()->year; $y++)
-                    <option value="{{ $y }}">{{ $y }}</option>
+                    <option value="{{ $y }}" {{ $y == now()->year ? 'selected' : '' }}>
+                        {{ $y }}
+                    </option>
                 @endfor
             </select>
 
