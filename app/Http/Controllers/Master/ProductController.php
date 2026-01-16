@@ -87,13 +87,13 @@ class ProductController extends Controller
                 'stock_minimum'     => 'required',
                 'flag_active'       => 'required'
             ],[
-                'sku.required'              => 'SKU harus diisi.',
+                'sku.required'              => 'SKU wajib diisi.',
                 'sku.unique'                => 'SKU telah digunakan',
-                'nama_barang.required'      => 'Nama produk harus diisi.',
-                'id_type.required'          => 'Tipe produk harus diisi.',
-                'id_unit.required'          => 'Satuan produk harus diisi',
-                'stock_minimum.required'    => 'Stok minimal harus diisi.',
-                'flag_active.required'      => 'Status aktif harus diisi.'
+                'nama_barang.required'      => 'Nama produk wajib diisi.',
+                'id_type.required'          => 'Tipe produk wajib diisi.',
+                'id_unit.required'          => 'Satuan produk wajib diisi',
+                'stock_minimum.required'    => 'Stok minimal wajib diisi.',
+                'flag_active.required'      => 'Status aktif wajib diisi.'
             ]);
 
             // Save product to the database
@@ -154,8 +154,8 @@ class ProductController extends Controller
         // HEADER
         // =========================
         $headers = [
-            'A1' => 'SKU (harus)',
-            'B1' => 'NAMA PRODUK (harus)',
+            'A1' => 'SKU (wajib)',
+            'B1' => 'NAMA PRODUK (wajib)',
             'C1' => 'TIPE PRODUK',
             'D1' => 'UOM PRODUK',
             'E1' => 'STOCK MINIMUM',
@@ -249,7 +249,7 @@ class ProductController extends Controller
                     DB::rollBack();
                     return response()->json([
                         'status'  => 'error',
-                        'message' => "SKU harus diisi. Cek baris ke-{$rowNumber}."
+                        'message' => "SKU wajib diisi. Cek baris ke-{$rowNumber}."
                     ], 422);
                 }
 
@@ -396,10 +396,10 @@ class ProductController extends Controller
                 'stock_minimum'     => 'required',
                 'flag_active'       => 'required'
             ], [
-                'id_type.required'          => 'Tipe produk harus diisi.',
-                'id_unit.required'          => 'Satuan produk harus diisi.',
-                'stock_minimum.required'    => 'Stok minimal harus diisi.',
-                'flag_active.required'      => 'Status aktif harus diisi.'
+                'id_type.required'          => 'Tipe produk wajib diisi.',
+                'id_unit.required'          => 'Satuan produk wajib diisi.',
+                'stock_minimum.required'    => 'Stok minimal wajib diisi.',
+                'flag_active.required'      => 'Status aktif wajib diisi.'
             ]);
 
             $product = Mproduct::findOrFail($id);

@@ -54,8 +54,8 @@ class CourierController extends Controller
                 'code_courier' => 'required|unique:m_couriers,code_courier',
                 'nama_courier' => 'required',
             ], [
-                'code_courier.required' => 'Kode kurir harus diisi.',
-                'nama_courier.required' => 'Nama kurir harus diisi.',
+                'code_courier.required' => 'Kode kurir wajib diisi.',
+                'nama_courier.required' => 'Nama kurir wajib diisi.',
                 'code_courier.unique'   => 'Kode kurir telah digunakan.',
             ]);
 
@@ -105,8 +105,8 @@ class CourierController extends Controller
                 'code_courier' => 'required',
                 'nama_courier' => 'required',
             ], [
-                'code_courier.required' => 'Kode kurir harus diisi.',
-                'nama_courier.required' => 'Nama kurir harus diisi.',
+                'code_courier.required' => 'Kode kurir wajib diisi.',
+                'nama_courier.required' => 'Nama kurir wajib diisi.',
             ]);
 
             $updated = MCourier::whereId($id)->update([

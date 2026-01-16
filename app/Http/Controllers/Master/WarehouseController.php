@@ -18,13 +18,14 @@ class WarehouseController extends Controller
     public function getData(Request $request)
     {
         if ($request->ajax()) {
-            $query = MWarehouse::with('store');
+            // $query = MWarehouse::with('store');
+            $query = MWarehouse::get();
 
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('store_name', function ($row) {
-                    return $row->store->nama_store ?? '-';
-                })
+                // ->addColumn('store_name', function ($row) {
+                //     return $row->store->nama_store ?? '-';
+                // })
                 ->addColumn('action', function ($row) {
                     $editUrl = route('warehouses.edit', $row->id);
                     $deleteUrl = route('warehouses.destroy', $row->id);
@@ -60,29 +61,29 @@ class WarehouseController extends Controller
     {
         try {
             $this->validate($request, [
-                'id_store' => 'required|exists:m_stores,id',
+                // 'id_store' => 'required|exists:m_stores,id',
                 'code_wh'  => 'required|unique:m_warehouses,code_wh',
                 'nama_wh'  => 'required',
                 'address'  => 'required',
                 'phone'    => 'required|max:15',
                 'email'    => 'required|email',
             ], [
-                'id_store.required' => 'Store must be selected.',
-                'id_store.exists'   => 'Selected store was not found.',
-                'code_wh.required'  => 'Warehouse code harus diisi.',
+                // 'id_store.required' => 'Store must be selected.',
+                // 'id_store.exists'   => 'Selected store was not found.',
+                'code_wh.required'  => 'Warehouse code wajib diisi.',
                 'code_wh.unique'    => 'Warehouse code must be unique.',
-                'nama_wh.required'  => 'Warehouse name harus diisi.',
-                'address.required'  => 'Address harus diisi.',
-                'phone.required'    => 'Phone number harus diisi.',
-                'email.required'    => 'Email address harus diisi.',
+                'nama_wh.required'  => 'Warehouse name wajib diisi.',
+                'address.required'  => 'Address wajib diisi.',
+                'phone.required'    => 'Phone number wajib diisi.',
+                'email.required'    => 'Email address wajib diisi.',
                 'email.email'       => 'Invalid email format.',
             ]);
 
-            $store = MStore::findOrFail($request->id_store);
+            // $store = MStore::findOrFail($request->id_store);
 
             MWarehouse::create([
-                'id_store'   => $store->id,
-                'code_store' => $store->code_store,
+                // 'id_store'   => $store->id,
+                // 'code_store' => $store->code_store,
                 'code_wh'    => $request->code_wh,
                 'nama_wh'    => $request->nama_wh,
                 'address'    => $request->address,
@@ -107,13 +108,13 @@ class WarehouseController extends Controller
 
             return response()->json([
                 'status'  => 'validation_error',
-                'message' => 'Invalid input.',
+                'message' => 'Gagal Input Data.',
                 'errors'  => $messages
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Something went wrong while saving data.',
+                'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'debug'   => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -130,28 +131,28 @@ class WarehouseController extends Controller
     {
         try {
             $this->validate($request, [
-                'id_store' => 'required|exists:m_stores,id',
+                // 'id_store' => 'required|exists:m_stores,id',
                 'code_wh'  => 'required',
                 'nama_wh'  => 'required',
                 'address'  => 'required',
                 'phone'    => 'required|max:15',
                 'email'    => 'required|email',
             ], [
-                'id_store.required' => 'Toko harus diisi.',
-                'id_store.exists'   => 'Pilihan Toko tidak ditemukan.',
-                'code_wh.required'  => 'Kode Gudang harus diisi.',
-                'nama_wh.required'  => 'Nama Gudang harus diisi.',
-                'address.required'  => 'Alamat harus diisi.',
-                'phone.required'    => 'No HP harus diisi.',
-                'email.required'    => 'Alamat Email harus diisi.',
+                // 'id_store.required' => 'Toko wajib diisi.',
+                // 'id_store.exists'   => 'Pilihan Toko tidak ditemukan.',
+                'code_wh.required'  => 'Kode Gudang wajib diisi.',
+                'nama_wh.required'  => 'Nama Gudang wajib diisi.',
+                'address.required'  => 'Alamat wajib diisi.',
+                'phone.required'    => 'No HP wajib diisi.',
+                'email.required'    => 'Alamat Email wajib diisi.',
                 'email.email'       => 'Format Email Gudang salah.',
             ]);
 
             $store = MStore::findOrFail($request->id_store);
 
             MWarehouse::whereId($id)->update([
-                'id_store'   => $store->id,
-                'code_store' => $store->code_store,
+                // 'id_store'   => $store->id,
+                // 'code_store' => $store->code_store,
                 'code_wh'    => $request->code_wh,
                 'nama_wh'    => $request->nama_wh,
                 'address'    => $request->address,

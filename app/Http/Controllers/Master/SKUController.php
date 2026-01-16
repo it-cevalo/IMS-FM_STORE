@@ -81,8 +81,8 @@ class SKUController extends Controller
                 // 'nama' => 'required',
                 'kode' => 'required|unique:msku,kode',
             ], [
-                // 'nama.required' => 'SKU name harus diisi.',
-                'kode.required' => 'SKU harus diisi.',
+                // 'nama.required' => 'SKU name wajib diisi.',
+                'kode.required' => 'SKU wajib diisi.',
                 'kode.unique'   => 'SKU sudah digunakan.'
             ]);
     
@@ -245,7 +245,7 @@ class SKUController extends Controller
                 'nama' => 'required|string|max:150',
             ],
             [
-                'nama.required' => 'Nama SKU harus diisi',
+                'nama.required' => 'Nama SKU wajib diisi',
                 'nama.max'      => 'Nama SKU maksimal 150 karakter',
             ]
         );

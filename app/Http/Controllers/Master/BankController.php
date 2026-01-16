@@ -70,10 +70,10 @@ class BankController extends Controller
                 'norek_bank'        => 'required',
                 'atasnama_bank'     => 'required',
             ], [
-                'code_bank.required'        => 'Kode bank harus diisi.',
-                'nama_bank.required'        => 'Nama bank harus diisi.',
-                'norek_bank.required'       => 'Nomor rekening bank harus diisi.',
-                'atasnama_bank.required'    => 'Atas Nama bank harus diisi.',
+                'code_bank.required'        => 'Kode bank wajib diisi.',
+                'nama_bank.required'        => 'Nama bank wajib diisi.',
+                'norek_bank.required'       => 'Nomor rekening bank wajib diisi.',
+                'atasnama_bank.required'    => 'Atas Nama bank wajib diisi.',
             ]);
 
             MBank::create($validatedData);
@@ -137,10 +137,10 @@ class BankController extends Controller
                 'norek_bank'        => 'required',
                 'atasnama_bank'     => 'required',
             ], [
-                'code_bank.required'        => 'Kode bank harus diisi.',
-                'nama_bank.required'        => 'Nama bank harus diisi.',
-                'norek_bank.required'       => 'Nomor rekening bank harus diisi.',
-                'atasnama_bank.required'    => 'Atas Nama bank harus diisi.',
+                'code_bank.required'        => 'Kode bank wajib diisi.',
+                'nama_bank.required'        => 'Nama bank wajib diisi.',
+                'norek_bank.required'       => 'Nomor rekening bank wajib diisi.',
+                'atasnama_bank.required'    => 'Atas Nama bank wajib diisi.',
             ]);
 
             MBank::whereId($id)->update($validated);

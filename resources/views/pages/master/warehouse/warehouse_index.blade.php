@@ -21,7 +21,7 @@
                 <thead>
                     <tr>
                         <th class="text-center align-middle">No</th>
-                        <th class="text-center align-middle">Toko</th>
+                        {{-- <th class="text-center align-middle">Toko</th> --}}
                         <th class="text-center align-middle">Kode</th>
                         <th class="text-center align-middle">Nama</th>
                         <th class="text-center align-middle">Alamat</th>
@@ -48,7 +48,7 @@ function loadWarehouseData() {
         },
         columns: [
             { data: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
-            { data: 'store_name', name: 'store_name' },
+            // { data: 'store_name', name: 'store_name' },
             { data: 'code_wh', name: 'code_wh' },
             { data: 'nama_wh', name: 'nama_wh' },
             { data: 'address', name: 'address' },

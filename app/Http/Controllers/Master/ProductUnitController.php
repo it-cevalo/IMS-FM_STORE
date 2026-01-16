@@ -70,7 +70,7 @@ class ProductUnitController extends Controller
             $this->validate($request, [
                 'nama_unit' => 'required|unique:mproduct_unit,nama_unit'
             ], [
-                'nama_unit.required' => 'Satuan Produk harus diisi.',
+                'nama_unit.required' => 'Satuan Produk wajib diisi.',
                 'nama_unit.unique'   => 'Satuan Produk telah digunakan.',
             ]);
     
@@ -158,7 +158,7 @@ class ProductUnitController extends Controller
             $this->validate($request, [
                 'nama_unit' => 'required|unique:mproduct_unit,nama_unit'
             ], [
-                'nama_unit.required' => 'Satuan Produk harus diisi.',
+                'nama_unit.required' => 'Satuan Produk wajib diisi.',
                 'nama_unit.unique'   => 'Satuan Produk sudah digunakan.'
             ]);
             

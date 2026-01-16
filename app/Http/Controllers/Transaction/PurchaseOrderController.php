@@ -224,7 +224,7 @@ class PurchaseOrderController extends Controller
 
             if ($request->po_type === 'tambahan') {
                 if (!$request->base_po_id) {
-                    throw new \Exception('PO asal harus dipilih');
+                    throw new \Exception('PO asal wajib dipilih');
                 }
 
                 $basePo = Tpo::findOrFail($request->base_po_id);
@@ -553,7 +553,7 @@ class PurchaseOrderController extends Controller
     {
         $po = Tpo::findOrFail($id);
 
-        // safety check (backend tetap harus)
+        // safety check (backend tetap wajib)
         if (in_array($po->status_po, [2, 3])) {
             return response()->json([
                 'success' => false,
@@ -722,7 +722,7 @@ class PurchaseOrderController extends Controller
              */
             if (!$this->canPrintQR($po->id, $detail->id, $seqStr)) {
                 return response()->json([
-                    'message' => "Sequence {$seqStr} harus mengajukan request reprint terlebih dahulu"
+                    'message' => "Sequence {$seqStr} wajib mengajukan request reprint terlebih dahulu"
                 ], 403);
             }
 
@@ -917,7 +917,7 @@ class PurchaseOrderController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | MODE AKTIF (harus PRODUKSI)
+        | MODE AKTIF (wajib PRODUKSI)
         |--------------------------------------------------------------------------
         | Dibuka di NEW TAB sebagai PDF
         | Print dilakukan dari PDF viewer

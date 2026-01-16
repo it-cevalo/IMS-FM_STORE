@@ -61,12 +61,12 @@ class StoreController extends Controller
                 'phone' => 'required|max:15',
                 'email' => 'required|email',
             ], [
-                'code_store.required' => 'Kode Toko harus diisi.',
+                'code_store.required' => 'Kode Toko wajib diisi.',
                 'code_store.unique'   => 'Kode Toko telah digunakan.',
-                'nama_store.required' => 'Nama Toko harus diisi.',
-                'address.required'    => 'Alamat Toko harus diisi.',
-                'phone.required'      => 'No HP harus diisi.',
-                'email.required'      => 'Alamat Email harus diisi.',
+                'nama_store.required' => 'Nama Toko wajib diisi.',
+                'address.required'    => 'Alamat Toko wajib diisi.',
+                'phone.required'      => 'No HP wajib diisi.',
+                'email.required'      => 'Alamat Email wajib diisi.',
                 'email.email'         => 'Format Email Toko salah.',
             ]);
 
@@ -130,11 +130,11 @@ class StoreController extends Controller
                 'phone'      => 'required|max:15',
                 'email'      => 'required|email',
             ], [
-                'code_store.required' => 'Kode Toko harus diisi.',
-                'nama_store.required' => 'Nama Toko harus diisi.',
-                'address.required'    => 'Alamat Toko harus diisi.',
-                'phone.required'      => 'No HP harus diisi.',
-                'email.required'      => 'Alamat Email harus diisi.',
+                'code_store.required' => 'Kode Toko wajib diisi.',
+                'nama_store.required' => 'Nama Toko wajib diisi.',
+                'address.required'    => 'Alamat Toko wajib diisi.',
+                'phone.required'      => 'No HP wajib diisi.',
+                'email.required'      => 'Alamat Email wajib diisi.',
                 'email.email'         => 'Format Email Toko salah.',
             ]);
 

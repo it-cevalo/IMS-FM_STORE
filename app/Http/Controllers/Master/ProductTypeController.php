@@ -72,7 +72,7 @@ class ProductTypeController extends Controller
             $this->validate($request, [
                 'nama_tipe' => 'required|unique:mproduct_type,nama_tipe'
             ], [
-                'nama_tipe.required' => 'Nama Tipe Produk harus diisi.',
+                'nama_tipe.required' => 'Nama Tipe Produk wajib diisi.',
                 'nama_tipe.unique'   => 'Tipe Produk sudah digunakan.'
             ]);
     
@@ -153,8 +153,8 @@ class ProductTypeController extends Controller
             $this->validate($request, [
                 'nama_tipe' => 'required|unique:mproduct_type,nama_tipe'
             ], [
-                'nama_tipe.required' => 'Nama Tipe Produk harus diisi.',
-                'nama_tipe.unique'   => 'Tipe Produk harus diisi.'
+                'nama_tipe.required' => 'Nama Tipe Produk wajib diisi.',
+                'nama_tipe.unique'   => 'Tipe Produk wajib diisi.'
             ]);
     
             $updated = MproductType::whereId($id)->update([

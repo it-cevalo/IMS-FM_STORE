@@ -72,17 +72,17 @@ class CustomerController extends Controller
                 'phone'        => 'required|max:13',
                 'email'        => 'required|email'
             ], [
-                'code_cust.required'    => 'Kode Pelanggan harus diisi.',
+                'code_cust.required'    => 'Kode Pelanggan wajib diisi.',
                 'code_cust.unique'      => 'Kode Pelanggan telah digunakan.',
-                'nama_cust.required'    => 'Nama Pelanggan harus diisi.',
-                // 'npwp_cust.required'    => 'NPWP harus diisi.',
+                'nama_cust.required'    => 'Nama Pelanggan wajib diisi.',
+                // 'npwp_cust.required'    => 'NPWP wajib diisi.',
                 'npwp_cust.max'         => 'NPWP Pelanggan Tidak boleh lebih dari 16 karakter.',
-                'type_cust.required'    => 'Tipe pelanggan harus diisi.',
-                'address_cust.required' => 'Alamat pelanggan harus diisi.',
-                // 'address_npwp.required' => 'Tax address harus diisi.',
-                'phone.required'        => 'No HP Pelanggan harus diisi.',
+                'type_cust.required'    => 'Tipe pelanggan wajib diisi.',
+                'address_cust.required' => 'Alamat pelanggan wajib diisi.',
+                // 'address_npwp.required' => 'Tax address wajib diisi.',
+                'phone.required'        => 'No HP Pelanggan wajib diisi.',
                 'phone.max'             => 'No HP Pelanggan tidak boleh lebih dari 13 karakter.',
-                'email.required'        => 'Email Pelanggan harus diisi.',
+                'email.required'        => 'Email Pelanggan wajib diisi.',
                 'email.email'           => 'Format email Pelanggan salah.',
             ]);
 
@@ -140,13 +140,13 @@ class CustomerController extends Controller
                 'phone'        => 'required',
                 'email'        => 'required|email'
             ], [
-                'code_cust.required'    => 'Kode Pelanggan harus diisi.',
-                'nama_cust.required'    => 'Nama Pelanggan harus diisi.',
-                'npwp_cust.required'    => 'NPWP Pelanggan harus diisi.',
-                'type_cust.required'    => 'Tipe pelanggan harus diisi.',
-                'address_cust.required' => 'Alamat Pelanggan harus diisi.',
-                'phone.required'        => 'No HP Pelanggan harus diisi.',
-                'email.required'        => 'Email Pelangga harus diisi.',
+                'code_cust.required'    => 'Kode Pelanggan wajib diisi.',
+                'nama_cust.required'    => 'Nama Pelanggan wajib diisi.',
+                'npwp_cust.required'    => 'NPWP Pelanggan wajib diisi.',
+                'type_cust.required'    => 'Tipe pelanggan wajib diisi.',
+                'address_cust.required' => 'Alamat Pelanggan wajib diisi.',
+                'phone.required'        => 'No HP Pelanggan wajib diisi.',
+                'email.required'        => 'Email Pelangga wajib diisi.',
                 'email.email'           => 'Format email Pelanggan salah.',
             ]);
 

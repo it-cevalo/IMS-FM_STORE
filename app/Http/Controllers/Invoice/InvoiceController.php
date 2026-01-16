@@ -204,11 +204,11 @@ class InvoiceController extends Controller
                 'ppn'               => 'nullable',
                 'diskon'            => 'nullable'
             ],[
-                'id_cust.required'            => 'Customer harus dipilih',
-                'no_inv.required'             => 'No Invoice harus dipilih',
-                'tgl_inv.required'            => 'Tanggal harus dipilih',
-                'grand_total.required'        => 'Grand total harus dipilih',
-                'id_bank.required'            => 'Bank harus dipilih',
+                'id_cust.required'            => 'Customer wajib dipilih',
+                'no_inv.required'             => 'No Invoice wajib dipilih',
+                'tgl_inv.required'            => 'Tanggal wajib dipilih',
+                'grand_total.required'        => 'Grand total wajib dipilih',
+                'id_bank.required'            => 'Bank wajib dipilih',
             ]);
 
             if($validasi){

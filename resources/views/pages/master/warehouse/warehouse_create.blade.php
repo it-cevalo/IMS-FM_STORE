@@ -9,7 +9,7 @@
 
         <form id="formWarehouseCreate" method="POST" action="{{ route('warehouses.store') }}">
             @csrf
-            <div class="mb-3">
+            {{-- <div class="mb-3">
                 <label>Toko</label>
                 <select class="form-control select2" name="id_store" required>
                     <option value="">...</option>
@@ -17,7 +17,7 @@
                         <option value="{{ $s->id }}">{{ $s->nama_store }}</option>
                     @endforeach
                 </select>
-            </div>
+            </div> --}}
 
             <div class="mb-3">
                 <label>Kode Gudang</label>

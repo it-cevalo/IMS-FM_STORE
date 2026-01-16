@@ -26,7 +26,7 @@
             <input type="hidden" name="_method" value="PUT">
             <input type="hidden" id="warehouseId" value="{{ $warehouses->id }}">
             {{ method_field('PUT') }}
-            <div class="mb-3">
+            {{-- <div class="mb-3">
                 <label for="exampleFormControlInput1">Toko</label>
                 <select class="form-control select2" id="search-type" name="id_store" value="{{old('id_store')}}" required>
                     <option value="">....</option>
@@ -40,7 +40,7 @@
             <div class="validation"></div>
             @error('id_store')
             <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
+            @enderror --}}
             <div class="mb-3">
                 <label for="exampleFormControlInput1">Kode Gudang</label>
                 <input class="form-control" id="exampleFormControlInput1" name="code_wh" type="text"
