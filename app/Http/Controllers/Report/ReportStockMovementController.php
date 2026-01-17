@@ -34,44 +34,65 @@ class ReportStockMovementController extends Controller
            BASE QUERY
         ======================= */
         $baseQuery = DB::table('mproduct as p')
-            ->leftJoin('tproduct_inbound as i', function ($join) use ($startDate, $endDate) {
-                $join->on('i.id_product', '=', 'p.id')
-                     ->whereBetween('i.received_at', [$startDate, $endDate]);
-            })
-            ->leftJoin('tproduct_outbound as o', function ($join) use ($startDate, $endDate) {
-                $join->on('o.id_product', '=', 'p.id')
-                     ->whereBetween('o.out_at', [$startDate, $endDate]);
-            })
+            // =======================
+            // SUBQUERY INBOUND
+            // =======================
+            ->leftJoin(DB::raw("
+                (
+                    SELECT
+                        id_product,
+                        SUM(qty) AS qty_in
+                    FROM tproduct_inbound
+                    WHERE received_at BETWEEN '{$startDate}' AND '{$endDate}'
+                    GROUP BY id_product
+                ) i
+            "), 'i.id_product', '=', 'p.id')
+
+            // =======================
+            // SUBQUERY OUTBOUND
+            // =======================
+            ->leftJoin(DB::raw("
+                (
+                    SELECT
+                        id_product,
+                        SUM(qty) AS qty_out,
+                        MAX(out_at) AS last_out_date
+                    FROM tproduct_outbound
+                    WHERE out_at BETWEEN '{$startDate}' AND '{$endDate}'
+                    GROUP BY id_product
+                ) o
+            "), 'o.id_product', '=', 'p.id')
+
             ->where('p.flag_active', 'Y')
-            ->groupBy('p.id', 'p.sku', 'p.nama_barang')
+
             ->select([
                 'p.sku',
                 'p.nama_barang',
-    
-                DB::raw('COALESCE(SUM(i.qty),0) AS qty_in'),
-                DB::raw('COALESCE(SUM(o.qty),0) AS qty_out'),
-                DB::raw('MAX(o.out_at) AS last_out_date'),
-    
-                DB::raw("ROUND(COALESCE(SUM(o.qty),0)/{$days}, 2) AS movement_rate"),
-    
+
+                DB::raw('COALESCE(i.qty_in,0) AS qty_in'),
+                DB::raw('COALESCE(o.qty_out,0) AS qty_out'),
+                DB::raw('o.last_out_date'),
+
+                DB::raw("ROUND(COALESCE(o.qty_out,0)/{$days}, 2) AS movement_rate"),
+
                 DB::raw("
                     CASE
-                        WHEN COALESCE(SUM(o.qty),0) = 0
-                             AND MAX(o.out_at) IS NULL
+                        WHEN COALESCE(o.qty_out,0) = 0
+                            AND o.last_out_date IS NULL
                             THEN 'DEAD'
-    
-                        WHEN COALESCE(SUM(o.qty),0) >= 20
-                             AND DATEDIFF(CURDATE(), DATE(MAX(o.out_at))) <= 7
+
+                        WHEN COALESCE(o.qty_out,0) >= 20
+                            AND DATEDIFF(CURDATE(), DATE(o.last_out_date)) <= 7
                             THEN 'FAST'
-    
-                        WHEN COALESCE(SUM(o.qty),0) BETWEEN 5 AND 19
+
+                        WHEN COALESCE(o.qty_out,0) BETWEEN 5 AND 19
                             THEN 'MEDIUM'
-    
+
                         ELSE 'SLOW'
                     END AS movement_category
                 ")
             ]);
-    
+        
         /* =======================
            FILTER CATEGORY (HAVING)
         ======================= */
