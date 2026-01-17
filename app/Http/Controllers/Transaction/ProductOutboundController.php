@@ -64,6 +64,8 @@ class ProductOutboundController extends Controller
                     p.nama_barang,
                     a.out_at,
                     a.qty,
+                    a.sync_at,
+                    a.sync_by,
                     dd.qty AS qty_do,
                     ROW_NUMBER() OVER (
                         PARTITION BY a.id_do, a.sku
