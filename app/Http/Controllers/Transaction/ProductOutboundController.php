@@ -15,41 +15,40 @@ class ProductOutboundController extends Controller
 
     public function datatable()
     {
-        /**
-         * =====================================================
-         * TOTAL BARANG = SUM QTY DO DETAIL (TANPA DUPLIKASI)
-         * =====================================================
-         */
         $data = DB::table(DB::raw("
             (
                 SELECT
                     DATE(po.out_at) AS tgl_outbound,
-                    d.id AS id_do,
-                    d.no_do
+                    d.id            AS id_do,
+                    d.no_do,
+                    po.sku,
+                    COUNT(po.id)    AS qty_out
                 FROM tproduct_outbound po
                 JOIN tdos d ON d.id = po.id_do
-                GROUP BY DATE(po.out_at), d.id, d.no_do
-            ) x
+                GROUP BY DATE(po.out_at), d.id, d.no_do, po.sku
+            ) o
         "))
-        ->join('tdo_detail as dd', 'dd.id_do', '=', 'x.id_do')
+        ->join('tdo_detail as dd', function ($join) {
+            $join->on('dd.id_do', '=', 'o.id_do')
+                 ->on('dd.sku',   '=', 'o.sku');
+        })
         ->select(
-            'x.tgl_outbound',
+            'o.tgl_outbound',
     
-            // 🔹 jumlah DO unik per hari
-            DB::raw('COUNT(DISTINCT x.id_do) AS jumlah_do'),
+            // jumlah DO unik
+            DB::raw('COUNT(DISTINCT o.id_do) AS jumlah_do'),
     
-            // 🔹 total barang = qty DO (TIDAK TERKALI)
-            DB::raw('SUM(dd.qty) AS total_barang'),
+            // 🔥 TOTAL BARANG = OUTBOUND AKTUAL (DIBATASI QTY DO)
+            DB::raw('SUM(LEAST(o.qty_out, dd.qty)) AS total_barang'),
     
-            DB::raw('GROUP_CONCAT(DISTINCT x.no_do ORDER BY x.no_do SEPARATOR ", ") AS daftar_do')
+            DB::raw('GROUP_CONCAT(DISTINCT o.no_do ORDER BY o.no_do SEPARATOR ", ") AS daftar_do')
         )
-        ->groupBy('x.tgl_outbound')
-        ->orderByDesc('x.tgl_outbound')
+        ->groupBy('o.tgl_outbound')
+        ->orderByDesc('o.tgl_outbound')
         ->get();
     
         return response()->json(['data' => $data]);
-    }
-    
+    }    
 
     public function detailByDate(Request $request, $tgl)
     {
