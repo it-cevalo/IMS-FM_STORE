@@ -17,9 +17,14 @@ class ReportStockMovementController extends Controller
     
     public function data(Request $request)
     {
-        $startDate = $request->fd ?? now()->subDays(30)->toDateString();
-        $endDate   = $request->td ?? now()->toDateString();
+        $startDate = $request->fd 
+            ? $request->fd . ' 00:00:00'
+            : now()->subDays(30)->startOfDay()->toDateTimeString();
     
+        $endDate = $request->td
+            ? $request->td . ' 23:59:59'
+            : now()->endOfDay()->toDateTimeString();
+            
         $days = \Carbon\Carbon::parse($startDate)
             ->diffInDays(\Carbon\Carbon::parse($endDate)) ?: 30;
     
@@ -31,12 +36,13 @@ class ReportStockMovementController extends Controller
          * =======================
          */
         $inbound = DB::table('tproduct_inbound')
-            ->select(
-                'id_product',
-                DB::raw('SUM(qty) as qty_in')
-            )
-            ->whereBetween('received_at', [$startDate, $endDate])
-            ->groupBy('id_product');
+        ->select(
+            'id_product',
+            DB::raw('SUM(qty) as qty_in')
+        )
+        ->whereNotNull('sync_at') // 🔥 PENTING (yang sudah confirm)
+        ->whereBetween('received_at', [$startDate, $endDate])
+        ->groupBy('id_product');
     
         /**
          * =======================
@@ -44,13 +50,14 @@ class ReportStockMovementController extends Controller
          * =======================
          */
         $outbound = DB::table('tproduct_outbound')
-            ->select(
-                'id_product',
-                DB::raw('SUM(qty) as qty_out'),
-                DB::raw('MAX(out_at) as last_out_date')
-            )
-            ->whereBetween('out_at', [$startDate, $endDate])
-            ->groupBy('id_product');
+        ->select(
+            'id_product',
+            DB::raw('SUM(qty) as qty_out'),
+            DB::raw('MAX(out_at) as last_out_date')
+        )
+        ->whereNotNull('sync_at') // 🔥 PENTING (yang sudah confirm)
+        ->whereBetween('out_at', [$startDate, $endDate])
+        ->groupBy('id_product');
     
         /**
          * =======================
