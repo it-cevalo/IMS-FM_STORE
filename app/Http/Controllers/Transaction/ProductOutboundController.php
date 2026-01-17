@@ -60,7 +60,7 @@ class ProductOutboundController extends Controller
                     a.qr_code,
                     d.nama_cust,
                     d.do_source,
-                    p.sku,
+                    p.sku AS SKU,
                     p.nama_barang,
                     a.out_at,
                     a.qty,
