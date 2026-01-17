@@ -50,27 +50,39 @@ class ProductOutboundController extends Controller
             ->orderBy('nama_wh')
             ->get();
 
-        $rows = DB::table('tproduct_outbound as a')
-            ->join('tdos as d', 'a.id_do', '=', 'd.id')
-            ->join('mproduct as p', 'a.id_product', '=', 'p.id')
-            ->whereDate('a.out_at', $tgl)
-            ->select(
-                'a.id',
-                'a.id_do',
-                'd.no_do',
-                'a.qr_code',
-                'd.nama_cust',
-                'd.do_source',
-                'p.sku as SKU',
-                'a.sync_at',
-                'a.sync_by',
-                'p.nama_barang',
-                'a.out_at',
-                'a.qty'
-            )
-            ->orderBy('d.no_do')
-            ->get()
-            ->groupBy('id_do');
+        $rows = DB::select("
+            SELECT *
+            FROM (
+                SELECT
+                    a.id,
+                    a.id_do,
+                    d.no_do,
+                    a.qr_code,
+                    d.nama_cust,
+                    d.do_source,
+                    p.sku,
+                    p.nama_barang,
+                    a.out_at,
+                    a.qty,
+                    dd.qty AS qty_do,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY a.id_do, a.sku
+                        ORDER BY a.out_at ASC
+                    ) AS rn
+                FROM tproduct_outbound a
+                JOIN tdos d ON a.id_do = d.id
+                JOIN mproduct p ON a.id_product = p.id
+                JOIN tdo_detail dd 
+                    ON dd.id_do = d.id
+                   AND dd.sku = a.sku
+                WHERE DATE(a.out_at) = ?
+            ) x
+            WHERE x.rn <= x.qty_do
+            ORDER BY x.no_do, x.out_at
+        ", [$tgl]);
+        
+        // GROUP BY DO
+        $rows = collect($rows)->groupBy('id_do');
 
         return view(
             'pages.transaction.product_outbound.product_outbound_detail',
