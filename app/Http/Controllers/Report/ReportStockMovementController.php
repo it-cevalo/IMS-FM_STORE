@@ -14,134 +14,108 @@ class ReportStockMovementController extends Controller
     {
         return view('pages.report.stock_movement');
     }
+    
     public function data(Request $request)
     {
-        /* =======================
-           DATE RANGE
-        ======================= */
         $startDate = $request->fd ?? now()->subDays(30)->toDateString();
         $endDate   = $request->td ?? now()->toDateString();
     
         $days = \Carbon\Carbon::parse($startDate)
-                    ->diffInDays(\Carbon\Carbon::parse($endDate)) ?: 30;
+            ->diffInDays(\Carbon\Carbon::parse($endDate)) ?: 30;
     
-        /* =======================
-           FILTER CATEGORY
-        ======================= */
-        $category = $request->movement_type; // FAST | MEDIUM | SLOW | DEAD
+        $category = $request->movement_type;
     
-        /* =======================
-           BASE QUERY
-        ======================= */
-        $baseQuery = DB::table('mproduct as p')
-            // =======================
-            // SUBQUERY INBOUND
-            // =======================
-            ->leftJoin(DB::raw("
-                (
-                    SELECT
-                        id_product,
-                        SUM(qty) AS qty_in
-                    FROM tproduct_inbound
-                    WHERE received_at BETWEEN '{$startDate}' AND '{$endDate}'
-                    GROUP BY id_product
-                ) i
-            "), 'i.id_product', '=', 'p.id')
-
-            // =======================
-            // SUBQUERY OUTBOUND
-            // =======================
-            ->leftJoin(DB::raw("
-                (
-                    SELECT
-                        id_product,
-                        SUM(qty) AS qty_out,
-                        MAX(out_at) AS last_out_date
-                    FROM tproduct_outbound
-                    WHERE out_at BETWEEN '{$startDate}' AND '{$endDate}'
-                    GROUP BY id_product
-                ) o
-            "), 'o.id_product', '=', 'p.id')
-
+        /**
+         * =======================
+         * SUBQUERY INBOUND
+         * =======================
+         */
+        $inbound = DB::table('tproduct_inbound')
+            ->select(
+                'id_product',
+                DB::raw('SUM(qty) as qty_in')
+            )
+            ->whereBetween('received_at', [$startDate, $endDate])
+            ->groupBy('id_product');
+    
+        /**
+         * =======================
+         * SUBQUERY OUTBOUND
+         * =======================
+         */
+        $outbound = DB::table('tproduct_outbound')
+            ->select(
+                'id_product',
+                DB::raw('SUM(qty) as qty_out'),
+                DB::raw('MAX(out_at) as last_out_date')
+            )
+            ->whereBetween('out_at', [$startDate, $endDate])
+            ->groupBy('id_product');
+    
+        /**
+         * =======================
+         * MAIN QUERY
+         * =======================
+         */
+        $query = DB::table('mproduct as p')
+            ->leftJoinSub($inbound, 'i', 'i.id_product', '=', 'p.id')
+            ->leftJoinSub($outbound, 'o', 'o.id_product', '=', 'p.id')
             ->where('p.flag_active', 'Y')
-
             ->select([
                 'p.sku',
                 'p.nama_barang',
-
-                DB::raw('COALESCE(i.qty_in,0) AS qty_in'),
-                DB::raw('COALESCE(o.qty_out,0) AS qty_out'),
+    
+                DB::raw('COALESCE(i.qty_in, 0) as qty_in'),
+                DB::raw('COALESCE(o.qty_out, 0) as qty_out'),
                 DB::raw('o.last_out_date'),
-
-                DB::raw("ROUND(COALESCE(o.qty_out,0)/{$days}, 2) AS movement_rate"),
-
+    
+                DB::raw("ROUND(COALESCE(o.qty_out,0)/{$days}, 2) as movement_rate"),
+    
                 DB::raw("
                     CASE
                         WHEN COALESCE(o.qty_out,0) = 0
-                            AND o.last_out_date IS NULL
+                             AND o.last_out_date IS NULL
                             THEN 'DEAD'
-
+    
                         WHEN COALESCE(o.qty_out,0) >= 20
-                            AND DATEDIFF(CURDATE(), DATE(o.last_out_date)) <= 7
+                             AND DATEDIFF(CURDATE(), DATE(o.last_out_date)) <= 7
                             THEN 'FAST'
-
+    
                         WHEN COALESCE(o.qty_out,0) BETWEEN 5 AND 19
                             THEN 'MEDIUM'
-
+    
                         ELSE 'SLOW'
-                    END AS movement_category
+                    END as movement_category
                 ")
             ]);
-        
-        /* =======================
-           FILTER CATEGORY (HAVING)
-        ======================= */
+    
         if ($category) {
-            $baseQuery->having('movement_category', $category);
+            $query->having('movement_category', $category);
         }
     
-        /* =======================
-           DATATABLES (AMAN SEARCH)
-        ======================= */
         return datatables()
-            ->of($baseQuery)
-    
-            // 🔥 CUSTOM SEARCH (HINDARI LOWER() KE ALIAS)
-            ->filter(function ($query) use ($request) {
-                if (!empty($request->search['value'])) {
-                    $search = $request->search['value'];
-    
-                    $query->where(function ($q) use ($search) {
-                        $q->where('p.sku', 'LIKE', "%{$search}%")
-                          ->orWhere('p.nama_barang', 'LIKE', "%{$search}%");
-                    });
-                }
-            })
-    
+            ->of($query)
             ->addIndexColumn()
-    
             ->editColumn('last_out_date', function ($r) {
                 return $r->last_out_date
                     ? date('d-m-Y', strtotime($r->last_out_date))
                     : '-';
             })
-    
             ->addColumn('badge', function ($r) {
-                $color = [
+                $map = [
                     'FAST'   => 'success',
                     'MEDIUM' => 'primary',
                     'SLOW'   => 'warning',
-                    'DEAD'   => 'danger'
+                    'DEAD'   => 'danger',
                 ];
-    
-                return '<span class="badge badge-'.$color[$r->movement_category].'">'
-                        .$r->movement_category.
-                       '</span>';
+                return '<span class="badge badge-'.$map[$r->movement_category].'">'
+                    .$r->movement_category.
+                    '</span>';
             })
-    
             ->rawColumns(['badge'])
             ->make(true);
     }
+    
 
     public function export(Request $request)
     {
