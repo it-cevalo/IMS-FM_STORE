@@ -38,7 +38,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Produk</label>
+                <label for="exampleFormControlInput1">Barang</label>
                 <select class="form-control select2" id="search-type" name="id_product" value="{{old('id_product')}}"
                     required>
                     <option value="">....</option>

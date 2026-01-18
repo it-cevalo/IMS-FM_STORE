@@ -33,7 +33,7 @@
                 <thead>
                     <tr>
                         <th colspan="2" class="text-center">Gudang</th>
-                        <th colspan="2" class="text-center">Produk</th>
+                        <th colspan="2" class="text-center">Barang</th>
                         <th rowspan="2" class="text-center align-middle">QTY Terakhir</th>
                         <th rowspan="2" class="text-center align-middle">Tanggal Opname</th>
                         <th rowspan="2" class="text-center align-middle">Aksi</th>
@@ -63,7 +63,7 @@
                 <div class="modal-body">
                     <form id="filterForm">
                         <div class="mb-3">
-                            <label for="exampleFormControlInput1">Produk</label>
+                            <label for="exampleFormControlInput1">Barang</label>
                                 <select class="form-control select2" id="search-type" name="id_unit" value="{{old('id_unit')}}" required>
                                     <option value="#">....</option>
                                     @foreach($products as $p)

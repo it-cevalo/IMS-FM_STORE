@@ -1,7 +1,7 @@
 <html>
 
 <head>
-    <title>Report Produk</title>
+    <title>Report Barang</title>
     <!-- Start CSS Style -->
     <style>
     table,

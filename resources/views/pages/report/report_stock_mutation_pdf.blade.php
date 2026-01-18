@@ -63,7 +63,7 @@
                         <tr>
                             <th class="text-center align-middle" rowspan="2">No</th>
                             <th class="text-center align-middle" colspan="2">Gudang</th>
-                            <th class="text-center align-middle" colspan="2">Produk</th>
+                            <th class="text-center align-middle" colspan="2">Barang</th>
                             <th class="text-center align-middle" colspan="4">Qty</th>
                             <th class="text-center align-middle" rowspan="2">Tanggal</th>
                         </tr>

@@ -81,7 +81,7 @@
         </div>
 
         <div class="table-responsive mt-3">
-            <label>Produk</label>
+            <label>Barang</label>
             <table class="table table-bordered" width="100%">
                 <thead>
                     <tr>

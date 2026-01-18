@@ -74,7 +74,7 @@
             @error('no_inv')
             <div class="alert alert-danger">{{ $message }}</div>
             @enderror <div class="table-responsive">
-                <label for="exampleFormControlInput1">Produk</label>
+                <label for="exampleFormControlInput1">Barang</label>
                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>

@@ -50,7 +50,7 @@
 
             {{-- Produk --}}
             <div class="table-responsive">
-                <label>Produk</label>
+                <label>Barang</label>
                 <table class="table table-bordered">
                     <thead>
                         <tr>

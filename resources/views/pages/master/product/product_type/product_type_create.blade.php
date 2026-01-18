@@ -3,14 +3,14 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Data Jenis Produk</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Data Jenis Barang</h6>
     </div>
     <div class="card-body">
 
         <form id="formProductType" action="{{ route('product_type.store') }}" method="POST">
             @csrf
             <div class="mb-3">
-                <label for="exampleFormControlInput1">Nama Jenis Produk</label>
+                <label for="exampleFormControlInput1">Nama Jenis Barang</label>
                 <input class="form-control" id="exampleFormControlInput1" name="nama_tipe" type="text">
             </div>
             <div class="validation"></div>

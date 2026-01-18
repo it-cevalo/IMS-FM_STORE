@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">Data Jenis Produk</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Data Jenis Barang</h6>
         <a href="{{ route('product_type.create') }}" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i> Tambah</a>
     </div>
 
@@ -19,7 +19,7 @@
                 <thead>
                     <tr>
                         <th class="text-center align-middle">No</th>
-                        <th class="text-center align-middle">Nama Jenis Produk</th>
+                        <th class="text-center align-middle">Nama Jenis Barang</th>
                         <th class="text-center align-middle">Aksi</th>
                     </tr>
                 </thead>

@@ -3,7 +3,7 @@
 @section('content')
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">Master Data Produk</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Master Data Barang</h6>
         <div>
             <a href="{{ route('product.template.download') }}" class="btn btn-success btn-sm">
                 <i class="fa fa-file-excel"></i> Download Template
@@ -42,7 +42,7 @@
                     @csrf
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="modalImportLabel">Import Data Produk</h5>
+                            <h5 class="modal-title" id="modalImportLabel">Import Data Barang</h5>
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                 <span>&times;</span>
                             </button>

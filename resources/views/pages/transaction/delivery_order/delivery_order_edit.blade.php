@@ -69,7 +69,7 @@
 
             {{-- ================= PRODUCT ================= --}}
             <hr>
-            <label class="font-weight-bold">Produk</label>
+            <label class="font-weight-bold">Barang</label>
 
             <div class="table-responsive">
                 <table class="table table-bordered">
