@@ -173,7 +173,10 @@ class PurchaseOrderController extends Controller
     {
         $customers = MCustomer::get();
         $suppliers = MSupplier::get();
-        $products  = Mproduct::select('id', 'nama_barang', 'harga_beli', 'sku')->whereNull('deleted_at')->get();
+        $products  = Mproduct::select('id', 'nama_barang', 'harga_beli', 'sku')
+        ->whereNull('deleted_at')
+        ->where('flag_active','Y')
+        ->get();
 
         return view('pages.transaction.purchase_order.purchase_order_create', compact('customers', 'suppliers', 'products'));
     }

@@ -181,6 +181,7 @@ class DeliveryOrderController extends Controller
     {
         $products = \DB::table('mproduct')
             ->select(['SKU','sku','nama_barang'])
+            ->where('flag_active','Y')
             ->get();
 
         $shipping_via = ['....'=>'....','HANDCARRY'=>'HANDCARRY','EKSPEDISI'=>'EKSPEDISI'];
