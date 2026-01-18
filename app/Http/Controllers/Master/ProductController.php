@@ -212,36 +212,37 @@ class ProductController extends Controller
     /**
      * Import data SKU dari file Excel
      */
-
     public function import(Request $request)
     {
         $request->validate([
             'file' => 'required|mimes:xlsx|max:10240',
         ]);
-
+    
         try {
             $path = $request->file('file')->getRealPath();
             $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
             $sheet = $spreadsheet->getActiveSheet();
             $rows = $sheet->toArray();
-
+    
             DB::beginTransaction();
-
-            $inserted   = 0;
-            $duplicated = 0;
-
+    
+            $total       = 0;
+            $inserted    = 0;
+            $duplicated  = 0;
+    
             foreach ($rows as $index => $row) {
                 if ($index === 0) continue; // skip header
-
+                $total++;
+    
                 $rowNumber = $index + 1;
-
+    
                 $SKU        = trim($row[0] ?? '');
                 $nama       = trim($row[1] ?? '');
                 $typeName   = trim($row[2] ?? '');
                 $unitName   = trim($row[3] ?? '');
                 $stockMin   = is_numeric($row[4] ?? null) ? $row[4] : 1;
                 $flagActive = strtoupper(trim($row[5] ?? 'Y'));
-
+    
                 // =========================
                 // VALIDASI SKU
                 // =========================
@@ -252,15 +253,15 @@ class ProductController extends Controller
                         'message' => "SKU wajib diisi. Cek baris ke-{$rowNumber}."
                     ], 422);
                 }
-
+    
                 // =========================
                 // CEK DUPLIKAT SKU
                 // =========================
                 if (Mproduct::where('sku', $SKU)->exists()) {
                     $duplicated++;
-                    continue;
+                    continue; // skip tapi lanjut import
                 }
-
+    
                 // =========================
                 // HANDLE PRODUCT TYPE
                 // =========================
@@ -272,7 +273,7 @@ class ProductController extends Controller
                     );
                     $typeId = $type->id;
                 }
-
+    
                 // =========================
                 // HANDLE PRODUCT UNIT
                 // =========================
@@ -284,7 +285,7 @@ class ProductController extends Controller
                     );
                     $unitId = $unit->id;
                 }
-
+    
                 // =========================
                 // INSERT PRODUCT
                 // =========================
@@ -296,27 +297,24 @@ class ProductController extends Controller
                     'flag_active'   => in_array($flagActive, ['Y', 'N']) ? $flagActive : 'Y',
                     'stock_minimum' => $stockMin,
                 ]);
-
+    
                 $inserted++;
             }
-
+    
             DB::commit();
-
+    
             // =========================
-            // RESPONSE
+            // RESPONSE (UNTUK SWAL)
             // =========================
-            $msg = "Import selesai. {$inserted} produk berhasil ditambahkan.";
-            if ($duplicated > 0) {
-                $msg .= " {$duplicated} produk sudah terupload sebelumnya.";
-            }
-
             return response()->json([
-                'status'     => 'success',
-                'message'    => $msg,
-                'inserted'   => $inserted,
-                'duplicated' => $duplicated
+                'status'      => 'success',
+                'message'     => 'Import selesai',
+                'total'       => $total,
+                'inserted'    => $inserted,
+                'failed'      => $duplicated,
+                'duplicated'  => $duplicated
             ]);
-
+    
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -325,8 +323,7 @@ class ProductController extends Controller
                 'debug'   => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
-    }
-
+    }    
 
     /**
      * Display the specified resource.
