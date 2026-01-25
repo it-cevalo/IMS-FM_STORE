@@ -48,7 +48,7 @@
             </div>
 
             <div class="mb-3">
-                <label>Catatan *</label>
+                <label>Catatan</label>
                 <textarea class="form-control" name="reason_po"
                     {{ !$canEditHeader ? 'readonly' : '' }}>{{ $purchase_order->reason_po }}</textarea>
             </div>

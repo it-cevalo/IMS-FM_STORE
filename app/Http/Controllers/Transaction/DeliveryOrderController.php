@@ -217,7 +217,7 @@ class DeliveryOrderController extends Controller
         $request->validate([
             'tgl_do'        => 'required',
             'no_do'         => 'required|unique:tdos,no_do',
-            'reason_do'     => 'required',
+            'reason_do'     => 'nullable|string',
             'shipping_via'  => 'required'
         ]);
 
@@ -486,7 +486,7 @@ class DeliveryOrderController extends Controller
          */
         $request->validate([
             'shipping_via' => 'required',
-            'reason_do'    => 'required',
+            'reason_do'    => 'nullable|string',
             'sku'  => 'required|array',
             'qty'          => 'required|array'
         ]);

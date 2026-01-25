@@ -202,7 +202,7 @@ class PurchaseOrderController extends Controller
             $this->validate($request, [
                 'id_supplier' => 'required',
                 'tgl_po'      => 'required|date',
-                'reason_po'   => 'required',
+                'reason_po'   => 'nullable|string',
                 'po_type'     => 'required|in:baru,tambahan',
                 'no_po'       => 'required'
             ]);
@@ -288,7 +288,7 @@ class PurchaseOrderController extends Controller
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Pemesanan Barang berhasil dibuat'
+                'message' => 'PO berhasil dibuat'
             ]);
 
         } catch (\Exception $e) {
@@ -406,7 +406,7 @@ class PurchaseOrderController extends Controller
         if (!$confirm) {
             return response()->json([
                 'success' => false,
-                'error' => 'Pemesanan Barang tidak ditemukan'
+                'error' => 'PO tidak ditemukan'
             ]);
         }
     
@@ -452,7 +452,7 @@ class PurchaseOrderController extends Controller
                 $request->validate([
                     'id_supplier' => 'required',
                     'tgl_po'      => 'required|date',
-                    'reason_po'   => 'required'
+                    'reason_po'   => 'nullable|string'
                 ]);
     
                 $supplier = MSupplier::findOrFail($request->id_supplier);
@@ -528,7 +528,7 @@ class PurchaseOrderController extends Controller
     
             return redirect()
                 ->route('purchase_order.index')
-                ->with('success','Pemesanan Barang berhasil diperbarui');
+                ->with('success','PO berhasil diperbarui');
     
         } catch (\Exception $e) {
             DB::rollBack();
@@ -571,7 +571,7 @@ class PurchaseOrderController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Pemesanan Barang berhasil dibatalkan'
+            'message' => 'PO berhasil dibatalkan'
         ]);
     }
 
