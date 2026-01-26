@@ -61,7 +61,7 @@
             {{-- Note --}}
             <div class="mb-3">
                 <label>Catatan</label>
-                <textarea class="form-control" name="reason_po" required></textarea>
+                <textarea class="form-control" name="reason_po"></textarea>
             </div>
 
             {{-- Produk --}}

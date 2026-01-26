@@ -45,7 +45,7 @@
             {{-- Reason --}}
             <div class="mb-3">
                 <label>Catatan *</label>
-                <textarea class="form-control" name="reason_do" required></textarea>
+                <textarea class="form-control" name="reason_do"></textarea>
             </div>
 
             {{-- Produk --}}
