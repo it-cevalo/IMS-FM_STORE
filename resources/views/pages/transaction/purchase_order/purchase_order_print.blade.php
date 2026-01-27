@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Pemesanan Barang</title>
+    <title>Purchase Order</title>
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;
@@ -50,7 +50,7 @@
 </head>
 <body>
 
-    <div class="title">Pemesanan Barang</div>
+    <div class="title">Purchase Order</div>
 
     <table class="header">
         <tr>

@@ -200,6 +200,26 @@
 </div>
 
 <script>
+function parseBlobError(xhr, callback) {
+    if (!xhr.response) {
+        callback({ message: null });
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function () {
+        const text = reader.result;
+
+        try {
+            const json = JSON.parse(text);
+            callback(json);
+        } catch (e) {
+            // fallback plain text
+            callback({ message: text });
+        }
+    };
+    reader.readAsText(xhr.response);
+}
     $(document).ready(function(){
     
         /*
@@ -314,69 +334,135 @@
                 },
                 error: function(xhr){
                     $("#printLoading").hide();
-    
-                    if(xhr.status === 403){
-                        Swal.fire({
-                            title: 'QR Sudah Pernah Dicetak',
-                            text : 'Silakan isi alasan untuk Cetak Ulang',
-                            icon : 'warning',
-                            input: 'textarea',
-                            inputPlaceholder: 'Contoh: QR rusak, label hilang, dll',
-                            inputAttributes: {
-                                'aria-label': 'Alasan Cetak Ulang'
-                            },
-                            showCancelButton: true,
-                            confirmButtonText: 'Ajukan Cetak Ulang',
-                            cancelButtonText: 'Batal',
-                            preConfirm: (reason) => {
-                                if (!reason) {
-                                    Swal.showValidationMessage('Alasan Cetak Ulang wajib diisi');
-                                    return false;
+
+                    // =====================
+                    // HANDLE 403 (BLOCK PRINT / REPRINT REQUIRED)
+                    // =====================
+                    if (xhr.status === 403) {
+
+                        parseBlobError(xhr, function(res){
+
+                            const msg = res?.message 
+                                ?? 'QR sudah pernah dicetak. Silakan ajukan cetak ulang.';
+
+                            Swal.fire({
+                                title: 'Cetak QR Diblokir',
+                                text : msg,
+                                icon : 'warning',
+                                input: 'textarea',
+                                inputPlaceholder: 'Contoh: QR rusak, label hilang, dll',
+                                showCancelButton: true,
+                                confirmButtonText: 'Ajukan Cetak Ulang',
+                                cancelButtonText: 'Batal',
+                                preConfirm: (reason) => {
+                                    if (!reason) {
+                                        Swal.showValidationMessage('Alasan Cetak Ulang wajib diisi');
+                                        return false;
+                                    }
+                                    return reason;
                                 }
-                                return reason;
-                            }
-                        }).then((result) => {
+                            }).then((result) => {
 
-                            if (!result.isConfirmed) return;
+                                if (!result.isConfirmed) return;
 
-                            $.post('/qr/reprint/request', {
-                                id_po  : {{ $purchase_order->id }},
-                                reason : result.value,
-                                _token       : '{{ csrf_token() }}',
-                                items  : selected.map(function(){
-                                    const productRow = $(this).closest('tr');
-                                    const sku = $(this).data('sku'); // ambil dari data-sku
-                                    const detailId = $(this).val();
-                                    const sequence_no = seqInput.val(); 
-
-                                    return {
-                                        id_po_detail: detailId,
-                                        sku: sku,                // kirim sku, bukan id_product
-                                        sequence: sequence_no
-                                    };
-                                }).get()
-                            })
-                            .done(() => {
-                                Swal.fire('Berhasil', 'Pengajuan Cetak Ulang berhasil dikirim', 'success');
-                            })
-                            .fail(() => {
-                                Swal.fire('Error', 'Gagal mengirim Pengajuan Cetak Ulang', 'error');
+                                $.post('/qr/reprint/request', {
+                                    id_po  : {{ $purchase_order->id }},
+                                    reason : result.value,
+                                    _token : '{{ csrf_token() }}',
+                                    items  : selected.map(function(){
+                                        return {
+                                            id_po_detail: $(this).val(),
+                                            sku         : $(this).data('sku'),
+                                            sequence    : seqInput.val()
+                                        };
+                                    }).get()
+                                })
+                                .done(() => {
+                                    Swal.fire('Berhasil', 'Pengajuan cetak ulang berhasil dikirim', 'success');
+                                })
+                                .fail(() => {
+                                    Swal.fire('Error', 'Gagal mengirim pengajuan cetak ulang', 'error');
+                                });
                             });
-                        });
-                    }
-
-                    // ===================== MULTIPLE / ALL =====================
-                    if (xhr.status === 409) {
-                        Swal.fire({
-                            title: 'Gagal Cetak QR',
-                            text : 'QR Code ada yang sudah terprint. Silakan ajukan request print per barang.',
-                            icon : 'error',
-                            confirmButtonText: 'OK'
                         });
 
                         return;
                     }
+
+                    // =====================
+                    // HANDLE ERROR LAIN
+                    // =====================
+                    Swal.fire(
+                        'Error',
+                        'Terjadi kesalahan saat mencetak QR',
+                        'error'
+                    );
                 }
+                // error: function(xhr){
+                //     $("#printLoading").hide();
+    
+                //     if(xhr.status === 403){
+                //         Swal.fire({
+                //             title: 'QR Sudah Pernah Dicetak',
+                //             text : 'Silakan isi alasan untuk Cetak Ulang',
+                //             icon : 'warning',
+                //             input: 'textarea',
+                //             inputPlaceholder: 'Contoh: QR rusak, label hilang, dll',
+                //             inputAttributes: {
+                //                 'aria-label': 'Alasan Cetak Ulang'
+                //             },
+                //             showCancelButton: true,
+                //             confirmButtonText: 'Ajukan Cetak Ulang',
+                //             cancelButtonText: 'Batal',
+                //             preConfirm: (reason) => {
+                //                 if (!reason) {
+                //                     Swal.showValidationMessage('Alasan Cetak Ulang wajib diisi');
+                //                     return false;
+                //                 }
+                //                 return reason;
+                //             }
+                //         }).then((result) => {
+
+                //             if (!result.isConfirmed) return;
+
+                //             $.post('/qr/reprint/request', {
+                //                 id_po  : {{ $purchase_order->id }},
+                //                 reason : result.value,
+                //                 _token       : '{{ csrf_token() }}',
+                //                 items  : selected.map(function(){
+                //                     const productRow = $(this).closest('tr');
+                //                     const sku = $(this).data('sku'); // ambil dari data-sku
+                //                     const detailId = $(this).val();
+                //                     const sequence_no = seqInput.val(); 
+
+                //                     return {
+                //                         id_po_detail: detailId,
+                //                         sku: sku,                // kirim sku, bukan id_product
+                //                         sequence: sequence_no
+                //                     };
+                //                 }).get()
+                //             })
+                //             .done(() => {
+                //                 Swal.fire('Berhasil', 'Pengajuan Cetak Ulang berhasil dikirim', 'success');
+                //             })
+                //             .fail(() => {
+                //                 Swal.fire('Error', 'Gagal mengirim Pengajuan Cetak Ulang', 'error');
+                //             });
+                //         });
+                //     }
+
+                //     // ===================== MULTIPLE / ALL =====================
+                //     if (xhr.status === 409) {
+                //         Swal.fire({
+                //             title: 'Gagal Cetak QR',
+                //             text : 'QR Code ada yang sudah terprint. Silakan ajukan request print per barang.',
+                //             icon : 'error',
+                //             confirmButtonText: 'OK'
+                //         });
+
+                //         return;
+                //     }
+                // }
             });
         });
     
