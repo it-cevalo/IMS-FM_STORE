@@ -57,14 +57,28 @@
             height: 100%;
         }
 
-        /* =============================
-           INFO
-        ============================= */
         .info {
-            font-size: 8pt;
-            font-weight: bold;
-            line-height: 1.25;
+            font-family: "DejaVu Sans", Arial, sans-serif;
+            font-weight: 700;
+            line-height: 1.15;
             white-space: nowrap;
+        }
+
+        /* SKU / NAMA BARANG */
+        .info .sku {
+            font-size: 10.5pt;
+            font-weight: 800;
+
+            /* 🔑 bikin lebih “hitam” di printer */
+            -webkit-text-stroke: 0.2px #000;
+        }
+
+        /* NOMOR URUT */
+        .info .seq {
+            font-size: 9.5pt;
+            font-weight: 700;
+
+            -webkit-text-stroke: 0.15px #000;
         }
     </style>
 </head>
@@ -81,8 +95,8 @@
             </div>
 
             <div class="info">
-                {{ $qr['sku'] }}<br>
-                {{ $qr['nomor_urut'] }}
+                <div class="sku">{{ $qr['sku'] }}</div>
+                <div class="seq">{{ $qr['nomor_urut'] }}</div>
             </div>
         </div>
     </div>
