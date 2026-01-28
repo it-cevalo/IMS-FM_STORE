@@ -209,7 +209,7 @@ class ProductOutboundController extends Controller
                     ->where('id', $doId)
                     ->update([
                         'status_do'    => $isComplete ? 3 : 2,
-                        'confirm_by'   => Auth::user()->username,
+                        'confirm_by'   => Auth::user()->id,
                         'confirm_date' => now()->toDateString(),
                         'updated_at'   => now(),
                     ]);

@@ -411,7 +411,7 @@ class PurchaseOrderController extends Controller
         }
     
         try {
-            $confirm->confirm_by   = Auth::user()->username;
+            $confirm->confirm_by   = Auth::user()->id;
             $confirm->confirm_date = date('Y-m-d');
             $confirm->status_po = '4';
             $confirm->save();
