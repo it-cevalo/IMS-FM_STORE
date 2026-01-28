@@ -199,6 +199,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/qr/reprint/list', [PurchaseOrderController::class, 'listReprint'])->name('reprint.list');
     Route::post('/qr/reprint/approve', [PurchaseOrderController::class, 'approveReprint'])->name('reprint.approve');
     Route::post('/qr/reprint/reject', [PurchaseOrderController::class, 'rejectReprint'])->name('reprint.reject');
+    Route::get('/po/{id}/qr/validate', [PurchaseOrderController::class, 'validateQR']);
     
     /*
     |--------------------------------------------------------------------------
