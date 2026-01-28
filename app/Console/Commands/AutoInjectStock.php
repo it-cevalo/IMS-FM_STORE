@@ -1,0 +1,229 @@
+<?php
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
+
+class AutoInjectStock extends Command
+{
+    protected $signature = 'stock:auto-inject {--warehouse=1}';
+    protected $description = 'Auto inject saldo awal + generate QR + inbound + log manual';
+
+    private $logHandle;
+
+    public function handle()
+    {
+        $warehouseId = intval($this->option('warehouse'));
+        $excelPath   = storage_path('app/export/saldo_awal.xlsx');
+        $date        = date('Y-m-d');
+        $logPath     = storage_path("logs/AutoInjectStock_$date.log");
+
+        $this->info('=== AUTO INJECT STOCK START ===');
+
+        // buka file log (append)
+        $this->logHandle = fopen($logPath, 'a');
+
+        if (!file_exists($excelPath)) {
+            $this->error('File saldo_awal.xlsx tidak ditemukan');
+            $this->writeLog('-', 'FAILED', 'FAILED', 'FAILED', 'File saldo_awal.xlsx tidak ditemukan');
+            return;
+        }
+
+        $rows = Excel::toArray([], $excelPath)[0];
+        unset($rows[0]); // buang header
+
+        DB::beginTransaction();
+
+        try {
+            $qrPerSku   = [];
+            $totalSku  = 0;
+            $totalQR   = 0;
+
+            foreach ($rows as $index => $row) {
+
+                $nama = trim($row[0] ?? '');
+                $sku  = trim($row[1] ?? '');
+                $qty  = intval($row[5] ?? 0); // REMAIN STOCK
+
+                if ($sku === '' || $qty <= 0) {
+                    $this->warn("[SKIP] Baris {$index} | SKU kosong / qty 0");
+                    continue;
+                }
+
+                $totalSku++;
+                $this->line("▶️  [START] SKU {$sku} | Qty {$qty}");
+
+                $statusInbound = 'OK';
+                $statusQR      = 'OK';
+                $statusStock   = 'OK';
+                $message       = 'success';
+
+                try {
+                    // ===============================
+                    // 1️⃣ Pastikan PRODUCT ada
+                    // ===============================
+                    $product = DB::table('mproduct')->where('sku', $sku)->first();
+
+                    if (!$product) {
+                        $productId = DB::table('mproduct')->insertGetId([
+                            'sku'         => $sku,
+                            'nama_barang' => $nama,
+                            'flag_active' => 'Y',
+                            'created_at'  => now()
+                        ]);
+                        $this->line("   - Product CREATED");
+                    } else {
+                        $productId = $product->id;
+                        $this->line("   - Product OK");
+                    }
+
+                    // ===============================
+                    // 2️⃣ Stock Opname
+                    // ===============================
+                    DB::table('t_stock_opname')->insert([
+                        'id_warehouse' => $warehouseId,
+                        'id_product'   => $productId,
+                        'qty_last'     => $qty,
+                        'tgl_opname'   => now(),
+                        'created_at'   => now()
+                    ]);
+
+                    $this->line("   - Stock opname OK");
+
+                } catch (\Throwable $e) {
+                    $statusStock = 'FAILED';
+                    $message     = 'stock opname gagal';
+                    $this->error("   ✖ ERROR: {$message}");
+                    $this->writeLog($sku, $statusInbound, $statusQR, $statusStock, $message);
+                    continue;
+                }
+
+                // ===============================
+                // 3️⃣ Generate QR + Inbound
+                // ===============================
+                try {
+                    for ($i = 1; $i <= $qty; $i++) {
+
+                        $seq = $this->getNextGlobalSequenceBySKU($sku);
+                        $seqStr = str_pad($seq, 4, '0', STR_PAD_LEFT);
+
+                        $qrPayload = "SA|{$sku}|{$seqStr}";
+
+                        DB::table('tproduct_qr')->insert([
+                            'id_po'        => 0,
+                            'id_po_detail' => 0,
+                            'id_product'   => $productId,
+                            'sku'          => $sku,
+                            'qr_code'      => $qrPayload,
+                            'sequence_no'  => $seqStr,
+                            'nama_barang'  => $nama,
+                            'status'       => 'NEW',
+                            'used_for'     => 'IN',
+                            'printed_by'   => 'SYSTEM',
+                            'created_at'   => now()
+                        ]);
+
+                        DB::table('tproduct_inbound')->insert([
+                            'id_po'          => 0,
+                            'id_po_detail'   => 0,
+                            'id_warehouse'   => $warehouseId,
+                            'id_product'     => $productId,
+                            'sku'            => $sku,
+                            'qr_code'        => $qrPayload,
+                            'qty'            => 1,
+                            'inbound_source' => 'SALDO_AWAL',
+                            'created_by'     => 0,
+                            'created_at'     => now()
+                        ]);
+
+                        $qrPerSku[$sku][] = [
+                            'sku'        => $sku,
+                            'nomor_urut' => $seqStr,
+                            'qr_payload' => $qrPayload
+                        ];
+
+                        $totalQR++;
+                        $this->line("     • QR {$seqStr} generated");
+                    }
+
+                } catch (\Throwable $e) {
+                    $statusInbound = 'FAILED';
+                    $statusQR      = 'FAILED';
+                    $message       = 'generate qr / inbound gagal';
+                    $this->error("   ✖ ERROR: {$message}");
+                }
+
+                $this->writeLog($sku, $statusInbound, $statusQR, $statusStock, $message);
+                $this->info("✔ [DONE] SKU {$sku} | QR {$qty}");
+            }
+
+            // ===============================
+            // 4️⃣ Generate PDF per SKU
+            // ===============================
+            // $this->info('=== GENERATE PDF SALDO AWAL ===');
+
+            // foreach ($qrPerSku as $sku => $qrList) {
+
+            //     $pdf = Pdf::loadView(
+            //         'pages.transaction.purchase_order.purchase_order_qrcode',
+            //         ['qrList' => $qrList]
+            //     )->setPaper([0, 0, 33 * 2.83465, 15 * 2.83465]);
+
+            //     Storage::put("qr/saldo-awal/{$sku}.pdf", $pdf->output());
+
+            //     $this->line("📄 PDF generated: {$sku}.pdf");
+            // }
+
+            DB::commit();
+            fclose($this->logHandle);
+
+            $this->info("=== SELESAI ===");
+            $this->info("Total SKU : {$totalSku}");
+            $this->info("Total QR  : {$totalQR}");
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            fclose($this->logHandle);
+            $this->error("FATAL ERROR: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * GLOBAL SEQUENCE
+     */
+    private function getNextGlobalSequenceBySKU(string $sku): int
+    {
+        $last = DB::table('tproduct_qr')
+            ->where('sku', $sku)
+            ->max(DB::raw('CAST(sequence_no AS UNSIGNED)'));
+
+        return $last ? $last + 1 : 1;
+    }
+
+    /**
+     * MANUAL FILE LOGGING
+     */
+    private function writeLog(
+        string $sku,
+        string $statusInbound,
+        string $statusQR,
+        string $statusStock,
+        string $message
+    ): void {
+        $line = sprintf(
+            "%s|%s|%s|%s|%s|%s\n",
+            now()->format('Y-m-d H:i:s'),
+            $sku,
+            $statusInbound,
+            $statusQR,
+            $statusStock,
+            $message
+        );
+
+        fwrite($this->logHandle, $line);
+    }
+}
