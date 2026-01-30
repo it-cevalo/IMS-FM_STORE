@@ -11,6 +11,8 @@ use App\Models\MproductStock;
 use App\Models\MWarehouse;
 use Auth, DB;
 use Yajra\DataTables\Facades\DataTables;
+use Barryvdh\DomPDF\Facade\Pdf;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class StockOpnameController extends Controller
 {
@@ -299,6 +301,7 @@ class StockOpnameController extends Controller
             ]);
         }
     }
+    
 
     /**
      * Remove the specified resource from storage.
@@ -309,5 +312,80 @@ class StockOpnameController extends Controller
     public function destroy($id)
     {
         //
+    }
+    
+    public function printQRAwalByProductRange(Request $request)
+    {
+        $request->validate([
+            'from' => 'required|integer|min:1',
+            'to'   => 'required|integer|gte:from',
+        ]);
+    
+        $from = $request->from;
+        $to   = $request->to;
+    
+        /**
+         * ===============================
+         * AMBIL QR SALDO AWAL BY RANGE PRODUCT
+         * ===============================
+         */
+        $rows = DB::table('tproduct_qr as q')
+            ->join(
+                'tproduct_inbound as i',
+                DB::raw('i.qr_code COLLATE utf8mb4_unicode_ci'),
+                '=',
+                DB::raw('q.qr_code COLLATE utf8mb4_unicode_ci')
+            )
+            ->where('i.inbound_source', 'SALDO_AWAL')
+            ->whereNotNull('q.sequence_no')
+            ->where('q.sequence_no', '!=', '')
+            ->whereBetween('q.id_product', [$from, $to])
+            ->orderBy('q.id_product')
+            ->orderByRaw('CAST(q.sequence_no AS UNSIGNED)')
+            ->select(
+                'q.sku',
+                'q.nama_barang',
+                'q.sequence_no',
+                'q.qr_code'
+            )
+            ->get();
+    
+        if ($rows->isEmpty()) {
+            abort(404, 'QR Saldo Awal tidak ditemukan pada range tersebut');
+        }
+    
+        /**
+         * ===============================
+         * FORMAT DATA
+         * ===============================
+         */
+        $qrList = $rows->map(fn ($r) => [
+            'sku'          => $r->sku,
+            'nama_barang' => $r->nama_barang,
+            'nomor_urut'  => $r->sequence_no,
+            'qr_payload'  => $r->qr_code,
+        ])->toArray();
+    
+        /**
+         * ===============================
+         * LABEL SIZE (33 x 15 mm)
+         * ===============================
+         */
+        $width  = 33 * 2.83465;
+        $height = 15 * 2.83465;
+    
+        $pdf = Pdf::loadView(
+            'pages.stock.stock_opname.stock_opname_qrcode',
+            [
+                'qrList' => $qrList
+            ]
+        )->setPaper([0, 0, $width, $height], 'portrait');
+    
+        return response($pdf->output(), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header(
+                'Content-Disposition',
+                "inline; filename=QR_SALDO_AWAL_{$from}_TO_{$to}.pdf"
+            );
     }
 }

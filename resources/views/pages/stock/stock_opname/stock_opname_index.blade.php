@@ -7,20 +7,15 @@
         <h6 class="m-0 font-weight-bold text-primary"><a href="{{route('stock_opname.index')}}">Stock Opname</a></h6>
     </div>
     <div class="card-header py-3">
-        @if(Auth::user()->position=='SUPERADMIN')
-        
-            <button type="button" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal">
-                <i class="fa fa-filter"></i> Filter
-            </button>
-            {{-- <a href="{{route('stock_opname.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Tambah</a> --}}
-            <!-- <a href="#" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal"><i class="fa fa-upload"></i> Upload Excel</a>
-            <a download="Template_po.xlsx" href="{{ Storage::url('tpl/template_po.xlsx') }}" class="btn btn-primary btn-flat btn-sm" title="Template_po.xlsx"><i class="fa fa-download"></i> Download Template Excel</a> -->
-        @elseif(Auth::user()->position=='MARKETING') 
-            {{-- <a href="{{route('stock_opname.create')}}" class="btn btn-primary btn-flat btn-sm"><i class="fa fa-plus"></i> Tambah</a> --}}
-            <!-- <a href="#" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal"><i class="fa fa-upload"></i> Upload Excel</a>
-            <a download="Template_po.xlsx" href="{{ Storage::url('tpl/template_po.xlsx') }}" class="btn btn-primary btn-flat btn-sm" title="Template_po.xlsx"><i class="fa fa-download"></i> Download Template Excel</a> -->
-        @else 
-        @endif
+        <button type="button" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal">
+            <i class="fa fa-filter"></i> Filter
+        </button>
+        <button type="button"
+            class="btn btn-info btn-flat btn-sm"
+            data-toggle="modal"
+            data-target="#modalPrintQRAwal">
+            <i class="fa fa-qrcode"></i> Cetak QR Awal (Batch)
+        </button>
     </div>
     <div class="card-body">
         @if(\Session::has('fail'))
@@ -92,6 +87,44 @@
         </div>
     </div>
 <!-- End Modal Filter -->
+<div class="modal fade" id="modalPrintQRAwal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="GET"
+              action="{{ route('stock_opname.print_qr_awal_range') }}"
+              target="_blank"
+              class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa fa-qrcode"></i> Cetak QR Saldo Awal (Batch)
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>ID Product Dari</label>
+                    <input type="number" name="from" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label>ID Product Sampai</label>
+                    <input type="number" name="to" class="form-control" required>
+                </div>
+
+                <small class="text-muted">
+                    Contoh: 1 – 100 (berdasarkan mproduct.id)
+                </small>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-primary">
+                    <i class="fa fa-print"></i> Cetak
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/2.1.2/sweetalert.min.js"></script>
 <script type="text/javascript">

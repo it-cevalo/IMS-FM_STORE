@@ -161,7 +161,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/stock_opname/data', [StockOpnameController::class, 'getData'])->name('stock_opname.data');
     Route::get('stock_opname/{stock_opname}/history', [StockOpnameController::class, 'history'])->name('stock_opname.history');
     Route::resource('stock_opname', StockOpnameController::class);
-
+    Route::get('/stock-opname/print-qr-awal-range',[StockOpnameController::class, 'printQRAwalByProductRange'])->name('stock_opname.print_qr_awal_range');
     /*
     |--------------------------------------------------------------------------
     | TRANSACTION - PURCHASE REQUEST
