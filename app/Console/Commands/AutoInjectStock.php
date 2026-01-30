@@ -47,9 +47,9 @@ class AutoInjectStock extends Command
                 $nama = trim($row[0] ?? '');
                 $sku  = trim($row[1] ?? '');
                 $qty  = intval($row[5] ?? 0);
-            
-                if ($sku === '' || $qty <= 0) {
-                    $this->warn("[SKIP] Baris {$index} | SKU kosong / qty 0");
+                
+                if ($sku === '') {
+                    $this->warn("[SKIP] Baris {$index} | SKU kosong");
                     continue;
                 }
             
