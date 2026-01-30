@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Transaction;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\Permission;
 use Illuminate\Http\Request;
 use App\Models\Tpo;
 use App\Models\Tpo_Detail;
@@ -47,56 +48,101 @@ class PurchaseOrderController extends Controller
 
             return DataTables::of($query)
                 ->addColumn('id', fn($row) => $row->id)
-                ->addColumn('action', function($row) {
-                    $btn = '<a href="'.route('purchase_order.show', $row->id).'" class="btn btn-success btn-sm"><i class="fa fa-eye"></i></a> ';
-                    $btn .= '<a 
-                        href="'.route('purchase_order.print_po', $row->id).'" 
-                        target="_blank"
-                        class="btn btn-dark btn-sm"
-                        title="Print PO">
-                        <i class="fa fa-print"></i>
-                    </a> ';
+                // ->addColumn('action', function($row) {
+                //     $btn = '<a href="'.route('purchase_order.show', $row->id).'" class="btn btn-success btn-sm"><i class="fa fa-eye"></i></a> ';
+                //     $btn .= '<a 
+                //         href="'.route('purchase_order.print_po', $row->id).'" 
+                //         target="_blank"
+                //         class="btn btn-dark btn-sm"
+                //         title="Print PO">
+                //         <i class="fa fa-print"></i>
+                //     </a> ';
                     
-                    if (Auth::user()->position === 'SUPERADMIN' && ($row->status_po == 0)) {
-                        $btn .= '<a href="javascript:void(0)" 
-                            onclick="confirmOrder('.$row->id.', \''.$row->no_po.'\')" 
-                            class="btn btn-primary btn-sm" 
-                            title="Confirm Order">
-                            <i class="fa fa-check"></i>
-                        </a> ';
-                    }
+                //     if (Auth::user()->position === 'SUPERADMIN' && ($row->status_po == 0)) {
+                //         $btn .= '<a href="javascript:void(0)" 
+                //             onclick="confirmOrder('.$row->id.', \''.$row->no_po.'\')" 
+                //             class="btn btn-primary btn-sm" 
+                //             title="Confirm Order">
+                //             <i class="fa fa-check"></i>
+                //         </a> ';
+                //     }
 
-                    if (!in_array($row->status_po, [2, 3])) {
-                        $btn .= '
-                            <button 
-                                type="button"
-                                class="btn btn-danger btn-sm show-alert-delete-box"
-                                data-id="'.$row->id.'"
-                                data-no-po="'.$row->no_po.'">
-                                <i class="fa fa-times-circle"></i>
-                            </button>
-                        ';
-                    }
-                    // $btn .= '<a 
-                    //     href="'.route('purchase_order.edit', $row->id).'" 
-                    //     class="btn btn-warning btn-sm"
-                    //     title="Edit PO">
-                    //     <i class="fa fa-edit"></i>
-                    //     </a> ';
+                //     if (!in_array($row->status_po, [2, 3])) {
+                //         $btn .= '
+                //             <button 
+                //                 type="button"
+                //                 class="btn btn-danger btn-sm show-alert-delete-box"
+                //                 data-id="'.$row->id.'"
+                //                 data-no-po="'.$row->no_po.'">
+                //                 <i class="fa fa-times-circle"></i>
+                //             </button>
+                //         ';
+                //     }
+                //     // $btn .= '<a 
+                //     //     href="'.route('purchase_order.edit', $row->id).'" 
+                //     //     class="btn btn-warning btn-sm"
+                //     //     title="Edit PO">
+                //     //     <i class="fa fa-edit"></i>
+                //     //     </a> ';
                         
-                    $req = DB::table('tproduct_qr')
-                        ->where('id_po', $row->id)
-                        ->exists();
+                //     $req = DB::table('tproduct_qr')
+                //         ->where('id_po', $row->id)
+                //         ->exists();
                     
-                    if (!empty($row->confirm_by) && $req) {
-                        $btn .= '<a href="'.route('purchase_order.reprint_list', $row->id).'" 
-                            class="btn btn-info btn-sm" 
-                            title="Request Reprint">
-                            <i class="fa fa-file-alt"></i>
-                            Cetak Ulang
-                        </a> ';
-                    }
+                //     if (!empty($row->confirm_by) && $req) {
+                //         $btn .= '<a href="'.route('purchase_order.reprint_list', $row->id).'" 
+                //             class="btn btn-info btn-sm" 
+                //             title="Request Reprint">
+                //             <i class="fa fa-file-alt"></i>
+                //             Cetak Ulang
+                //         </a> ';
+                //     }
 
+                //     return $btn;
+                // })
+                ->addColumn('action', function($row) {
+
+                    $btn = '<a href="'.route('purchase_order.show', $row->id).'" class="btn btn-success btn-sm">
+                                <i class="fa fa-eye"></i>
+                            </a> ';
+                
+                    // PRINT PO (sekali)
+                    if (Permission::print('MENU-0301')) {
+                        $btn .= '<a href="'.route('purchase_order.print_po', $row->id).'" 
+                                    target="_blank"
+                                    class="btn btn-dark btn-sm">
+                                    <i class="fa fa-print"></i>
+                                </a> ';
+                    }
+                
+                    // CONFIRM / APPROVE
+                    if (Permission::approve('MENU-0301') && $row->status_po == 0) {
+                        $btn .= '<button class="btn btn-primary btn-sm"
+                                    onclick="confirmOrder('.$row->id.')">
+                                    <i class="fa fa-check"></i>
+                                </button> ';
+                    }
+                
+                    // REJECT
+                    if (Permission::reject('MENU-0301') && !in_array($row->status_po, [2,3])) {
+                        $btn .= '<button class="btn btn-danger btn-sm show-alert-delete-box"
+                                    data-id="'.$row->id.'">
+                                    <i class="fa fa-times-circle"></i>
+                                </button> ';
+                    }
+                
+                    // CETAK ULANG (HARUS PRINT + APPROVE)
+                    if (
+                        Permission::print('MENU-0301') &&
+                        Permission::approve('MENU-0301') &&
+                        !empty($row->confirm_by)
+                    ) {
+                        $btn .= '<a href="'.route('purchase_order.reprint_list', $row->id).'"
+                                    class="btn btn-info btn-sm">
+                                    Cetak Ulang
+                                </a> ';
+                    }
+                
                     return $btn;
                 })
                 ->rawColumns(['action'])
@@ -323,6 +369,11 @@ class PurchaseOrderController extends Controller
 
     public function printPO($id)
     {
+        
+        if (!Permission::print('MENU-0301')) {
+            abort(403, 'Anda tidak punya hak cetak PO');
+        }
+        
         $po = Tpo::with(['supplier'])
             ->findOrFail($id);
 
@@ -373,6 +424,10 @@ class PurchaseOrderController extends Controller
 
     public function approve(Request $request, $id)
     {
+        if (!Permission::approve('MENU-0301')) {
+            abort(403, 'Anda tidak punya hak konfirmasi');
+        }
+        
         $approve_by = Auth::user()->id;
         // dd($approve_by);
         
@@ -401,6 +456,11 @@ class PurchaseOrderController extends Controller
     
     public function confirm(Request $request, $id)
     {
+        
+        if (!Permission::approve('MENU-0301')) {
+            abort(403, 'Anda tidak punya hak konfirmasi');
+        }
+        
         $confirm = Tpo::find($id);
     
         if (!$confirm) {
@@ -554,6 +614,10 @@ class PurchaseOrderController extends Controller
     // }
     public function delete($id)
     {
+        if (!Permission::can('MENU-PO','reject')) {
+            return response()->json(['message'=>'Unauthorized'],403);
+        }
+        
         $po = Tpo::findOrFail($id);
 
         // safety check (backend tetap wajib)
@@ -1391,6 +1455,10 @@ class PurchaseOrderController extends Controller
     
     public function approveReprint(Request $request)
     {
+        if (!Permission::approve('MENU-0301')) {
+            abort(403);
+        }    
+        
         $reqIds = $request->ids ?? [];
     
         if (empty($reqIds)) {
@@ -1445,6 +1513,10 @@ class PurchaseOrderController extends Controller
     
     public function rejectReprint(Request $request)
     {
+        if (!Permission::reject('MENU-0301')) {
+            abort(403);
+        }
+        
         $reqIds = $request->ids ?? [];
         DB::table('tqr_reprint_request')
             ->whereIn('id', $reqIds)

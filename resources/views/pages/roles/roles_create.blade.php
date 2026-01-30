@@ -224,6 +224,81 @@ $('.app-toggle').on('change', function(){
         .toggleClass('is-inactive', !this.checked);
 });
 
+/* ===== ACCESS ===== */
+let fullAccessOn = false;
+
+$('#btnFullAccess').on('click', function () {
+
+    fullAccessOn = !fullAccessOn;
+
+    if (fullAccessOn) {
+
+        /* =========================
+         * 1️⃣ AKTIFKAN SEMUA PARENT
+         * ========================= */
+        $('.parent-toggle').each(function () {
+            if (!this.disabled) {
+                $(this).prop('checked', true).trigger('change');
+            }
+        });
+
+        /* =========================
+         * 2️⃣ AKTIFKAN VIEW + BUKA SUB MENU
+         * ========================= */
+        $('.menu-child').each(function () {
+            let row  = $(this);
+            let view = row.find('.perm-view');
+
+            row.removeClass('d-none');
+            setRow(row, true);
+
+            view.prop('checked', true);
+            $('#action-' + row.data('menu')).removeClass('d-none');
+        });
+
+        /* =========================
+         * 3️⃣ AKTIFKAN SEMUA ACTION
+         * ========================= */
+        $('.perm-action').each(function () {
+            $(this).prop('checked', true);
+        });
+
+        /* =========================
+         * 4️⃣ AKTIFKAN APPS
+         * ========================= */
+        $('.app-toggle').each(function () {
+            $(this).prop('checked', true).trigger('change');
+        });
+
+        $('#btnFullAccess').text('Reset Akses');
+
+    } else {
+
+        /* =========================
+         * RESET SEMUA
+         * ========================= */
+        $('.parent-toggle').each(function () {
+            if (!this.disabled) {
+                $(this).prop('checked', false).trigger('change');
+            }
+        });
+
+        $('.perm-view').prop('checked', false).trigger('change');
+        $('.perm-action').prop('checked', false);
+
+        $('.menu-child')
+            .addClass('d-none')
+            .removeClass('is-active')
+            .addClass('is-inactive');
+
+        $('.action-wrap').addClass('d-none');
+
+        $('.app-toggle').prop('checked', false).trigger('change');
+
+        $('#btnFullAccess').text('Full Akses');
+    }
+});
+
 /* ===== AJAX SUBMIT ===== */
 $('#roleCreateForm').on('submit', function(e){
     e.preventDefault();

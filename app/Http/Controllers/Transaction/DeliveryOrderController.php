@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Transaction;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\Permission;
 use Illuminate\Http\Request;
 use App\Models\Tdo;
 use App\Models\Tpo;
@@ -24,10 +25,6 @@ class DeliveryOrderController extends Controller
     
     public function data(Request $request)
     {
-        if (Auth::user()->position !== 'SUPERADMIN') {
-            abort(403);
-        }
-
         $query = Tdo::with(['po'])->select('tdos.*');
 
         return DataTables::eloquent($query)
@@ -44,16 +41,18 @@ class DeliveryOrderController extends Controller
                     </a>
                 ';
                 
-                $btn .= '
-                    <a href="'.route('delivery_order.edit', $d->id).'"
-                    class="btn btn-sm btn-warning"
-                    title="Edit DO">
-                    <i class="fa fa-edit"></i>
-                    </a>
-                ';
+                if (Permission::approve('MENU-0302') && $d->flag_approve == 'N') {
+                    $btn .= '
+                        <a href="'.route('delivery_order.edit', $d->id).'"
+                        class="btn btn-sm btn-warning"
+                        title="Edit DO">
+                        <i class="fa fa-edit"></i>
+                        </a>
+                    ';
+                }
             
                 // APPROVE (final)
-                if ($d->flag_approve === 'N' && Auth::user()->position === 'SUPERADMIN') {
+                if (Permission::approve('MENU-0302') && $d->flag_approve == 'N') {
                     $btn .= '
                         <a href="javascript:void(0)"
                            onclick="approveDO('.$d->id.', \''.$d->no_do.'\')"
@@ -65,7 +64,7 @@ class DeliveryOrderController extends Controller
                 }
             
                 // Cancel hanya jika belum approve
-                if ($d->flag_approve !== 'Y') {
+                if (Permission::reject('MENU-0302') && $d->flag_approve == 'N') {
                     $btn .= '
                         <button 
                             class="btn btn-sm btn-danger"

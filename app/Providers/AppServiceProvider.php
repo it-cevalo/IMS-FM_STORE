@@ -20,21 +20,60 @@ class AppServiceProvider extends ServiceProvider
 
             $user = Auth::user();
 
-            // Belum login / belum punya role
+            // =========================
+            // SAFETY
+            // =========================
             if (!$user || !$user->role_id) {
-                $view->with('menus', collect());
+                $view->with('menus', []);
                 return;
             }
 
-            $menus = DB::table('menus as m')
-                ->join('role_menus as rm', 'rm.menu_id', '=', 'm.menu_id')
-                ->where('rm.role_id', $user->role_id)
-                ->where('rm.is_enabled', 1)
-                ->where('m.is_active', 1)
-                ->orderBy('m.order_no')
-                ->select('m.*')
-                ->get()
-                ->groupBy('parent_menu_id'); // 🔥 ROOT = NULL
+            $roleId = $user->role_id;
+
+            // =========================
+            // 1️⃣ AMBIL SEMUA MENU AKTIF
+            // =========================
+            $allMenus = DB::table('menus')
+                ->where('is_active', 1)
+                ->orderBy('order_no')
+                ->get();
+
+            // =========================
+            // 2️⃣ MENU YANG BOLEH DILIHAT ROLE
+            // =========================
+            $allowedMenuIds = DB::table('role_menus')
+                ->where('role_id', $roleId)
+                ->where('can_view', 1)
+                ->where('is_enabled', 1)
+                ->pluck('menu_id')
+                ->toArray();
+
+            // =========================
+            // 3️⃣ BUILD TREE MENU
+            // =========================
+            $menus = [];
+
+            foreach ($allMenus as $menu) {
+
+                // ---------- CHILD ----------
+                if ($menu->parent_menu_id) {
+                    if (in_array($menu->menu_id, $allowedMenuIds)) {
+                        $menus[$menu->parent_menu_id][] = $menu;
+                    }
+                    continue;
+                }
+
+                // ---------- PARENT ----------
+                $menus[null][] = $menu;
+            }
+
+            // =========================
+            // 4️⃣ HAPUS PARENT TANPA CHILD
+            // =========================
+            $menus[null] = collect($menus[null] ?? [])
+                ->filter(fn ($parent) => !empty($menus[$parent->menu_id]))
+                ->values()
+                ->all();
 
             $view->with('menus', $menus);
         });

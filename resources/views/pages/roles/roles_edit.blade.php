@@ -57,28 +57,47 @@
 
 @foreach($menus[null] ?? [] as $parent)
 @php
+    $isBeranda = $parent->menu_id === 'MENU-0001';
+
     $parentActive = collect($menus[$parent->menu_id] ?? [])
-        ->pluck('menu_id')
-        ->intersect($rolePermissions->keys())
+        ->filter(fn($child) =>
+            isset($rolePermissions[$child->menu_id]) &&
+            $rolePermissions[$child->menu_id]->can_view
+        )
         ->isNotEmpty();
 @endphp
 
-<tr class="menu-master {{ $parentActive ? 'is-active' : 'is-inactive' }}"
+<tr class="menu-master {{ ($isBeranda || $parentActive) ? 'is-active' : 'is-inactive' }}"
     data-parent="{{ $parent->menu_id }}">
 
     <td class="fw-bold text-uppercase">{{ $parent->name }}</td>
 
     <td class="text-center">
+
+        <input type="hidden"
+               name="permissions[{{ $parent->menu_id }}][enabled]"
+               value="{{ ($isBeranda || $parentActive) ? 1 : 0 }}"
+               class="parent-enabled">
+
         <label class="switch">
             <input type="checkbox"
                    class="parent-toggle"
                    data-parent="{{ $parent->menu_id }}"
-                   {{ $parentActive ? 'checked' : '' }}>
+                   {{ ($isBeranda || $parentActive) ? 'checked' : '' }}
+                   {{ $isBeranda ? 'disabled' : '' }}>
             <span class="slider"></span>
         </label>
+
+        @if($isBeranda)
+            <input type="hidden"
+                   name="permissions[{{ $parent->menu_id }}][view]"
+                   value="1">
+        @endif
     </td>
 
-    <td class="text-muted small">Menu grup</td>
+    <td class="text-muted small">
+        {{ $isBeranda ? 'Menu wajib (selalu aktif)' : 'Mengaktifkan seluruh sub menu' }}
+    </td>
 </tr>
 
 @foreach($menus[$parent->menu_id] ?? [] as $child)
@@ -87,7 +106,7 @@
     $childActive = $perm && $perm->can_view;
 @endphp
 
-<tr class="menu-child {{ $parentActive ? '' : 'd-none' }} {{ $childActive ? 'is-active' : 'is-inactive' }}"
+<tr class="menu-child {{ ($isBeranda || $parentActive) ? '' : 'd-none' }} {{ $childActive ? 'is-active' : 'is-inactive' }}"
     data-parent="{{ $parent->menu_id }}"
     data-menu="{{ $child->menu_id }}">
 
@@ -135,20 +154,20 @@
 <div class="apps-grid">
 @foreach($apps as $app)
 @php $appActive = in_array($app->app_code, $roleApps); @endphp
-    <div class="app-item {{ $appActive ? 'is-active' : 'is-inactive' }}">
-        <div>
-            <div class="fw-semibold">{{ $app->name }}</div>
-            <div class="text-muted small">{{ $app->app_code }}</div>
-        </div>
-        <label class="switch">
-            <input type="checkbox"
-                   class="app-toggle"
-                   name="apps[]"
-                   value="{{ $app->app_code }}"
-                   {{ $appActive ? 'checked' : '' }}>
-            <span class="slider"></span>
-        </label>
+<div class="app-item {{ $appActive ? 'is-active' : 'is-inactive' }}">
+    <div>
+        <div class="fw-semibold">{{ $app->name }}</div>
+        <div class="text-muted small">{{ $app->app_code }}</div>
     </div>
+    <label class="switch">
+        <input type="checkbox"
+               class="app-toggle"
+               name="apps[]"
+               value="{{ $app->app_code }}"
+               {{ $appActive ? 'checked' : '' }}>
+        <span class="slider"></span>
+    </label>
+</div>
 @endforeach
 </div>
 </div>
@@ -162,111 +181,197 @@
 <style>
 .permission-table th { background:#f8fafc; font-size:13px; font-weight:600; }
 .permission-table td { padding:12px; vertical-align:middle; }
-
 .menu-master { background:#eef2f7; border-top:2px solid #e5e7eb; }
-
 .is-inactive { background:#f3f4f6 !important; color:#9ca3af; }
 .is-active { background:#ffffff; }
-
 .action-wrap { display:flex; flex-wrap:wrap; gap:8px; }
 .action-pill { padding:6px 12px; border-radius:999px; background:#eef2f7; font-size:12px; }
-
 .apps-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.app-item {
-    display:flex; justify-content:space-between; align-items:center;
-    padding:12px; border:1px solid #e5e7eb; border-radius:8px;
-}
+.app-item { display:flex; justify-content:space-between; align-items:center; padding:12px; border:1px solid #e5e7eb; border-radius:8px; }
 .app-item.is-inactive { background:#f3f4f6; }
 .app-item.is-active { background:#fff; border-color:#c7d2fe; }
-
 .switch { position:relative; width:42px; height:22px; }
 .switch input { display:none }
 .slider { position:absolute; inset:0; background:#cbd5e1; border-radius:999px; }
-.slider:before { content:""; position:absolute; width:16px; height:16px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.3s; }
+.slider:before { content:""; position:absolute; width:16px; height:16px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
 .switch input:checked + .slider { background:#2563eb; }
 .switch input:checked + .slider:before { transform:translateX(20px); }
 </style>
 
 {{-- ================= SCRIPT ================= --}}
 <script>
-function setRowState(row, active) {
+function setRow(row, active){
     row.toggleClass('is-active', active);
     row.toggleClass('is-inactive', !active);
 }
 
-
-/* ===== PARENT TOGGLE ===== */
-// $('.parent-toggle').on('change', function () {
-//     let parent = $(this).data('parent');
-//     let parentRow = $(`.menu-master[data-parent="${parent}"]`);
-//     let children = $(`.menu-child[data-parent="${parent}"]`);
-
-//     if (this.checked) {
-//         setRowState(parentRow, true);
-//         children.removeClass('d-none');
-//     } else {
-//         setRowState(parentRow, false);
-//         children.addClass('d-none')
-//             .removeClass('is-active')
-//             .addClass('is-inactive')
-//             .find('input').prop('checked', false);
-
-//         children.find('.action-wrap').addClass('d-none');
-//     }
-// });
-$('.parent-toggle').on('change', function () {
+/* ===== PARENT ===== */
+$('.parent-toggle').on('change', function(){
     let parent = $(this).data('parent');
     let row = $(this).closest('tr');
     let children = $(`.menu-child[data-parent="${parent}"]`);
+    let hidden = $(`input[name="permissions[${parent}][enabled]"]`);
 
-    if (this.checked) {
-        row.removeClass('is-inactive').addClass('is-active');
+    hidden.val(this.checked ? 1 : 0);
+    setRow(row, this.checked);
+
+    if(this.checked){
         children.removeClass('d-none');
-    } else {
-        row.removeClass('is-active').addClass('is-inactive');
+    }else{
         children.addClass('d-none')
-            .find('input').prop('checked', false);
+            .removeClass('is-active')
+            .addClass('is-inactive')
+            .find('input').prop('checked',false);
         children.find('.action-wrap').addClass('d-none');
     }
 });
 
-/* ===== CHILD VIEW ===== */
-$('.perm-view').on('change', function () {
+/* ===== VIEW ===== */
+$('.perm-view').on('change', function(){
     let menu = $(this).data('menu');
     let row = $(`.menu-child[data-menu="${menu}"]`);
-    let box = $('#action-' + menu);
+    let box = $('#action-'+menu);
 
-    if (this.checked) {
-        setRowState(row, true);
+    if(this.checked){
+        setRow(row,true);
         box.removeClass('d-none');
-    } else {
-        setRowState(row, false);
-        box.addClass('d-none').find('input').prop('checked', false);
+    }else{
+        setRow(row,false);
+        box.addClass('d-none').find('input').prop('checked',false);
     }
 });
 
-/* ===== APPS TOGGLE ===== */
+/* ===== APPS ===== */
 $('.app-toggle').on('change', function(){
     $(this).closest('.app-item')
         .toggleClass('is-active', this.checked)
         .toggleClass('is-inactive', !this.checked);
 });
 
-/* ===== AJAX UPDATE ===== */
+/* ===== FULL AKSES (FORCE UI MODE – MIRIP CREATE) ===== */
+/* =====================================================
+ * FULL AKSES (PAKSA MODE CREATE – ABAIKAN DB)
+ * ===================================================== */
+ let fullAccessOn = false;
+
+$('#btnFullAccess').on('click', function(){
+
+    fullAccessOn = !fullAccessOn;
+
+    if(fullAccessOn){
+
+        /* =========================================
+         * 1️⃣ PARENT
+         * - switch ON
+         * - TETAP ABU (is-inactive)
+         * ========================================= */
+        $('.menu-master').each(function(){
+
+            let row = $(this);
+            let parent = row.data('parent');
+
+            row
+              .removeClass('is-active')
+              .addClass('is-inactive');
+
+            row.find('.parent-toggle:not(:disabled)')
+               .prop('checked', true);
+
+            $(`input[name="permissions[${parent}][enabled]"]`).val(1);
+        });
+
+        /* =========================================
+         * 2️⃣ CHILD
+         * - MUNCUL
+         * - VIEW ON
+         * - ACTION MUNCUL
+         * ========================================= */
+        $('.menu-child').each(function(){
+
+            let row  = $(this);
+            let menu = row.data('menu');
+
+            row
+              .removeClass('d-none')
+              .removeClass('is-inactive')
+              .addClass('is-active');
+
+            row.find('.perm-view').prop('checked', true);
+            $('#action-' + menu).removeClass('d-none');
+        });
+
+        /* =========================================
+         * 3️⃣ ACTION
+         * ========================================= */
+        $('.perm-action').prop('checked', true);
+
+        /* =========================================
+         * 4️⃣ APPS (WAJIB ADA)
+         * ========================================= */
+        $('.app-item').each(function(){
+            $(this)
+              .removeClass('is-inactive')
+              .addClass('is-active');
+
+            $(this).find('.app-toggle')
+              .prop('checked', true);
+        });
+
+        $('#btnFullAccess').text('Reset Akses');
+
+    } else {
+
+        /* =========================================
+         * RESET → BALIK KE DEFAULT CREATE
+         * (BUKAN KE DB)
+         * ========================================= */
+
+        /* parent */
+        $('.menu-master').each(function(){
+            let row = $(this);
+            let parent = row.data('parent');
+
+            row
+              .removeClass('is-active')
+              .addClass('is-inactive');
+
+            row.find('.parent-toggle:not(:disabled)')
+               .prop('checked', false);
+
+            $(`input[name="permissions[${parent}][enabled]"]`).val(0);
+        });
+
+        /* child */
+        $('.menu-child')
+            .addClass('d-none')
+            .removeClass('is-active')
+            .addClass('is-inactive');
+
+        $('.perm-view').prop('checked', false);
+        $('.perm-action').prop('checked', false);
+        $('.action-wrap').addClass('d-none');
+
+        /* apps */
+        $('.app-item')
+            .removeClass('is-active')
+            .addClass('is-inactive');
+
+        $('.app-toggle').prop('checked', false);
+
+        $('#btnFullAccess').text('Full Akses');
+    }
+});
+
+/* ===== SUBMIT ===== */
 $('#roleEditForm').on('submit', function(e){
     e.preventDefault();
-
     $.ajax({
         url: "{{ route('roles.update',$role->id) }}",
         type: "POST",
         data: $(this).serialize(),
-        success: function(res){
-            Swal.fire('Berhasil', res.message, 'success')
-                .then(()=> window.location.href = "{{ route('roles.index') }}");
-        },
-        error: function(xhr){
-            Swal.fire('Gagal', xhr.responseJSON?.message || 'Error', 'error');
-        }
+        success: res => Swal.fire('Berhasil', res.message, 'success')
+            .then(()=> location.href="{{ route('roles.index') }}"),
+        error: xhr => Swal.fire('Gagal', xhr.responseJSON?.message || 'Error', 'error')
     });
 });
 </script>
