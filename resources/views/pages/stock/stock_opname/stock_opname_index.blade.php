@@ -10,12 +10,14 @@
         <button type="button" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal">
             <i class="fa fa-filter"></i> Filter
         </button>
+        @if(Auth::user()->username = 'sa')
         <button type="button"
             class="btn btn-info btn-flat btn-sm"
             data-toggle="modal"
             data-target="#modalPrintQRAwal">
             <i class="fa fa-qrcode"></i> Cetak QR Awal (Batch)
         </button>
+        @endif
     </div>
     <div class="card-body">
         @if(\Session::has('fail'))
