@@ -36,7 +36,6 @@ class AutoInjectStock extends Command
         $rows = Excel::toArray([], $excelPath)[0];
         unset($rows[0]); // buang header
 
-        DB::beginTransaction();
 
         try {
             $qrPerSku   = [];
@@ -47,27 +46,24 @@ class AutoInjectStock extends Command
 
                 $nama = trim($row[0] ?? '');
                 $sku  = trim($row[1] ?? '');
-                $qty  = intval($row[5] ?? 0); // REMAIN STOCK
-
+                $qty  = intval($row[5] ?? 0);
+            
                 if ($sku === '' || $qty <= 0) {
                     $this->warn("[SKIP] Baris {$index} | SKU kosong / qty 0");
                     continue;
                 }
-
-                $totalSku++;
-                $this->line("▶️  [START] SKU {$sku} | Qty {$qty}");
-
-                $statusInbound = 'OK';
-                $statusQR      = 'OK';
-                $statusStock   = 'OK';
-                $message       = 'success';
-
+            
+                DB::beginTransaction();
+            
                 try {
+                    $totalSku++;
+                    $this->line("▶️  [START] SKU {$sku} | Qty {$qty}");
+            
                     // ===============================
-                    // 1️⃣ Pastikan PRODUCT ada
+                    // 1️⃣ PRODUCT
                     // ===============================
                     $product = DB::table('mproduct')->where('sku', $sku)->first();
-
+            
                     if (!$product) {
                         $productId = DB::table('mproduct')->insertGetId([
                             'sku'         => $sku,
@@ -75,14 +71,12 @@ class AutoInjectStock extends Command
                             'flag_active' => 'Y',
                             'created_at'  => now()
                         ]);
-                        $this->line("   - Product CREATED");
                     } else {
                         $productId = $product->id;
-                        $this->line("   - Product OK");
                     }
-
+            
                     // ===============================
-                    // 2️⃣ Stock Opname
+                    // 2️⃣ STOCK OPNAME
                     // ===============================
                     DB::table('t_stock_opname')->insert([
                         'id_warehouse' => $warehouseId,
@@ -91,28 +85,17 @@ class AutoInjectStock extends Command
                         'tgl_opname'   => now(),
                         'created_at'   => now()
                     ]);
-
-                    $this->line("   - Stock opname OK");
-
-                } catch (\Throwable $e) {
-                    $statusStock = 'FAILED';
-                    $message     = 'stock opname gagal';
-                    $this->error("   ✖ ERROR: {$message}");
-                    $this->writeLog($sku, $statusInbound, $statusQR, $statusStock, $message);
-                    continue;
-                }
-
-                // ===============================
-                // 3️⃣ Generate QR + Inbound
-                // ===============================
-                try {
+            
+                    // ===============================
+                    // 3️⃣ QR + INBOUND
+                    // ===============================
                     for ($i = 1; $i <= $qty; $i++) {
-
+            
                         $seq = $this->getNextGlobalSequenceBySKU($sku);
                         $seqStr = str_pad($seq, 4, '0', STR_PAD_LEFT);
-
+            
                         $qrPayload = "SA|{$sku}|{$seqStr}";
-
+            
                         DB::table('tproduct_qr')->insert([
                             'id_po'        => 0,
                             'id_po_detail' => 0,
@@ -126,7 +109,7 @@ class AutoInjectStock extends Command
                             'printed_by'   => 'SYSTEM',
                             'created_at'   => now()
                         ]);
-
+            
                         DB::table('tproduct_inbound')->insert([
                             'id_po'          => 0,
                             'id_po_detail'   => 0,
@@ -139,26 +122,24 @@ class AutoInjectStock extends Command
                             'created_by'     => 0,
                             'created_at'     => now()
                         ]);
-
-                        $qrPerSku[$sku][] = [
-                            'sku'        => $sku,
-                            'nomor_urut' => $seqStr,
-                            'qr_payload' => $qrPayload
-                        ];
-
+            
                         $totalQR++;
-                        $this->line("     • QR {$seqStr} generated");
                     }
-
+            
+                    DB::commit();
+            
+                    $this->writeLog($sku, 'OK', 'OK', 'OK', 'success');
+                    $this->info("✔ [DONE] SKU {$sku}");
+            
                 } catch (\Throwable $e) {
-                    $statusInbound = 'FAILED';
-                    $statusQR      = 'FAILED';
-                    $message       = 'generate qr / inbound gagal';
-                    $this->error("   ✖ ERROR: {$message}");
+            
+                    DB::rollBack();
+            
+                    $this->error("✖ SKU {$sku} FAILED");
+                    $this->error($e->getMessage());
+            
+                    $this->writeLog($sku, 'FAILED', 'FAILED', 'FAILED', $e->getMessage());
                 }
-
-                $this->writeLog($sku, $statusInbound, $statusQR, $statusStock, $message);
-                $this->info("✔ [DONE] SKU {$sku} | QR {$qty}");
             }
 
             // ===============================
@@ -199,8 +180,9 @@ class AutoInjectStock extends Command
     {
         $last = DB::table('tproduct_qr')
             ->where('sku', $sku)
+            ->lockForUpdate() // ⬅️ WAJIB
             ->max(DB::raw('CAST(sequence_no AS UNSIGNED)'));
-
+    
         return $last ? $last + 1 : 1;
     }
 
