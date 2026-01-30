@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Purchase Order</title>
+    <title>Stock In</title>
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;
