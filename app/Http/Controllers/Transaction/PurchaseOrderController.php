@@ -1131,7 +1131,7 @@ class PurchaseOrderController extends Controller
         | Browser tidak boleh override
         */
         $pdf = Pdf::loadView(
-            'pages.transaction.purchase_order.purchase_order_pdf',
+            'pages.transaction.purchase_order.purchase_order_qrcode',
             [
                 'po'      => $po,
                 'qrList' => $qrList
@@ -1153,13 +1153,6 @@ class PurchaseOrderController extends Controller
                 'Content-Disposition',
                 'inline; filename="QR_'.$po->no_po.'.pdf"'
             );
-
-        // $pdf = Pdf::loadView('pages.transaction.purchase_order.purchase_order_pdf', [
-        //     'po' => $po,
-        //     'qrList' => $qrList
-        // ])->setPaper('A4', 'portrait');
-
-        // return $pdf->stream("QR_{$po->no_po}.pdf");
     }
 
     private function detectPrintedConflict($poId, $detailId, $seq)

@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <title>QR Label</title>
 
     <style>
         @page {
@@ -12,98 +13,113 @@
         body {
             margin: 0;
             padding: 0;
-
-            width: 33mm;
-            height: 15mm;
-
-            font-family: Arial, sans-serif;
+            font-family: "DejaVu Sans";
         }
 
         /* =============================
-           SAFE AREA (1mm)
+        1 LABEL = 1 PAGE
         ============================= */
         .page {
             width: 33mm;
-            height: 15mm;
+            padding: 1mm;
             box-sizing: border-box;
-
-            padding: 1mm; /* ✅ SAFE AREA */
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
-        /* =============================
-           CONTENT (CENTERED)
-        ============================= */
-        .content {
-            display: flex;
-            align-items: center;
-            gap: 2mm;
+        /* page break antar label */
+        .page + .page {
+            page-break-before: always;
         }
 
-        /* =============================
-           QR
-        ============================= */
-        .qr {
+        /* TABLE ENGINE (PALING STABIL) */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        td {
+            padding: 0;
+            vertical-align: top;
+        }
+
+        /* QR */
+        .qr img {
             width: 10.5mm;
             height: 10.5mm;
-            flex-shrink: 0;
+            display: block;
         }
 
-        svg {
-            width: 100%;
-            height: 100%;
-        }
-
+        /* TEXT WRAPPER */
         .info {
-            font-family: "DejaVu Sans", Arial, sans-serif;
-            font-weight: 700;
-            line-height: 1.15;
+            line-height: 1.05;
+            font-family: "DejaVu Sans";
+            font-weight: normal; /* 🔑 PAKSA SATU VARIAN FONT */
+        }
+
+        /* =============================
+        NAMA BARANG (PALING BESAR)
+        ============================= */
+        .name {
+            font-size: 5pt;
+            line-height: 1.1;
+
+            white-space: normal;
+            word-wrap: break-word;
+
+            /* 🔑 bikin tebal TANPA ganti font */
+            -webkit-text-stroke: 0.35px #000;
+        }
+
+        /* SKU */
+        .sku {
+            font-size: 5pt;
             white-space: nowrap;
+
+            -webkit-text-stroke: 0.3px #000;
         }
 
-        /* SKU / NAMA BARANG */
-        .info .sku {
-            font-size: 10.5pt;
-            font-weight: 800;
+        /* NO URUT */
+        .seq {
+            font-size: 5pt;
+            white-space: nowrap;
 
-            /* 🔑 bikin lebih “hitam” di printer */
-            -webkit-text-stroke: 0.2px #000;
-        }
-
-        /* NOMOR URUT */
-        .info .seq {
-            font-size: 9.5pt;
-            font-weight: 700;
-
-            -webkit-text-stroke: 0.15px #000;
+            -webkit-text-stroke: 0.25px #000;
         }
     </style>
 </head>
-
 <body>
-@foreach ($qrList as $qr)
+
+@foreach ($qrList as $q)
+@php
+    $svg = QrCode::format('svg')
+        ->size(300)
+        ->margin(0)
+        ->generate($q['qr_payload']);
+
+    $base64 = base64_encode($svg);
+@endphp
     <div class="page">
-        <div class="content">
-            <div class="qr">
-                {!! QrCode::format('svg')
-                    ->size(300)
-                    ->margin(0)
-                    ->generate($qr['qr_payload']) !!}
-            </div>
+        <table>
+            <tr>
+                <td class="qr" style="width:11mm">
+                    <img src="data:image/svg+xml;base64,{{ $base64 }}">
+                </td>
 
-            <div class="info">
-                <div class="sku">{{ $qr['sku'] }}</div>
-                <div class="seq">{{ $qr['nomor_urut'] }}</div>
-            </div>
-        </div>
+                <td>
+                    <div class="info">
+                        <div class="name">
+                            <strong>{{ \Illuminate\Support\Str::limit($q['nama_barang'], 55) }}</strong>
+                        </div>
+                        <div class="sku">
+                            <strong>{{ $q['sku'] }}</strong>
+                        </div>
+                        <div class="seq">
+                            <strong>{{ $q['nomor_urut'] }}</strong>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
     </div>
-
-    @if (! $loop->last)
-        <div style="page-break-after: always;"></div>
-    @endif
 @endforeach
 </body>
 </html>
