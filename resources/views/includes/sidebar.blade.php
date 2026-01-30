@@ -1,6 +1,6 @@
 <ul class="navbar-nav bg-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
-    {{-- BRAND --}}
+    {{-- ================= BRAND ================= --}}
     <a class="sidebar-brand d-flex align-items-center justify-content-center"
        href="{{ route('dashboard') }}">
         <div class="sidebar-brand-icon rotate-n-15">
@@ -8,14 +8,23 @@
         </div>
         <div class="sidebar-brand-text mx-3">IMS</div>
     </a>
-    
+
     <div class="sidebar-heading">MENU</div>
 
     <hr class="sidebar-divider my-0">
 
-    {{-- MENU DINAMIS BERDASARKAN ROLE --}}
+    {{-- ================= BERANDA (FIX / TIDAK DI PERMISSION) ================= --}}
+    <li class="nav-item active">
+        <a class="nav-link" href="{{ route('dashboard') }}">
+            <i class="fas fa-fw fa-home"></i>
+            <span>Beranda</span>
+        </a>
+    </li>
+
+    <hr class="sidebar-divider">
+
+    {{-- ================= MENU DINAMIS BERDASARKAN ROLE ================= --}}
     @foreach($menus[null] ?? [] as $menu)
-    
 
         {{-- MENU TANPA CHILD --}}
         @if(empty($menus[$menu->menu_id]))
@@ -26,6 +35,7 @@
                     <span>{{ $menu->name }}</span>
                 </a>
             </li>
+
         @else
             {{-- MENU PARENT --}}
             <li class="nav-item">
@@ -59,7 +69,7 @@
 
     <hr class="sidebar-divider d-none d-md-block">
 
-    {{-- LOGOUT --}}
+    {{-- ================= LOGOUT ================= --}}
     <li class="nav-item">
         <form id="logout-form" action="{{ route('logout') }}" method="POST">
             @csrf
