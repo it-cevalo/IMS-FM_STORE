@@ -1073,13 +1073,15 @@ class PurchaseOrderController extends Controller
         ]);
     }
 
-    private function createQRWithFixedSequence($po, $item, int $seqNumber)
+    private function createQRWithFixedSequence($po, $item)
     {
         $sku = $item->part_number;
     
         $product = DB::table('mproduct')->where('sku', $sku)->first();
         if (!$product) abort(422, "SKU {$sku} tidak ditemukan");
     
+        // 🔑 GLOBAL SEQUENCE PER SKU
+        $seqNumber = $this->getNextGlobalSequenceBySKU($sku);
         $seqStr = str_pad($seqNumber, 4, '0', STR_PAD_LEFT);
     
         $qrValue = $po->no_po . "|" . $sku . "|" . $seqStr;
