@@ -13,7 +13,7 @@
 
     <hr class="sidebar-divider my-0">
 
-    {{-- ================= BERANDA (FIX / TIDAK DI PERMISSION) ================= --}}
+    {{-- ================= BERANDA (FIX / TANPA PERMISSION) ================= --}}
     <li class="nav-item active">
         <a class="nav-link" href="{{ route('dashboard') }}">
             <i class="fas fa-fw fa-home"></i>
@@ -26,8 +26,14 @@
     {{-- ================= MENU DINAMIS BERDASARKAN ROLE ================= --}}
     @foreach($menus[null] ?? [] as $menu)
 
-        {{-- MENU TANPA CHILD --}}
-        @if(empty($menus[$menu->menu_id]))
+        @php
+            $children = $menus[$menu->menu_id] ?? [];
+            $hasChildren = count($children) > 0;
+        @endphp
+
+        {{-- ===== PARENT TANPA CHILD (MENU BIASA) ===== --}}
+        @if(!$hasChildren)
+
             <li class="nav-item">
                 <a class="nav-link"
                    href="{{ $menu->route_name ? route($menu->route_name) : '#' }}">
@@ -37,7 +43,7 @@
             </li>
 
         @else
-            {{-- MENU PARENT --}}
+            {{-- ===== PARENT DENGAN CHILD ===== --}}
             <li class="nav-item">
                 <a class="nav-link collapsed"
                    href="#"
@@ -53,7 +59,7 @@
                      data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
 
-                        @foreach($menus[$menu->menu_id] as $child)
+                        @foreach($children as $child)
                             <a class="collapse-item"
                                href="{{ $child->route_name ? route($child->route_name) : '#' }}">
                                 {{ $child->name }}
@@ -63,6 +69,7 @@
                     </div>
                 </div>
             </li>
+
         @endif
 
     @endforeach
@@ -76,7 +83,7 @@
         </form>
         <a href="#" class="nav-link"
            onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-            <i class="fas fa-fw fa-sign-out-alt"></i>
+            <i class="{{ $menu->icon ?? 'fas fa-fw fa-sign-out-alt' }}"></i>
             <span>Keluar</span>
         </a>
     </li>

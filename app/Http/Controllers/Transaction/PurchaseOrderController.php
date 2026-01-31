@@ -118,7 +118,7 @@ class PurchaseOrderController extends Controller
                     // CONFIRM / APPROVE
                     if (Permission::approve('MENU-0301') && $row->status_po == 0) {
                         $btn .= '<button class="btn btn-primary btn-sm"
-                                    onclick="confirmOrder('.$row->id.')">
+                                    onclick="confirmOrder('.$row->id.', \''.$row->no_po.'\')">
                                     <i class="fa fa-check"></i>
                                 </button> ';
                     }
@@ -1073,7 +1073,7 @@ class PurchaseOrderController extends Controller
         ]);
     }
 
-    private function createQRWithFixedSequence($po, $item)
+    private function createQRWithFixedSequence($po, $item, int $seqNumber)
     {
         $sku = $item->part_number;
     

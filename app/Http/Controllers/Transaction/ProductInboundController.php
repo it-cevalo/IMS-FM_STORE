@@ -17,32 +17,35 @@ class ProductInboundController extends Controller
     {
         $data = DB::table('tproduct_inbound as pi')
             ->leftJoin('tpos as po', 'po.id', '=', 'pi.id_po')
+            // ❌ EXCLUDE SALDO_AWAL
+            ->where('pi.inbound_source', '!=', 'SALDO_AWAL')
             ->select(
                 DB::raw('DATE(pi.received_at) as tgl_inbound'),
-
+    
                 // JUMLAH PO (hanya inbound_source = PO)
                 DB::raw("
                     COUNT(DISTINCT CASE
                         WHEN pi.inbound_source = 'PO' THEN pi.id_po
                     END) as jumlah_po
                 "),
-
+    
                 // JUMLAH RETUR
                 DB::raw("
                     COUNT(CASE
                         WHEN pi.inbound_source = 'RETUR_CUST' THEN 1
                     END) as jumlah_retur
                 "),
-
-                // TOTAL BARANG (SEMUA)
+    
+                // TOTAL BARANG (tanpa SALDO_AWAL)
                 DB::raw('COUNT(pi.id) as total_barang')
             )
             ->groupBy(DB::raw('DATE(pi.received_at)'))
             ->orderByDesc('tgl_inbound')
             ->get();
-
+    
         return response()->json(['data' => $data]);
     }
+    
 
     
     // public function datatable()
