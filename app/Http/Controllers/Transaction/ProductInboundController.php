@@ -75,34 +75,56 @@ class ProductInboundController extends Controller
     //         ->get();
 
     //     // ===============================
-    //     // INBOUND DATA (GROUP BY PO)
+    //     // INBOUND DATA (PO + RETUR)
     //     // ===============================
     //     $rows = DB::table('tproduct_inbound as a')
-    //     ->join('tpos as po', 'a.id_po', '=', 'po.id')
-    //     ->join('mproduct as p', 'a.id_product', '=', 'p.id')
-    //     ->whereDate('a.received_at', $tgl)
-    //     ->select(
-    //         'a.id',
-    //         'a.id_po',
-    //         'po.no_po',
-    //         'a.qr_code',
-    //         'a.id_warehouse',
-    //         'p.sku as SKU',
-    //         'p.nama_barang',
-    //         'a.received_at',
-    //         'a.qty'
-    //     )
-    //     ->orderBy('po.no_po')
-    //     ->get()
-    //     ->groupBy('id_po');
+    //         ->leftJoin('tpos as po', 'a.id_po', '=', 'po.id')
+    //         ->join('mproduct as p', 'a.id_product', '=', 'p.id')
+    //         ->whereDate('a.received_at', $tgl)
+    //         ->select(
+    //             'a.id',
+    //             'a.id_po',
+    //             'a.inbound_source',
+    //             'po.no_po',
+    //             'a.qr_code',
+    //             'a.id_warehouse',
+    //             'p.sku as SKU',
+    //             'p.nama_barang',
+    //             'a.received_at',
+    //             'a.qty'
+    //         )
+    //         ->orderByRaw("
+    //             CASE 
+    //                 WHEN a.inbound_source = 'RETUR_CUST' THEN 1
+    //                 ELSE 0
+    //             END
+    //         ")
+    //         ->orderBy('po.no_po')
+    //         ->orderBy('a.received_at')
+    //         ->get()
+    //         ->groupBy(function ($row) {
+    //             /**
+    //              * ===============================
+    //              * GROUPING RULE
+    //              * ===============================
+    //              * - PO        → group by id_po
+    //              * - RETUR     → group under 'RETUR'
+    //              */
+    //             return $row->inbound_source === 'RETUR_CUST'
+    //                 ? 'RETUR'
+    //                 : $row->id_po;
+    //         });
 
-    //     return view('pages.transaction.product_inbound.product_inbound_detail', compact(
-    //         'tgl',
-    //         'rows',
-    //         'warehouses'
-    //     ));
+    //     return view(
+    //         'pages.transaction.product_inbound.product_inbound_detail',
+    //         compact(
+    //             'tgl',
+    //             'rows',
+    //             'warehouses'
+    //         )
+    //     );
     // }
-    
+
     public function detailByDate(Request $request, $tgl)
     {
         // ===============================
@@ -119,6 +141,8 @@ class ProductInboundController extends Controller
             ->leftJoin('tpos as po', 'a.id_po', '=', 'po.id')
             ->join('mproduct as p', 'a.id_product', '=', 'p.id')
             ->whereDate('a.received_at', $tgl)
+            // ❌ EXCLUDE SALDO_AWAL
+            ->where('a.inbound_source', '!=', 'SALDO_AWAL')
             ->select(
                 'a.id',
                 'a.id_po',
@@ -248,29 +272,56 @@ class ProductInboundController extends Controller
                  * 🔍 Ambil OPNAME PERTAMA (tanggal paling awal)
                  * 👉 BUKAN per hari
                  */
-                $firstOpname = DB::table('t_stock_opname')
+                // $firstOpname = DB::table('t_stock_opname')
+                //     ->where('id_warehouse', $request->id_warehouse)
+                //     ->where('id_product', $product['id_product'])
+                //     ->orderBy('tgl_opname', 'asc')
+                //     ->first();
+
+                // if ($firstOpname) {
+                //     // 🔁 UPDATE KE TANGGAL PERTAMA
+                //     DB::table('t_stock_opname')
+                //         ->where('id', $firstOpname->id)
+                //         ->update([
+                //             'qty_in'     => DB::raw("qty_in + {$qty_in}"),
+                //             'qty_last'   => $qty_last,
+                //             'updated_at' => now(),
+                //         ]);
+                // } else {
+                //     // ➕ INSERT SEKALI SEBAGAI OPNAME PERTAMA
+                //     DB::table('t_stock_opname')->insert([
+                //         'id_warehouse' => $request->id_warehouse,
+                //         'id_product'   => $product['id_product'],
+                //         'qty_in'       => $qty_in,
+                //         'qty_last'     => $qty_last,
+                //         'tgl_opname'   => now()->toDateString(), // tanggal pertama
+                //         'created_at'   => now(),
+                //     ]);
+                // }
+
+
+                $stock = DB::table('t_stock_opname')
                     ->where('id_warehouse', $request->id_warehouse)
                     ->where('id_product', $product['id_product'])
-                    ->orderBy('tgl_opname', 'asc')
+                    ->lockForUpdate()
                     ->first();
-
-                if ($firstOpname) {
-                    // 🔁 UPDATE KE TANGGAL PERTAMA
+                    
+                if ($stock) {
                     DB::table('t_stock_opname')
-                        ->where('id', $firstOpname->id)
+                        ->where('id', $stock->id)
                         ->update([
                             'qty_in'     => DB::raw("qty_in + {$qty_in}"),
-                            'qty_last'   => $qty_last,
+                            'qty_last'   => DB::raw("qty_last + {$qty_in}"),
                             'updated_at' => now(),
                         ]);
                 } else {
-                    // ➕ INSERT SEKALI SEBAGAI OPNAME PERTAMA
                     DB::table('t_stock_opname')->insert([
                         'id_warehouse' => $request->id_warehouse,
                         'id_product'   => $product['id_product'],
                         'qty_in'       => $qty_in,
-                        'qty_last'     => $qty_last,
-                        'tgl_opname'   => now()->toDateString(), // tanggal pertama
+                        'qty_last'     => $qty_in,
+                        'qty_out'      => 0,
+                        'tgl_opname'   => now()->toDateString(),
                         'created_at'   => now(),
                     ]);
                 }

@@ -36,128 +36,136 @@ class AutoInjectStock extends Command
         $rows = Excel::toArray([], $excelPath)[0];
         unset($rows[0]); // buang header
 
-
         try {
             $qrPerSku   = [];
             $totalSku  = 0;
             $totalQR   = 0;
+
+            // ===============================
+            // 🔒 TRACK SKU AGAR TIDAK DOUBLE
+            // ===============================
+            $processedSku = [];
 
             foreach ($rows as $index => $row) {
 
                 $nama = trim($row[0] ?? '');
                 $sku  = trim($row[1] ?? '');
                 $qty  = intval($row[5] ?? 0);
-                
+
                 if ($sku === '') {
                     $this->warn("[SKIP] Baris {$index} | SKU kosong");
                     continue;
                 }
-            
+
+                // ⛔ SKIP JIKA SKU SUDAH DIPROSES DI LOOP INI
+                if (isset($processedSku[$sku])) {
+                    $this->warn("[SKIP] SKU {$sku} sudah diproses sebelumnya");
+                    continue;
+                }
+
+                $processedSku[$sku] = true;
+
                 DB::beginTransaction();
-            
+
                 try {
                     $totalSku++;
                     $this->line("▶️  [START] SKU {$sku} | Qty {$qty}");
-            
+
                     // ===============================
                     // 1️⃣ PRODUCT
                     // ===============================
                     $product = DB::table('mproduct')->where('sku', $sku)->first();
-            
+
                     if (!$product) {
                         $productId = DB::table('mproduct')->insertGetId([
                             'sku'         => $sku,
                             'nama_barang' => $nama,
                             'flag_active' => 'Y',
+                            'id_type'     => '1',
+                            'id_unit'     => '1',
+                            'stock_minimum' => '1',
                             'created_at'  => now()
                         ]);
                     } else {
                         $productId = $product->id;
                     }
-            
+
                     // ===============================
-                    // 2️⃣ STOCK OPNAME
+                    // 2️⃣ STOCK OPNAME (ANTI DOUBLE)
                     // ===============================
-                    DB::table('t_stock_opname')->insert([
-                        'id_warehouse' => $warehouseId,
-                        'id_product'   => $productId,
-                        'qty_last'     => $qty,
-                        'tgl_opname'   => now(),
-                        'created_at'   => now()
-                    ]);
-            
+                    $opnameExists = DB::table('t_stock_opname')
+                        ->where('id_warehouse', $warehouseId)
+                        ->where('id_product', $productId)
+                        ->whereDate('tgl_opname', date('Y-m-d'))
+                        ->exists();
+
+                    if (!$opnameExists) {
+                        DB::table('t_stock_opname')->insert([
+                            'id_warehouse' => $warehouseId,
+                            'id_product'   => $productId,
+                            'qty_last'     => $qty,
+                            'tgl_opname'   => now(),
+                            'created_at'   => now()
+                        ]);
+                    }
+
                     // ===============================
                     // 3️⃣ QR + INBOUND
                     // ===============================
-                    for ($i = 1; $i <= $qty; $i++) {
-            
-                        $seq = $this->getNextGlobalSequenceBySKU($sku);
-                        $seqStr = str_pad($seq, 4, '0', STR_PAD_LEFT);
-            
-                        $qrPayload = "SA|{$sku}|{$seqStr}";
-            
-                        DB::table('tproduct_qr')->insert([
-                            'id_po'        => 0,
-                            'id_po_detail' => 0,
-                            'id_product'   => $productId,
-                            'sku'          => $sku,
-                            'qr_code'      => $qrPayload,
-                            'sequence_no'  => $seqStr,
-                            'nama_barang'  => $nama,
-                            'status'       => 'NEW',
-                            'used_for'     => 'IN',
-                            'printed_by'   => 'SYSTEM',
-                            'created_at'   => now()
-                        ]);
-            
-                        DB::table('tproduct_inbound')->insert([
-                            'id_po'          => 0,
-                            'id_po_detail'   => 0,
-                            'id_warehouse'   => $warehouseId,
-                            'id_product'     => $productId,
-                            'sku'            => $sku,
-                            'qr_code'        => $qrPayload,
-                            'qty'            => 1,
-                            'inbound_source' => 'SALDO_AWAL',
-                            'created_by'     => 0,
-                            'created_at'     => now()
-                        ]);
-            
-                        $totalQR++;
+                    if ($qty > 0) {
+                        for ($i = 1; $i <= $qty; $i++) {
+
+                            $seq = $this->getNextGlobalSequenceBySKU($sku);
+                            $seqStr = str_pad($seq, 4, '0', STR_PAD_LEFT);
+
+                            $qrPayload = "SA|{$sku}|{$seqStr}";
+
+                            DB::table('tproduct_qr')->insert([
+                                'id_po'        => 0,
+                                'id_po_detail' => 0,
+                                'id_product'   => $productId,
+                                'sku'          => $sku,
+                                'qr_code'      => $qrPayload,
+                                'sequence_no'  => $seqStr,
+                                'nama_barang'  => $nama,
+                                'status'       => 'NEW',
+                                'used_for'     => 'IN',
+                                'printed_by'   => 'SYSTEM',
+                                'created_at'   => now()
+                            ]);
+
+                            DB::table('tproduct_inbound')->insert([
+                                'id_po'          => 0,
+                                'id_po_detail'   => 0,
+                                'id_warehouse'   => $warehouseId,
+                                'id_product'     => $productId,
+                                'sku'            => $sku,
+                                'qr_code'        => $qrPayload,
+                                'qty'            => 1,
+                                'inbound_source' => 'SALDO_AWAL',
+                                'created_by'     => 0,
+                                'created_at'     => now()
+                            ]);
+
+                            $totalQR++;
+                        }
                     }
-            
+
                     DB::commit();
-            
+
                     $this->writeLog($sku, 'OK', 'OK', 'OK', 'success');
                     $this->info("✔ [DONE] SKU {$sku}");
-            
+
                 } catch (\Throwable $e) {
-            
+
                     DB::rollBack();
-            
+
                     $this->error("✖ SKU {$sku} FAILED");
                     $this->error($e->getMessage());
-            
+
                     $this->writeLog($sku, 'FAILED', 'FAILED', 'FAILED', $e->getMessage());
                 }
             }
-
-            // ===============================
-            // 4️⃣ Generate PDF per SKU
-            // ===============================
-            // $this->info('=== GENERATE PDF SALDO AWAL ===');
-
-            // foreach ($qrPerSku as $sku => $qrList) {
-
-            //     $pdf = Pdf::loadView(
-            //         'pages.transaction.purchase_order.purchase_order_qrcode',
-            //         ['qrList' => $qrList]
-            //     )->setPaper([0, 0, 33 * 2.83465, 15 * 2.83465]);
-
-            //     Storage::put("qr/saldo-awal/{$sku}.pdf", $pdf->output());
-
-            //     $this->line("📄 PDF generated: {$sku}.pdf");
-            // }
 
             DB::commit();
             fclose($this->logHandle);
@@ -182,7 +190,7 @@ class AutoInjectStock extends Command
             ->where('sku', $sku)
             ->lockForUpdate() // ⬅️ WAJIB
             ->max(DB::raw('CAST(sequence_no AS UNSIGNED)'));
-    
+
         return $last ? $last + 1 : 1;
     }
 

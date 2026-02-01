@@ -58,7 +58,7 @@ td {
    NAMA BARANG (PALING BESAR)
 ============================= */
 .name {
-    font-size: 5pt;
+    font-size: 4pt;
     line-height: 1.1;
 
     white-space: normal;

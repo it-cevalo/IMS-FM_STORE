@@ -9,17 +9,18 @@
         </h6>
     </div>
     <div class="card-header py-3">
-        @if(Auth::user()->position=='MANAGER' || Auth::user()->position=='SUPERADMIN' || Auth::user()->position=='PURCHASING')
-        <a href="{{route('purchase_order.create')}}" class="btn btn-primary btn-flat btn-sm">
-            <i class="fa fa-plus"></i> Tambah
-        </a>
+        
+        @if(\App\Helpers\Permission::create('MENU-0301'))
+            <a href="{{ route('purchase_order.create') }}" class="btn btn-primary btn-flat btn-sm">
+                <i class="fa fa-plus"></i> Tambah
+            </a>
+        @endif
         <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#filterModal">
             <i class="fa fa-filter"></i> Saring
         </button>
         <button class="btn btn-secondary btn-sm" id="btnRefresh">
             <i class="fa fa-sync"></i> Segarkan
         </button>
-        @endif
     </div>
     <div class="card-body">
         @if(\Session::has('fail'))

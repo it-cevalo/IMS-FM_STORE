@@ -58,4 +58,9 @@ class Permission
     {
         return self::can($menuId, 'print');
     }
+    
+    public static function create(string $menuId): bool
+    {
+        return self::can($menuId, 'create');
+    }
 }

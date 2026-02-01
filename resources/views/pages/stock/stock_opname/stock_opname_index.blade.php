@@ -18,6 +18,11 @@
             <i class="fa fa-qrcode"></i> Cetak QR Awal (Batch)
         </button>
         @endif
+        <button type="button"
+            id="btnExportExcel"
+            class="btn btn-success btn-flat btn-sm">
+            <i class="fa fa-file-excel"></i> Export Excel
+        </button>
     </div>
     <div class="card-body">
         @if(\Session::has('fail'))
@@ -38,7 +43,7 @@
                     <tr>
                         <th class="text-center">Kode</th>
                         <th class="text-center">Nama</th>
-                        <th class="text-center">Kode</th>
+                        <th class="text-center">SKU</th>
                         <th class="text-center">Nama</th>
                     </tr>
                 </thead>
@@ -89,7 +94,7 @@
         </div>
     </div>
 <!-- End Modal Filter -->
-<div class="modal fade" id="modalPrintQRAwal" tabindex="-1">
+<!-- <div class="modal fade" id="modalPrintQRAwal" tabindex="-1">
     <div class="modal-dialog">
         <form method="GET"
               action="{{ route('stock_opname.print_qr_awal_range') }}"
@@ -116,6 +121,43 @@
 
                 <small class="text-muted">
                     Contoh: 1 – 100 (berdasarkan mproduct.id)
+                </small>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-primary">
+                    <i class="fa fa-print"></i> Cetak
+                </button>
+            </div>
+        </form>
+    </div>
+</div> -->
+<div class="modal fade" id="modalPrintQRAwal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="GET"
+              action="{{ route('stock_opname.print_qr_awal_by_sku') }}"
+              target="_blank"
+              class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa fa-qrcode"></i> Cetak QR Saldo Awal (By SKU)
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>SKU</label>
+                    <input type="text"
+                           name="sku"
+                           class="form-control"
+                           placeholder="Contoh: SKU-100"
+                           required>
+                </div>
+
+                <small class="text-muted">
+                    Cetak QR berdasarkan SKU
                 </small>
             </div>
 
@@ -169,22 +211,28 @@
         loadStockOpnameData();
         setTimeout(() => $('.alert').fadeOut(), 5000);
         // submit filter dan tutup modal
-$('#filterSubmit').on('click', function () {
-    let params = {
-        product_id: $('#search-type').val(),
-        fd: $('[name="fd"]').val(),
-        td: $('[name="td"]').val()
-    };
+        $('#filterSubmit').on('click', function () {
+            let params = {
+                product_id: $('#search-type').val(),
+                fd: $('[name="fd"]').val(),
+                td: $('[name="td"]').val()
+            };
 
-    // Tutup modal secara manual
-    $('#exampleModal').removeClass('show').hide();
-    $('.modal-backdrop').remove();
-    $('body').removeClass('modal-open').css('padding-right', '');
+            // Tutup modal secara manual
+            $('#exampleModal').removeClass('show').hide();
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open').css('padding-right', '');
 
-    // Reload datatable
-    loadStockOpnameData(params);
-});
+            // Reload datatable
+            loadStockOpnameData(params);
+        });
 
+        $('#btnExportExcel').on('click', function () {
+            window.open(
+                "{{ route('stock_opname.export_excel') }}",
+                "_blank"
+            );
+        });
 
     });
 

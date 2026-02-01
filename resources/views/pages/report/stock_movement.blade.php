@@ -127,12 +127,14 @@ function loadTable() {
         },
         columns: [
             { data: 'DT_RowIndex', orderable: false, searchable: false },
-            { data: 'sku' },
-            { data: 'nama_barang' },
-            { data: 'qty_in', searchable: false },
-            { data: 'qty_out', searchable: false },
-            { data: 'last_out_date', searchable: false },
-            { data: 'movement_rate', searchable: false },
+
+            { data: 'sku', name: 'p.sku' },
+            { data: 'nama_barang', name: 'p.nama_barang' },
+
+            { data: 'qty_in', searchable: false, orderable: false },
+            { data: 'qty_out', searchable: false, orderable: false },
+            { data: 'last_out_date', searchable: false, orderable: false },
+            { data: 'movement_rate', searchable: false, orderable: false },
             { data: 'badge', orderable: false, searchable: false }
         ]
     });

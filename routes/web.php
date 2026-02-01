@@ -162,6 +162,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('stock_opname/{stock_opname}/history', [StockOpnameController::class, 'history'])->name('stock_opname.history');
     Route::resource('stock_opname', StockOpnameController::class);
     Route::get('/stock-opname/print-qr-awal-range',[StockOpnameController::class, 'printQRAwalByProductRange'])->name('stock_opname.print_qr_awal_range');
+    Route::get('stock-opname/export-excel',[StockOpnameController::class, 'exportExcel'])->name('stock_opname.export_excel');
+    Route::get(
+        'stock-opname/print-qr-awal-by-sku',
+        [StockOpnameController::class, 'printQRAwalBySKU']
+    )->name('stock_opname.print_qr_awal_by_sku');
     /*
     |--------------------------------------------------------------------------
     | TRANSACTION - PURCHASE REQUEST
