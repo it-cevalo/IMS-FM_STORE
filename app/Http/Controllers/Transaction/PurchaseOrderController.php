@@ -614,7 +614,7 @@ class PurchaseOrderController extends Controller
     // }
     public function delete($id)
     {
-        if (!Permission::can('MENU-PO','reject')) {
+        if (!Permission::can('MENU-0301','reject')) {
             return response()->json(['message'=>'Unauthorized'],403);
         }
         

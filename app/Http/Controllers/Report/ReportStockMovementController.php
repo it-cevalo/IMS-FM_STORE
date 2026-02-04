@@ -38,7 +38,8 @@ class ReportStockMovementController extends Controller
         $inbound = DB::table('tproduct_inbound')
         ->select(
             'id_product',
-            DB::raw('SUM(qty) as qty_in')
+            DB::raw('SUM(qty) as qty_in'),
+            DB::raw('MAX(received_at) as last_in_date')
         )
         ->whereNotNull('sync_at') // 🔥 PENTING (yang sudah confirm)
         ->whereBetween('received_at', [$startDate, $endDate])
@@ -75,6 +76,7 @@ class ReportStockMovementController extends Controller
                 DB::raw('COALESCE(i.qty_in, 0) as qty_in'),
                 DB::raw('COALESCE(o.qty_out, 0) as qty_out'),
                 DB::raw('o.last_out_date'),
+                DB::raw('i.last_in_date'),
     
                 DB::raw("ROUND(COALESCE(o.qty_out,0)/{$days}, 2) as movement_rate"),
     

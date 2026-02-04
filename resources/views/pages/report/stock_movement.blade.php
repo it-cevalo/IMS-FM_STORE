@@ -21,8 +21,9 @@
                         <th>SKU</th>
                         <th>Nama Barang</th>
                         <th>QTY Masuk</th>
+                        <th>Tanggal Masuk Terakhir</th>
                         <th>QTY Keluar</th>
-                        <th>Keluar Terakhir</th>
+                        <th>Tanggal Keluar Terakhir</th>
                         <th>Rata Rata Pergerakan</th>
                         <th>Status</th>
                     </tr>
@@ -132,6 +133,7 @@ function loadTable() {
             { data: 'nama_barang', name: 'p.nama_barang' },
 
             { data: 'qty_in', searchable: false, orderable: false },
+            { data: 'last_in_date', searchable: false, orderable: false },
             { data: 'qty_out', searchable: false, orderable: false },
             { data: 'last_out_date', searchable: false, orderable: false },
             { data: 'movement_rate', searchable: false, orderable: false },

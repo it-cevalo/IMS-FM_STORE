@@ -10,7 +10,7 @@
         <button type="button" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal">
             <i class="fa fa-filter"></i> Filter
         </button>
-        @if(Auth::user()->username = 'sa')
+        @if(in_array(Auth::user()->username, ['sa', 'Frangga', 'Mia']))
         <button type="button"
             class="btn btn-info btn-flat btn-sm"
             data-toggle="modal"
@@ -38,7 +38,7 @@
                         <th colspan="2" class="text-center">Barang</th>
                         <th rowspan="2" class="text-center align-middle">QTY Terakhir</th>
                         <th rowspan="2" class="text-center align-middle">Tanggal Opname</th>
-                        <th rowspan="2" class="text-center align-middle">Aksi</th>
+                        <!-- <th rowspan="2" class="text-center align-middle">Aksi</th> -->
                     </tr>
                     <tr>
                         <th class="text-center">Kode</th>
@@ -202,7 +202,7 @@
                         return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
                     }
                 },
-                { data: 'action', name: 'action', orderable: false, searchable: false }
+                // { data: 'action', name: 'action', orderable: false, searchable: false }
             ]
         });
     }

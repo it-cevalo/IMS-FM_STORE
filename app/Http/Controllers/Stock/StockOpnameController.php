@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Stock;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\Permission;
 use Illuminate\Http\Request;
 use App\Models\TStockOpname;
 use App\Models\HStockOpname;
@@ -52,13 +53,31 @@ class StockOpnameController extends Controller
                 ->addColumn('product_name', fn($row) => $row->product->nama_barang ?? '-')
                 ->addColumn('qty_last', fn($row) => $row->qty_last)
                 ->addColumn('tgl_opname', fn($row) => $row->tgl_opname)
-                ->addColumn('action', function($row) {
-                    $edit = route('stock_opname.edit', $row->id);
-                    return '
-                        <a href="'.$edit.'" class="btn btn-warning btn-sm"><i class="fa fa-edit"></i></a>
-                    ';
-                })
-                ->rawColumns(['action'])
+                // ->addColumn('action', function($row) {
+                    // $edit = route('stock_opname.edit', $row->id);
+                    // return '
+                    //     <a href="'.$edit.'" class="btn btn-warning btn-sm"><i class="fa fa-edit"></i></a>
+                    // ';
+                    // punya permission edit
+                    // if (Permission::can('MENU-0200', 'update')) {
+                    //     return '
+                    //         <a href="'.route('stock_opname.edit', $row->id).'"
+                    //         class="btn btn-warning btn-sm"
+                    //         title="Edit Stock Opname">
+                    //             <i class="fa fa-edit"></i>
+                    //         </a>
+                    //     ';
+                    // }
+
+                    // TIDAK punya permission → tombol dummy (secondary)
+                    // return '
+                    //     <button class="btn btn-secondary btn-sm" disabled
+                    //             title="Anda tidak punya akses edit">
+                    //         <i class="fa fa-edit"></i>
+                    //     </button>
+                    // ';
+                // })
+                // ->rawColumns(['action'])
                 ->make(true);
         }
 
