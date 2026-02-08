@@ -131,7 +131,12 @@ $(document).ready(function() {
         },
         columns: [
             { data: 'tgl_po', render: data => data ? data.split(' ')[0] : '' },
-            { data: null, render: d => `${d.code_spl} - ${d.nama_spl}` },
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                render: d => `${d.code_spl} - ${d.nama_spl}`
+            },            
             { data: 'no_po' },
             { 
                 data: 'status_po',

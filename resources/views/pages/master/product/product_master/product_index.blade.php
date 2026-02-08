@@ -74,13 +74,13 @@
                 url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json"
             },
             columns: [
-                { data: 'DT_RowIndex', orderable: false },
+                { data: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'sku', name: 'sku' },
-                { data: 'nama_barang' },
-                { data: 'type' },
-                { data: 'uom' },
-                { data: 'flag_active' },
-                { data: 'action', orderable: false }
+                { data: 'nama_barang', name: 'nama_barang'},
+                { data: 'type', name: 'type' },
+                { data: 'uom' , name: 'uom'},
+                { data: 'flag_active', name: 'flag_active' },
+                { data: 'action', orderable: false, searchable: false }
             ]
         });
     }

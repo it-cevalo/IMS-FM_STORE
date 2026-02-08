@@ -59,13 +59,16 @@
         NAMA BARANG (PALING BESAR)
         ============================= */
         .name {
-            font-size: 5pt;
+            font-size: 4pt;
             line-height: 1.1;
+
+            display: block;
+            max-height: 8.8pt;     /* ± 2 baris */
+            overflow: hidden;
 
             white-space: normal;
             word-wrap: break-word;
 
-            /* 🔑 bikin tebal TANPA ganti font */
             -webkit-text-stroke: 0.35px #000;
         }
 
