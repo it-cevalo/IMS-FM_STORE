@@ -69,6 +69,8 @@
             overflow: hidden;
         }
 
+        /*fix bugs*/
+
         .name {
             font-size: 4pt;
             line-height: 1.2;
