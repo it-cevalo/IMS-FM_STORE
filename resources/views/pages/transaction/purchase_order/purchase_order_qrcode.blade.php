@@ -52,39 +52,64 @@
         .info {
             line-height: 1.05;
             font-family: "DejaVu Sans";
-            font-weight: normal; /* 🔑 PAKSA SATU VARIAN FONT */
+            font-weight: normal;
         }
 
         /* =============================
         NAMA BARANG (PALING BESAR)
         ============================= */
-        .name {
-            font-size: 4pt;
-            line-height: 1.1;
+        .info-box {
+            width: 20mm;          /* INI BATAS MERAH */
+            height: 10.5mm;
 
-            display: block;
-            max-height: 8.8pt;     /* ± 2 baris */
+            box-sizing: border-box;
+            padding-right: 1mm;   /* jarak aman kanan */
+            padding-bottom: 2mm;  /* jarak aman bawah */
+
             overflow: hidden;
-
-            white-space: normal;
-            word-wrap: break-word;
-
-            -webkit-text-stroke: 0.35px #000;
         }
 
+        .name {
+            font-size: 4pt;
+            line-height: 1.2;
+
+            white-space: normal;
+            word-break: break-word;
+
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+
+            overflow: hidden;
+            margin-bottom: 0.6mm;
+
+            -webkit-text-stroke: 0.3px #000;
+        }
         /* SKU */
-        .sku {
+        /* .sku {
             font-size: 5pt;
             white-space: nowrap;
 
             -webkit-text-stroke: 0.3px #000;
+        } */
+        .sku {
+            font-size: 5pt;
+            white-space: nowrap;
+            -webkit-text-stroke: 0.3px #000;
         }
 
+
         /* NO URUT */
-        .seq {
+        /* .seq {
             font-size: 5pt;
             white-space: nowrap;
 
+            -webkit-text-stroke: 0.25px #000;
+        } */
+
+        .seq {
+            font-size: 5pt;
+            white-space: nowrap;
             -webkit-text-stroke: 0.25px #000;
         }
     </style>
@@ -106,11 +131,10 @@
                 <td class="qr" style="width:11mm">
                     <img src="data:image/svg+xml;base64,{{ $base64 }}">
                 </td>
-
-                <td>
-                    <div class="info">
+                <td style="width:20mm; height:10.5mm;">
+                    <div class="info-box">
                         <div class="name">
-                            <strong>{{ \Illuminate\Support\Str::limit($q['nama_barang'], 55) }}</strong>
+                            <strong>{{ $q['nama_barang'] }}</strong>
                         </div>
                         <div class="sku">
                             <strong>{{ $q['sku'] }}</strong>
