@@ -871,23 +871,95 @@ class PurchaseOrderController extends Controller
         return $this->generateAllQR($po);
     }
     
+    // private function generateSingleQR($po, $detailId, $seqText)
+    // {
+    //     $detail = $po->po_detail->where('id', $detailId)->first();
+    
+    //     $sequences = $this->parseSequenceInput($seqText);
+    //     if (empty($sequences)) {
+    //         abort(422, 'Nomor urut tidak valid');
+    //     }
+    
+    //     $qrList    = [];
+    //     $conflicts = [];
+    
+    //     foreach ($sequences as $num) {
+    
+    //         $seqStr = str_pad($num, 4, '0', STR_PAD_LEFT);
+    
+    //         if (!$this->canPrintQR($po->id, $detail->id, $seqStr)) {
+    //             $conflicts[] = [
+    //                 'id_po_detail' => $detail->id,
+    //                 'sku'          => $detail->part_number,
+    //                 'product_name' => $detail->product_name,
+    //                 'sequence'     => $seqStr
+    //             ];
+    //         }
+    //     }
+    
+    //     if (!empty($conflicts)) {
+    //         return response()->json([
+    //             'code'      => 'QR_ALREADY_PRINTED',
+    //             'message'   => 'Terdapat QR yang sudah pernah dicetak',
+    //             'conflicts' => $conflicts
+    //         ], 403);
+    //     }
+    
+    //     foreach ($sequences as $num) {
+    
+    //         $seqStr = str_pad($num, 4, '0', STR_PAD_LEFT);
+    
+    //         $qrList[] = $this->createQRWithFixedSequence(
+    //             $po,
+    //             $detail,
+    //             $num
+    //         );
+    
+    //         DB::table('tqr_reprint_request')
+    //             ->where([
+    //                 'id_po'        => $po->id,
+    //                 'id_po_detail' => $detail->id,
+    //                 'sequence_no'  => $seqStr,
+    //                 'status'       => 'APPROVED'
+    //             ])
+    //             ->whereNull('used_at')
+    //             ->update(['used_at' => now()]);
+    //     }
+    
+    //     return $this->printPDF($po, $qrList);
+    // }
+
     private function generateSingleQR($po, $detailId, $seqText)
     {
         $detail = $po->po_detail->where('id', $detailId)->first();
-    
+        if (!$detail) {
+            abort(404, 'Detail PO tidak ditemukan');
+        }
+
+        // parse seq: "1-3,5" → [1,2,3,5]
         $sequences = $this->parseSequenceInput($seqText);
         if (empty($sequences)) {
             abort(422, 'Nomor urut tidak valid');
         }
-    
+
+        // 🔑 FLAG MODE
+        // ada parameter seq = REPRINT
+        $isReprint = request()->has('seq');
+
         $qrList    = [];
         $conflicts = [];
-    
+
+        /**
+         * =====================================
+         * 1️⃣ VALIDASI DULU (SEMUA SEQ)
+         * =====================================
+         */
         foreach ($sequences as $num) {
-    
+
             $seqStr = str_pad($num, 4, '0', STR_PAD_LEFT);
-    
-            if (!$this->canPrintQR($po->id, $detail->id, $seqStr)) {
+
+            // kalau generate biasa → cek boleh print atau tidak
+            if (!$isReprint && !$this->canPrintQR($po->id, $detail->id, $seqStr)) {
                 $conflicts[] = [
                     'id_po_detail' => $detail->id,
                     'sku'          => $detail->part_number,
@@ -895,8 +967,23 @@ class PurchaseOrderController extends Controller
                     'sequence'     => $seqStr
                 ];
             }
+
+            // kalau reprint → pastikan QR memang ada
+            if ($isReprint) {
+                $exists = DB::table('tproduct_qr')
+                    ->where([
+                        'id_po'        => $po->id,
+                        'id_po_detail' => $detail->id,
+                        'sequence_no'  => $seqStr
+                    ])
+                    ->exists();
+
+                if (!$exists) {
+                    abort(404, "QR tidak ditemukan untuk sequence {$seqStr}");
+                }
+            }
         }
-    
+
         if (!empty($conflicts)) {
             return response()->json([
                 'code'      => 'QR_ALREADY_PRINTED',
@@ -904,17 +991,54 @@ class PurchaseOrderController extends Controller
                 'conflicts' => $conflicts
             ], 403);
         }
-    
+
+        /**
+         * =====================================
+         * 2️⃣ PROSES CETAK
+         * =====================================
+         */
         foreach ($sequences as $num) {
-    
+
             $seqStr = str_pad($num, 4, '0', STR_PAD_LEFT);
-    
-            $qrList[] = $this->createQRWithFixedSequence(
-                $po,
-                $detail,
-                $num
-            );
-    
+
+            if ($isReprint) {
+
+                // 🔁 REPRINT → AMBIL DATA QR EXISTING (TANPA INSERT)
+                $qr = DB::table('tproduct_qr')
+                    ->where([
+                        'id_po'        => $po->id,
+                        'id_po_detail' => $detail->id,
+                        'sequence_no'  => $seqStr
+                    ])
+                    ->orderByDesc('id')
+                    ->first();
+
+                if (!$qr) {
+                    abort(404, "QR tidak ditemukan untuk sequence {$seqStr}");
+                }
+
+                $qrList[] = [
+                    'nama_barang' => $qr->nama_barang,
+                    'sku'         => $qr->sku,
+                    'nomor_urut'  => $qr->sequence_no,
+                    'qr_payload'  => $qr->qr_code,
+                ];
+
+            } else {
+
+                // 🆕 GENERATE BARU → INSERT
+                $qrList[] = $this->createQRWithFixedSequence(
+                    $po,
+                    $detail,
+                    $num
+                );
+            }
+
+            /**
+             * =====================================
+             * 3️⃣ HABISKAN APPROVAL REPRINT (JIKA ADA)
+             * =====================================
+             */
             DB::table('tqr_reprint_request')
                 ->where([
                     'id_po'        => $po->id,
@@ -925,15 +1049,90 @@ class PurchaseOrderController extends Controller
                 ->whereNull('used_at')
                 ->update(['used_at' => now()]);
         }
-    
+
+        /**
+         * =====================================
+         * 4️⃣ CETAK PDF
+         * =====================================
+         */
         return $this->printPDF($po, $qrList);
     }
+
+    // private function generateMultipleQR($po, $ids)
+    // {
+    //     $qrList    = [];
+    //     $conflicts = [];
+
+    //     foreach ($po->po_detail as $detail) {
+
+    //         if (!in_array($detail->id, $ids)) continue;
+
+    //         for ($num = 1; $num <= intval($detail->qty); $num++) {
+
+    //             $seqStr = str_pad($num, 4, '0', STR_PAD_LEFT);
+
+    //             if (!$this->canPrintQR($po->id, $detail->id, $seqStr)) {
+    //                 $conflicts[] = [
+    //                     'id_po_detail' => $detail->id,
+    //                     'sku'          => $detail->part_number,
+    //                     'product_name' => $detail->product_name,
+    //                     'sequence'     => $seqStr
+    //                 ];
+    //             }
+    //         }
+    //     }
+
+    //     if (!empty($conflicts)) {
+    //         return response()->json([
+    //             'code'      => 'QR_ALREADY_PRINTED',
+    //             'message'   => 'Terdapat QR yang sudah pernah dicetak',
+    //             'conflicts' => $conflicts
+    //         ], 403);
+    //     }
+
+    //     foreach ($po->po_detail as $detail) {
+
+    //         if (!in_array($detail->id, $ids)) continue;
+
+    //         for ($num = 1; $num <= intval($detail->qty); $num++) {
+
+    //             $seqStr = str_pad($num, 4, '0', STR_PAD_LEFT);
+
+    //             $qrList[] = $this->createQRWithFixedSequence(
+    //                 $po,
+    //                 $detail,
+    //                 $num
+    //             );
+
+    //             DB::table('tqr_reprint_request')
+    //                 ->where([
+    //                     'id_po'        => $po->id,
+    //                     'id_po_detail' => $detail->id,
+    //                     'sequence_no'  => $seqStr,
+    //                     'status'       => 'APPROVED'
+    //                 ])
+    //                 ->whereNull('used_at')
+    //                 ->update(['used_at' => now()]);
+    //         }
+    //     }
+
+    //     return $this->printPDF($po, $qrList);
+    // }
 
     private function generateMultipleQR($po, $ids)
     {
         $qrList    = [];
         $conflicts = [];
 
+        // 🔑 FLAG MODE
+        // jika ada parameter seq → REPRINT
+        $isReprint = request()->has('seq');
+
+        /**
+         * =====================================
+         * 1️⃣ VALIDASI SEMUA DETAIL & SEQUENCE
+         * =====================================
+         */
         foreach ($po->po_detail as $detail) {
 
             if (!in_array($detail->id, $ids)) continue;
@@ -942,13 +1141,32 @@ class PurchaseOrderController extends Controller
 
                 $seqStr = str_pad($num, 4, '0', STR_PAD_LEFT);
 
-                if (!$this->canPrintQR($po->id, $detail->id, $seqStr)) {
+                // GENERATE MODE → cek boleh print
+                if (!$isReprint && !$this->canPrintQR($po->id, $detail->id, $seqStr)) {
                     $conflicts[] = [
                         'id_po_detail' => $detail->id,
                         'sku'          => $detail->part_number,
                         'product_name' => $detail->product_name,
                         'sequence'     => $seqStr
                     ];
+                }
+
+                // REPRINT MODE → QR harus sudah ada
+                if ($isReprint) {
+                    $exists = DB::table('tproduct_qr')
+                        ->where([
+                            'id_po'        => $po->id,
+                            'id_po_detail' => $detail->id,
+                            'sequence_no'  => $seqStr
+                        ])
+                        ->exists();
+
+                    if (!$exists) {
+                        abort(
+                            404,
+                            "QR tidak ditemukan untuk {$detail->product_name} sequence {$seqStr}"
+                        );
+                    }
                 }
             }
         }
@@ -961,6 +1179,11 @@ class PurchaseOrderController extends Controller
             ], 403);
         }
 
+        /**
+         * =====================================
+         * 2️⃣ PROSES CETAK
+         * =====================================
+         */
         foreach ($po->po_detail as $detail) {
 
             if (!in_array($detail->id, $ids)) continue;
@@ -969,12 +1192,47 @@ class PurchaseOrderController extends Controller
 
                 $seqStr = str_pad($num, 4, '0', STR_PAD_LEFT);
 
-                $qrList[] = $this->createQRWithFixedSequence(
-                    $po,
-                    $detail,
-                    $num
-                );
+                if ($isReprint) {
 
+                    // 🔁 REPRINT → AMBIL QR EXISTING (TANPA INSERT)
+                    $qr = DB::table('tproduct_qr')
+                        ->where([
+                            'id_po'        => $po->id,
+                            'id_po_detail' => $detail->id,
+                            'sequence_no'  => $seqStr
+                        ])
+                        ->orderByDesc('id')
+                        ->first();
+
+                    if (!$qr) {
+                        abort(
+                            404,
+                            "QR tidak ditemukan untuk {$detail->product_name} sequence {$seqStr}"
+                        );
+                    }
+
+                    $qrList[] = [
+                        'nama_barang' => $qr->nama_barang,
+                        'sku'         => $qr->sku,
+                        'nomor_urut'  => $qr->sequence_no,
+                        'qr_payload'  => $qr->qr_code,
+                    ];
+
+                } else {
+
+                    // 🆕 GENERATE BARU → INSERT
+                    $qrList[] = $this->createQRWithFixedSequence(
+                        $po,
+                        $detail,
+                        $num
+                    );
+                }
+
+                /**
+                 * =====================================
+                 * 3️⃣ HABISKAN APPROVAL REPRINT (JIKA ADA)
+                 * =====================================
+                 */
                 DB::table('tqr_reprint_request')
                     ->where([
                         'id_po'        => $po->id,
@@ -987,27 +1245,118 @@ class PurchaseOrderController extends Controller
             }
         }
 
+        /**
+         * =====================================
+         * 4️⃣ CETAK PDF
+         * =====================================
+         */
         return $this->printPDF($po, $qrList);
     }
+
+    // private function generateAllQR($po)
+    // {
+    //     $qrList    = [];
+    //     $conflicts = [];
+
+    //     foreach ($po->po_detail as $detail) {
+
+    //         for ($num = 1; $num <= intval($detail->qty); $num++) {
+
+    //             $seqStr = str_pad($num, 4, '0', STR_PAD_LEFT);
+
+    //             if (!$this->canPrintQR($po->id, $detail->id, $seqStr)) {
+    //                 $conflicts[] = [
+    //                     'id_po_detail' => $detail->id,
+    //                     'sku'          => $detail->part_number,
+    //                     'product_name' => $detail->product_name,
+    //                     'sequence'     => $seqStr
+    //                 ];
+    //             }
+    //         }
+    //     }
+
+    //     if (!empty($conflicts)) {
+    //         return response()->json([
+    //             'code'      => 'QR_ALREADY_PRINTED',
+    //             'message'   => 'Terdapat QR yang sudah pernah dicetak',
+    //             'conflicts' => $conflicts
+    //         ], 403);
+    //     }
+
+    //     foreach ($po->po_detail as $detail) {
+
+    //         for ($num = 1; $num <= intval($detail->qty); $num++) {
+
+    //             $seqStr = str_pad($num, 4, '0', STR_PAD_LEFT);
+
+    //             $qrList[] = $this->createQRWithFixedSequence(
+    //                 $po,
+    //                 $detail,
+    //                 $num
+    //             );
+
+    //             DB::table('tqr_reprint_request')
+    //                 ->where([
+    //                     'id_po'        => $po->id,
+    //                     'id_po_detail' => $detail->id,
+    //                     'sequence_no'  => $seqStr,
+    //                     'status'       => 'APPROVED'
+    //                 ])
+    //                 ->whereNull('used_at')
+    //                 ->update(['used_at' => now()]);
+    //         }
+    //     }
+
+    //     return $this->printPDF($po, $qrList);
+    // }
 
     private function generateAllQR($po)
     {
         $qrList    = [];
         $conflicts = [];
 
+        // 🔑 FLAG MODE
+        // default: generate
+        // kalau ada seq → treat sebagai reprint (aman, tanpa insert)
+        $isReprint = request()->has('seq');
+
+        /**
+         * =====================================
+         * 1️⃣ VALIDASI SEMUA DETAIL & SEQUENCE
+         * =====================================
+         */
         foreach ($po->po_detail as $detail) {
 
             for ($num = 1; $num <= intval($detail->qty); $num++) {
 
                 $seqStr = str_pad($num, 4, '0', STR_PAD_LEFT);
 
-                if (!$this->canPrintQR($po->id, $detail->id, $seqStr)) {
+                // GENERATE MODE → cek boleh print
+                if (!$isReprint && !$this->canPrintQR($po->id, $detail->id, $seqStr)) {
                     $conflicts[] = [
                         'id_po_detail' => $detail->id,
                         'sku'          => $detail->part_number,
                         'product_name' => $detail->product_name,
                         'sequence'     => $seqStr
                     ];
+                }
+
+                // REPRINT MODE → QR harus sudah ada
+                if ($isReprint) {
+                    $exists = DB::table('tproduct_qr')
+                        ->where([
+                            'id_po'        => $po->id,
+                            'id_po_detail' => $detail->id,
+                            'sequence_no'  => $seqStr
+                        ])
+                        ->exists();
+
+                    if (!$exists) {
+                        abort(
+                            404,
+                            "QR tidak ditemukan untuk {$detail->product_name} sequence {$seqStr}"
+                        );
+                    }
                 }
             }
         }
@@ -1020,18 +1369,58 @@ class PurchaseOrderController extends Controller
             ], 403);
         }
 
+        /**
+         * =====================================
+         * 2️⃣ PROSES CETAK
+         * =====================================
+         */
         foreach ($po->po_detail as $detail) {
 
             for ($num = 1; $num <= intval($detail->qty); $num++) {
 
                 $seqStr = str_pad($num, 4, '0', STR_PAD_LEFT);
 
-                $qrList[] = $this->createQRWithFixedSequence(
-                    $po,
-                    $detail,
-                    $num
-                );
+                if ($isReprint) {
 
+                    // 🔁 REPRINT → AMBIL QR EXISTING (NO INSERT)
+                    $qr = DB::table('tproduct_qr')
+                        ->where([
+                            'id_po'        => $po->id,
+                            'id_po_detail' => $detail->id,
+                            'sequence_no'  => $seqStr
+                        ])
+                        ->orderByDesc('id')
+                        ->first();
+
+                    if (!$qr) {
+                        abort(
+                            404,
+                            "QR tidak ditemukan untuk {$detail->product_name} sequence {$seqStr}"
+                        );
+                    }
+
+                    $qrList[] = [
+                        'nama_barang' => $qr->nama_barang,
+                        'sku'         => $qr->sku,
+                        'nomor_urut'  => $qr->sequence_no,
+                        'qr_payload'  => $qr->qr_code,
+                    ];
+
+                } else {
+
+                    // 🆕 GENERATE BARU → INSERT
+                    $qrList[] = $this->createQRWithFixedSequence(
+                        $po,
+                        $detail,
+                        $num
+                    );
+                }
+
+                /**
+                 * =====================================
+                 * 3️⃣ HABISKAN APPROVAL REPRINT (JIKA ADA)
+                 * =====================================
+                 */
                 DB::table('tqr_reprint_request')
                     ->where([
                         'id_po'        => $po->id,
@@ -1044,6 +1433,11 @@ class PurchaseOrderController extends Controller
             }
         }
 
+        /**
+         * =====================================
+         * 4️⃣ CETAK PDF
+         * =====================================
+         */
         return $this->printPDF($po, $qrList);
     }
 

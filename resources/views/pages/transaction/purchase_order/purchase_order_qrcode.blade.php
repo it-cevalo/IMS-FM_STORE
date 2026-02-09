@@ -59,31 +59,29 @@
         NAMA BARANG (PALING BESAR)
         ============================= */
         .info-box {
-            width: 20mm;          /* INI BATAS MERAH */
+            width: 20mm;
             height: 10.5mm;
 
             box-sizing: border-box;
-            padding-right: 1mm;   /* jarak aman kanan */
-            padding-bottom: 2mm;  /* jarak aman bawah */
+            padding-right: 1mm;
+            padding-bottom: 2mm; /* zona aman bawah */
 
             overflow: hidden;
         }
-
         /*fix bugs*/
 
         .name {
-            font-size: 4pt;
+            font-size: 5pt;
             line-height: 1.2;
 
             white-space: normal;
             word-break: break-word;
 
-            display: -webkit-box;
-            -webkit-box-orient: vertical;
-            -webkit-line-clamp: 2;
+            /* HAPUS clamp */
+            /* -webkit-line-clamp: 2; */
+            /* display: -webkit-box; */
 
             overflow: hidden;
-            margin-bottom: 0.6mm;
 
             -webkit-text-stroke: 0.3px #000;
         }
@@ -137,9 +135,6 @@
                     <div class="info-box">
                         <div class="name">
                             <strong>{{ $q['nama_barang'] }}</strong>
-                        </div>
-                        <div class="sku">
-                            <strong>{{ $q['sku'] }}</strong>
                         </div>
                         <div class="seq">
                             <strong>{{ $q['nomor_urut'] }}</strong>
