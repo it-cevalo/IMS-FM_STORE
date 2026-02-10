@@ -337,9 +337,13 @@
                 allowEscapeKey: false,
                 didOpen: () => Swal.showLoading()
             });
+            const selectedIds = selected.map(function () {
+                return $(this).val();
+            }).get().join(",");
 
-            $.get(`/po/{{ $purchase_order->id }}/qr/validate`)
-                .done(function (res) {
+            $.get(`/po/{{ $purchase_order->id }}/qr/validate`, {
+                details: selectedIds
+            }).done(function (res) {
 
                     Swal.close();
 

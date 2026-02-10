@@ -1441,13 +1441,56 @@ class PurchaseOrderController extends Controller
         return $this->printPDF($po, $qrList);
     }
 
+    // public function validateQR(Request $r, $id)
+    // {
+    //     $po = Tpo::with('po_detail')->findOrFail($id);
+    //     $conflicts = [];
+
+    //     foreach ($po->po_detail as $detail) {
+    //         for ($num = 1; $num <= intval($detail->qty); $num++) {
+    //             $seq = str_pad($num, 4, '0', STR_PAD_LEFT);
+
+    //             if (!$this->canPrintQR($po->id, $detail->id, $seq)) {
+    //                 $conflicts[] = [
+    //                     'id_po_detail' => $detail->id,
+    //                     'sku'          => $detail->part_number,
+    //                     'product_name' => $detail->product_name,
+    //                     'sequence'     => $seq
+    //                 ];
+    //             }
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         'allowed'   => empty($conflicts),
+    //         'conflicts' => $conflicts
+    //     ]);
+    // }
+
     public function validateQR(Request $r, $id)
     {
         $po = Tpo::with('po_detail')->findOrFail($id);
         $conflicts = [];
 
+        // 🔑 DETAIL YANG DIPILIH USER
+        $selectedDetailIds = [];
+
+        if ($r->filled('details')) {
+            $selectedDetailIds = array_map(
+                'intval',
+                explode(',', $r->details)
+            );
+        }
+
         foreach ($po->po_detail as $detail) {
+
+            // ⛔ SKIP DETAIL YANG TIDAK DIPILIH
+            if (!empty($selectedDetailIds) && !in_array($detail->id, $selectedDetailIds)) {
+                continue;
+            }
+
             for ($num = 1; $num <= intval($detail->qty); $num++) {
+
                 $seq = str_pad($num, 4, '0', STR_PAD_LEFT);
 
                 if (!$this->canPrintQR($po->id, $detail->id, $seq)) {
