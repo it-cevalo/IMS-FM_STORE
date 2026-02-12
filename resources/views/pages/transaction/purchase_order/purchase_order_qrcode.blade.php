@@ -83,7 +83,7 @@
 
             overflow: hidden;
 
-            -webkit-text-stroke: 0.3px #000;
+            /* -webkit-text-stroke: 0.3px #000; */
         }
         /* SKU */
         /* .sku {
@@ -117,19 +117,11 @@
 <body>
 
 @foreach ($qrList as $q)
-@php
-    $svg = QrCode::format('svg')
-        ->size(300)
-        ->margin(0)
-        ->generate($q['qr_payload']);
-
-    $base64 = base64_encode($svg);
-@endphp
     <div class="page">
         <table>
             <tr>
                 <td class="qr" style="width:11mm">
-                    <img src="data:image/svg+xml;base64,{{ $base64 }}">
+                    <img src="{{ $q['qr_svg'] }}" width="10.5mm" height="10.5mm">
                 </td>
                 <td style="width:20mm; height:10.5mm;">
                     <div class="info-box">

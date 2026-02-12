@@ -1610,17 +1610,80 @@ class PurchaseOrderController extends Controller
     //     return $this->printPDF($po, $qrList);
     // }
     
+    // private function printPDF($po, $qrList)
+    // {
+    //     if (!is_array($qrList) || count($qrList) === 0) {
+    //         abort(422, 'QR list kosong');
+    //     }
+        
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | UKURAN LABEL (33 x 15 mm)
+    //     |--------------------------------------------------------------------------
+    //     | DomPDF menggunakan satuan POINT
+    //     | 1 mm = 2.83465 pt
+    //     */
+    //     $width  = 33 * 2.83465;
+    //     $height = 15 * 2.83465;
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | GENERATE PDF
+    //     |--------------------------------------------------------------------------
+    //     | PDF adalah sumber kebenaran ukuran
+    //     | Browser tidak boleh override
+    //     */
+    //     $pdf = Pdf::loadView(
+    //         'pages.transaction.purchase_order.purchase_order_qrcode',
+    //         [
+    //             'po'      => $po,
+    //             'qrList' => $qrList
+    //         ]
+    //     )->setPaper([0, 0, $width, $height], 'portrait');
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | MODE AKTIF (wajib PRODUKSI)
+    //     |--------------------------------------------------------------------------
+    //     | Dibuka di NEW TAB sebagai PDF
+    //     | Print dilakukan dari PDF viewer
+    //     | Ukuran label PRESISI 33x15mm
+    //     */
+    //     return response($pdf->output(), 200)
+    //         ->header('Content-Type', 'application/pdf')
+    //         ->header(
+    //             'Content-Disposition',
+    //             'inline; filename="QR_'.$po->no_po.'.pdf"'
+    //         );
+    // }
+
     private function printPDF($po, $qrList)
     {
         if (!is_array($qrList) || count($qrList) === 0) {
             abort(422, 'QR list kosong');
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Generate SVG di Controller (JANGAN DI BLADE)
+        |--------------------------------------------------------------------------
+        */
+        foreach ($qrList as &$q) {
+
+            $svg = QrCode::format('svg')
+                ->size(220)
+                ->margin(0)
+                ->generate($q['qr_payload']);
         
+            $q['qr_svg'] = 'data:image/svg+xml;base64,' . base64_encode($svg);
+        }
+        unset($q);
+
         /*
         |--------------------------------------------------------------------------
         | UKURAN LABEL (33 x 15 mm)
         |--------------------------------------------------------------------------
-        | DomPDF menggunakan satuan POINT
         | 1 mm = 2.83465 pt
         */
         $width  = 33 * 2.83465;
@@ -1628,34 +1691,28 @@ class PurchaseOrderController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | GENERATE PDF
+        | Generate PDF (Optimized Options)
         |--------------------------------------------------------------------------
-        | PDF adalah sumber kebenaran ukuran
-        | Browser tidak boleh override
         */
         $pdf = Pdf::loadView(
             'pages.transaction.purchase_order.purchase_order_qrcode',
             [
-                'po'      => $po,
+                'po'     => $po,
                 'qrList' => $qrList
             ]
-        )->setPaper([0, 0, $width, $height], 'portrait');
-
+        )->setOptions([
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled'      => false,
+            'defaultFont'          => 'DejaVu Sans'
+        ])
+        ->setPaper([0, 0, $width, $height], 'portrait');
 
         /*
         |--------------------------------------------------------------------------
-        | MODE AKTIF (wajib PRODUKSI)
+        | Stream langsung (JANGAN pakai output())
         |--------------------------------------------------------------------------
-        | Dibuka di NEW TAB sebagai PDF
-        | Print dilakukan dari PDF viewer
-        | Ukuran label PRESISI 33x15mm
         */
-        return response($pdf->output(), 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header(
-                'Content-Disposition',
-                'inline; filename="QR_'.$po->no_po.'.pdf"'
-            );
+        return $pdf->stream("QR_{$po->no_po}.pdf");
     }
 
     private function detectPrintedConflict($poId, $detailId, $seq)
