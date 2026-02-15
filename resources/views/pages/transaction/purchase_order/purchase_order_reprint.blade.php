@@ -27,6 +27,8 @@
                     <th>No Urut</th>
                     <th>Alasan</th>
                     <th>Status</th>
+                    <th>Tanggal Pengajuan</th>
+                    <th>Yang Mengajukan</th>
                 </tr>
             </thead>
             <tbody>
@@ -42,6 +44,8 @@
                     <td>{{ $r->sequence_no }}</td>
                     <td>{{ $r->reason }}</td>
                     <td id="status-{{ $r->request_id }}">{{ $r->status }}</td>
+                    <td>{{ $r->requested_at }}</td>
+                    <td>{{ $r->requested_by }}</td>
                 </tr>
                 @endforeach
             </tbody>

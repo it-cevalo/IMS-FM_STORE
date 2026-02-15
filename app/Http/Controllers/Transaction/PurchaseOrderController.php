@@ -1467,40 +1467,178 @@ class PurchaseOrderController extends Controller
     //     ]);
     // }
 
+    // public function validateQR(Request $r, $id)
+    // {
+    //     $po = Tpo::with('po_detail')->findOrFail($id);
+    //     $conflicts = [];
+
+    //     // 🔑 DETAIL YANG DIPILIH USER
+    //     $selectedDetailIds = [];
+
+    //     if ($r->filled('details')) {
+    //         $selectedDetailIds = array_map(
+    //             'intval',
+    //             explode(',', $r->details)
+    //         );
+    //     }
+
+    //     foreach ($po->po_detail as $detail) {
+
+    //         // ⛔ SKIP DETAIL YANG TIDAK DIPILIH
+    //         if (!empty($selectedDetailIds) && !in_array($detail->id, $selectedDetailIds)) {
+    //             continue;
+    //         }
+
+    //         for ($num = 1; $num <= intval($detail->qty); $num++) {
+
+    //             $seq = str_pad($num, 4, '0', STR_PAD_LEFT);
+
+    //             if (!$this->canPrintQR($po->id, $detail->id, $seq)) {
+    //                 $conflicts[] = [
+    //                     'id_po_detail' => $detail->id,
+    //                     'sku'          => $detail->part_number,
+    //                     'product_name' => $detail->product_name,
+    //                     'sequence'     => $seq
+    //                 ];
+    //             }
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         'allowed'   => empty($conflicts),
+    //         'conflicts' => $conflicts
+    //     ]);
+    // }
+
+    //     public function validateQR(Request $r, $id)
+    // {
+    //     $po = Tpo::with('po_detail')->findOrFail($id);
+
+    //     $conflicts = [];
+
+    //     // Ambil detail yang dicentang
+    //     $selectedDetailIds = [];
+
+    //     if ($r->filled('details')) {
+    //         $selectedDetailIds = array_map(
+    //             'intval',
+    //             explode(',', $r->details)
+    //         );
+    //     }
+
+    //     if (empty($selectedDetailIds)) {
+    //         return response()->json([
+    //             'allowed'   => false,
+    //             'message'   => 'Tidak ada barang yang dipilih'
+    //         ], 422);
+    //     }
+
+    //     foreach ($po->po_detail as $detail) {
+
+    //         if (!in_array($detail->id, $selectedDetailIds)) {
+    //             continue;
+    //         }
+
+    //         // 🔎 Cek apakah sudah pernah dicetak
+    //         $printed = DB::table('tproduct_qr')
+    //             ->where('id_po', $po->id)
+    //             ->where('id_po_detail', $detail->id)
+    //             ->exists();
+
+    //         if ($printed) {
+
+    //             // ambil range sequence untuk info
+    //             $minSeq = DB::table('tproduct_qr')
+    //                 ->where('id_po', $po->id)
+    //                 ->where('id_po_detail', $detail->id)
+    //                 ->min(DB::raw('CAST(sequence_no AS UNSIGNED)'));
+
+    //             $maxSeq = DB::table('tproduct_qr')
+    //                 ->where('id_po', $po->id)
+    //                 ->where('id_po_detail', $detail->id)
+    //                 ->max(DB::raw('CAST(sequence_no AS UNSIGNED)'));
+
+    //             $conflicts[] = [
+    //                 'id_po_detail' => $detail->id,
+    //                 'sku'          => $detail->part_number,
+    //                 'product_name' => $detail->product_name,
+    //                 'printed_range'=> $minSeq && $maxSeq
+    //                     ? str_pad($minSeq,4,'0',STR_PAD_LEFT) .
+    //                       ' - ' .
+    //                       str_pad($maxSeq,4,'0',STR_PAD_LEFT)
+    //                     : null
+    //             ];
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         'allowed'   => empty($conflicts),
+    //         'conflicts' => $conflicts
+    //     ]);
+    // }
+
     public function validateQR(Request $r, $id)
     {
         $po = Tpo::with('po_detail')->findOrFail($id);
+
         $conflicts = [];
 
-        // 🔑 DETAIL YANG DIPILIH USER
+        // Ambil detail yang dicentang
         $selectedDetailIds = [];
 
         if ($r->filled('details')) {
-            $selectedDetailIds = array_map(
-                'intval',
-                explode(',', $r->details)
+            $selectedDetailIds = array_filter(
+                array_map('intval', explode(',', $r->details))
             );
+        }
+
+        if (empty($selectedDetailIds)) {
+            return response()->json([
+                'allowed' => false,
+                'message' => 'Tidak ada barang yang dipilih'
+            ], 422);
         }
 
         foreach ($po->po_detail as $detail) {
 
-            // ⛔ SKIP DETAIL YANG TIDAK DIPILIH
-            if (!empty($selectedDetailIds) && !in_array($detail->id, $selectedDetailIds)) {
+            if (!in_array($detail->id, $selectedDetailIds)) {
                 continue;
             }
 
-            for ($num = 1; $num <= intval($detail->qty); $num++) {
+            // Ambil semua sequence yang pernah tercetak
+            $sequences = DB::table('tproduct_qr')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->pluck('sequence_no')
+                ->toArray();
 
-                $seq = str_pad($num, 4, '0', STR_PAD_LEFT);
+            if (empty($sequences)) {
+                continue; // belum pernah cetak → aman
+            }
 
+            $blockedSequences = [];
+
+            foreach ($sequences as $seq) {
+
+                // gunakan canPrintQR
                 if (!$this->canPrintQR($po->id, $detail->id, $seq)) {
-                    $conflicts[] = [
-                        'id_po_detail' => $detail->id,
-                        'sku'          => $detail->part_number,
-                        'product_name' => $detail->product_name,
-                        'sequence'     => $seq
-                    ];
+                    $blockedSequences[] = (int)$seq;
                 }
+            }
+
+            if (!empty($blockedSequences)) {
+
+                sort($blockedSequences);
+
+                $rangeText = $this->compressSequenceRange($blockedSequences);
+
+                $conflicts[] = [
+                    'id_po_detail' => $detail->id,
+                    'sku'          => $detail->part_number,
+                    'product_name' => $detail->product_name,
+                    'printed_range'=> $rangeText,
+                    'sequence'     => $rangeText // dikirim untuk reprint
+                ];
             }
         }
 
@@ -1508,6 +1646,42 @@ class PurchaseOrderController extends Controller
             'allowed'   => empty($conflicts),
             'conflicts' => $conflicts
         ]);
+    }
+    
+    private function compressSequenceRange(array $numbers): string
+    {
+        if (empty($numbers)) return '';
+    
+        $ranges = [];
+        $start = $numbers[0];
+        $prev  = $numbers[0];
+    
+        for ($i = 1; $i < count($numbers); $i++) {
+    
+            if ($numbers[$i] == $prev + 1) {
+                $prev = $numbers[$i];
+                continue;
+            }
+    
+            $ranges[] = $this->formatRange($start, $prev);
+            $start = $numbers[$i];
+            $prev  = $numbers[$i];
+        }
+    
+        $ranges[] = $this->formatRange($start, $prev);
+    
+        return implode(', ', $ranges);
+    }
+    
+    private function formatRange($start, $end): string
+    {
+        if ($start == $end) {
+            return str_pad($start, 4, '0', STR_PAD_LEFT);
+        }
+    
+        return str_pad($start, 4, '0', STR_PAD_LEFT)
+            . ' - ' .
+            str_pad($end, 4, '0', STR_PAD_LEFT);
     }
 
     private function createQRWithFixedSequence($po, $item, int $seqNumber)
@@ -1937,10 +2111,12 @@ class PurchaseOrderController extends Controller
                 'd.product_name',
                 'r.sequence_no',
                 'r.reason',
-                'r.status'
+                'r.status',
+                'r.requested_at',
+                'r.requested_by'
             )
             ->orderBy('po.tgl_po', 'desc')
-            ->orderBy('r.id', 'asc')
+            ->orderBy('r.id', 'desc')
             ->where('r.id_po',$id)
             ->get();
 
