@@ -196,6 +196,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/po/{id}/qr/pdf', [PurchaseOrderController::class, 'generateQRPDF'])->name('purchase_order.print');
     Route::post('/purchase_order/{id}/qr/custom-print', [PurchaseOrderController::class, 'generateQRSelected'])->name('purchase_order.custom_print');
     Route::get('/purchase_order/list-existing', [PurchaseOrderController::class, 'listExistingPO'])->name('purchase_order.list_existing');
+    Route::get('/purchase_order/generate-number', [PurchaseOrderController::class, 'generateNumber'])->name('purchase_order.generate_number');
     Route::resource('purchase_order', PurchaseOrderController::class);
     Route::get('/purchase_order/{id}/print', [PurchaseOrderController::class, 'printPO'])->name('purchase_order.print_po');
     Route::get('/qr/sequence/{id}', [PurchaseOrderController::class, 'getSequence'])->name('qr.sequence');
@@ -205,6 +206,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/qr/reprint/approve', [PurchaseOrderController::class, 'approveReprint'])->name('reprint.approve');
     Route::post('/qr/reprint/reject', [PurchaseOrderController::class, 'rejectReprint'])->name('reprint.reject');
     Route::get('/po/{id}/qr/validate', [PurchaseOrderController::class, 'validateQR']);
+
     
     /*
     |--------------------------------------------------------------------------

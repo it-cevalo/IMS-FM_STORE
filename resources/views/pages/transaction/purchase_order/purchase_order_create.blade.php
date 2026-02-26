@@ -54,8 +54,22 @@
 
             {{-- Nomor PO --}}
             <div class="mb-3">
-                <label>PO Number *</label>
-                <input type="text" class="form-control" name="no_po" required>
+                <label>Number *</label>
+
+                <div class="input-group">
+                    <input type="text"
+                        class="form-control"
+                        name="no_po"
+                        id="no_po"
+                        required>
+
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <input type="checkbox" id="auto_po">
+                            <label for="auto_po" class="mb-0 ml-1">Auto</label>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {{-- Note --}}
@@ -295,7 +309,97 @@ $(document).ready(function(){
             }
         });
     });
+    // ===============================
+    // AUTO GENERATE PO NUMBER
+    // ===============================
+    function generatePoNumber() {
 
+        const tgl = $('input[name="tgl_po"]').val();
+
+        if (!tgl) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tanggal wajib diisi',
+                text: 'Silakan pilih tanggal terlebih dahulu untuk generate nomor PO.',
+                confirmButtonColor: '#3085d6'
+            });
+
+            $('#auto_po').prop('checked', false);
+            $('#no_po').prop('readonly', false);
+
+            return;
+        }
+
+        $.get("{{ route('purchase_order.generate_number') }}", {
+            tgl_po: tgl
+        }, function(res){
+
+            if (res.status === 'success') {
+                $('#no_po').val(res.number);
+            } else {
+                Swal.fire('Error', 'Gagal generate nomor PO', 'error');
+            }
+
+        }).fail(function(){
+            Swal.fire('Error', 'Server error saat generate nomor', 'error');
+        });
+    }
+
+
+    // ===============================
+    // INIT STATE (NO AUTO CHECK)
+    // ===============================
+    $(document).ready(function(){
+
+        // Pastikan default tidak auto
+        $('#auto_po').prop('checked', false);
+        $('#no_po').prop('readonly', false);
+
+    });
+
+
+    // ===============================
+    // TOGGLE AUTO
+    // ===============================
+    $('#auto_po').change(function(){
+
+        if ($(this).is(':checked')) {
+
+            const tgl = $('input[name="tgl_po"]').val();
+
+            if (!tgl) {
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Isi tanggal dulu',
+                    text: 'Nomor PO otomatis membutuhkan tanggal.',
+                    confirmButtonColor: '#3085d6'
+                });
+
+                $(this).prop('checked', false);
+                return;
+            }
+
+            $('#no_po').prop('readonly', true);
+            generatePoNumber();
+
+        } else {
+            $('#no_po').prop('readonly', false).val('');
+        }
+
+    });
+
+
+    // ===============================
+    // GENERATE SAAT TANGGAL BERUBAH
+    // ===============================
+    $('input[name="tgl_po"]').change(function(){
+
+        if ($('#auto_po').is(':checked')) {
+            generatePoNumber();
+        }
+
+    });
 });
 </script>
 @endsection

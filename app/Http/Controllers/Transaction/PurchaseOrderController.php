@@ -270,6 +270,11 @@ class PurchaseOrderController extends Controller
             // NO PO HANDLING
             // ===============================
             $finalNoPo = $request->no_po;
+            $exists = Tpo::where('no_po', $finalNoPo)->exists();
+
+            if ($exists) {
+                throw new \Exception('Nomor PO sudah digunakan');
+            }
 
             if ($request->po_type === 'tambahan') {
                 if (!$request->base_po_id) {
@@ -2454,5 +2459,59 @@ class PurchaseOrderController extends Controller
         return response()->json([
             'message' => $message
         ], $code);
+    }
+    
+    public function generateNumber(Request $request)
+    {
+        $date = $request->tgl_po ?? date('Y-m-d');
+
+        $month = date('n', strtotime($date));
+        $year  = date('Y', strtotime($date));
+
+        $romanMonths = [
+            1=>'I',2=>'II',3=>'III',4=>'IV',5=>'V',6=>'VI',
+            7=>'VII',8=>'VIII',9=>'IX',10=>'X',11=>'XI',12=>'XII'
+        ];
+
+        $roman = $romanMonths[$month];
+
+        $prefix = "PO/{$roman}/{$year}/";
+
+        DB::beginTransaction();
+
+        try {
+
+            // Locking agar aman dari race condition
+            $lastNumber = DB::table('tpos')
+                ->where('no_po', 'like', $prefix.'%')
+                ->lockForUpdate()
+                ->orderByDesc('no_po')
+                ->value('no_po');
+
+            if ($lastNumber) {
+                $lastSeq = (int) substr($lastNumber, -4);
+                $nextSeq = $lastSeq + 1;
+            } else {
+                $nextSeq = 1;
+            }
+
+            $newNumber = $prefix . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'number' => $newNumber
+            ]);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal generate nomor'
+            ], 500);
+        }
     }
 }
