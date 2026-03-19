@@ -17,8 +17,85 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Yajra\DataTables\Facades\DataTables;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
+use App\Jobs\GenerateQRJob;
+
 class PurchaseOrderController extends Controller
 {
+    public function generateAllQRBatch(Request $request, $id)
+    {
+        $po = Tpo::with('po_detail')->findOrFail($id);
+        $totalQty = $po->po_detail->sum('qty');
+        
+        $limitPerBatch = 100; // 100 label per PDF
+        $batches = ceil($totalQty / $limitPerBatch);
+        
+        $details = $po->po_detail;
+
+        for ($i = 0; $i < $batches; $i++) {
+            $batchStart = ($i * $limitPerBatch) + 1;
+            $batchEnd = min(($i + 1) * $limitPerBatch, $totalQty);
+            
+            // ==========================================
+            // HITUNG SUMMARY SKU & SEQUENCE
+            // ==========================================
+            $summaryItems = [];
+            $itemCounter = 0;
+            
+            foreach ($details as $d) {
+                // Rentang global untuk SKU ini
+                $skuStart = $itemCounter + 1;
+                $skuEnd = $itemCounter + $d->qty;
+                
+                // Cari overlap antara rentang batch dengan rentang SKU
+                $overlapStart = max($batchStart, $skuStart);
+                $overlapEnd = min($batchEnd, $skuEnd);
+                
+                if ($overlapStart <= $overlapEnd) {
+                    // Konversi rentang global menjadi urutan lokal SKU
+                    $localStart = $overlapStart - $itemCounter;
+                    $localEnd = $overlapEnd - $itemCounter;
+                    
+                    $summaryItems[] = $d->part_number . " (" . 
+                        str_pad($localStart, 4, '0', STR_PAD_LEFT) . "-" . 
+                        str_pad($localEnd, 4, '0', STR_PAD_LEFT) . ")";
+                }
+                $itemCounter += $d->qty;
+            }
+            $skuSummary = implode(", ", $summaryItems);
+
+            // Simpan status ke database
+            $batchId = DB::table('print_batches')->insertGetId([
+                'user_id' => auth()->id(),
+                'id_po' => $id,
+                'batch_name' => "Batch " . ($i + 1),
+                'content_summary' => $skuSummary,
+                'total_labels' => ($batchEnd - $batchStart) + 1,
+                'status' => 'Pending',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $batchRecord = DB::table('print_batches')->where('id', $batchId)->first();
+
+            // Kirim ke Antrian Laravel
+            GenerateQRJob::dispatch($batchRecord, $batchStart, $batchEnd, $id);
+        }
+
+        return redirect()->route('purchase_order.print_status', ['id' => $id])
+            ->with('success', "Permintaan cetak sedang diproses dalam $batches batch.");
+    }
+
+    public function printStatus(Request $request, $id)
+    {
+        $batches = DB::table('print_batches')
+            ->where('id_po', $id)
+            ->where('user_id', auth()->id())
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('pages.transaction.purchase_order.print_status', compact('batches', 'id'));
+    }
+
    /**
      * Display a listing of the resource.
      *
