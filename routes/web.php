@@ -39,6 +39,7 @@ use App\Http\Controllers\Transaction\DeliveryOrderTransferController;
 use App\Http\Controllers\Transaction\PaymentController;
 use App\Http\Controllers\Transaction\ProductInboundController;
 use App\Http\Controllers\Transaction\ProductOutboundController;
+use App\Http\Controllers\Transaction\TdoScanStagingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -231,6 +232,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/product_outbound/{id}/edit', [ProductOutboundController::class, 'edit'])->name('product_outbound.edit');    
     Route::get('/product_outbound/detail/{tgl}', [ProductOutboundController::class, 'detailByDate'])->name('product_outbound.detail');
     Route::post('/product_outbound/confirm', [ProductOutboundController::class, 'confirm'])->name('product_outbound.confirm');
+
+    /*
+    |--------------------------------------------------------------------------
+    | TRANSACTION - TDO SCAN STAGING (BELUM TERSIMPAN)
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/tdo_scan_staging', [TdoScanStagingController::class, 'index'])->name('tdo_scan_staging.index');
+    Route::get('/tdo_scan_staging/datatable', [TdoScanStagingController::class, 'datatable'])->name('tdo_scan_staging.datatable');
+    Route::get('/tdo_scan_staging/detail/{tgl}', [TdoScanStagingController::class, 'detailByDate'])->name('tdo_scan_staging.detail');
 
     /*
     |--------------------------------------------------------------------------
