@@ -46,10 +46,19 @@ class GenerateQRJob implements ShouldQueue
         DB::table('print_batches')->where('id', $this->batchRecord->id)->update(['status' => 'Processing']);
 
         try {
+            // Gunakan Transaction agar nomor urut tidak loncat atau bentrok
+            DB::beginTransaction();
+
             $po = Tpo::with('po_detail')->findOrFail($this->poId);
             
             // Logika pengumpulan data QR untuk batch ini
             $qrList = $this->collectQRData($po, $this->start, $this->end);
+
+            DB::commit();
+
+            if (empty($qrList)) {
+                throw new \Exception("Tidak ada data QR yang diproses untuk batch ini ({$this->start}-{$this->end})");
+            }
 
             /*
             |--------------------------------------------------------------------------
@@ -99,6 +108,8 @@ class GenerateQRJob implements ShouldQueue
             ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
+
             // Update status ke Failed
             DB::table('print_batches')->where('id', $this->batchRecord->id)->update([
                 'status' => 'Failed',
@@ -110,25 +121,83 @@ class GenerateQRJob implements ShouldQueue
     private function collectQRData($po, $start, $end)
     {
         $qrList = [];
-        $currentSeq = 0;
+        $currentGlobalIndex = 0; // Index akumulasi seluruh label di PO
+
+        // Ambil info user pembuat batch
+        $user = DB::table('users')->where('id', $this->batchRecord->user_id)->first();
+        $username = $user ? $user->username : 'System';
 
         foreach ($po->po_detail as $detail) {
+            
+            // Ambil data QR yang SUDAH ADA untuk detail ini (berdasarkan urutan ID)
+            $existingQRs = DB::table('tproduct_qr')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->orderBy('id', 'asc')
+                ->get();
+            
             for ($i = 1; $i <= $detail->qty; $i++) {
-                $currentSeq++;
+                $currentGlobalIndex++;
 
                 // Hanya ambil yang masuk dalam range batch ini
-                if ($currentSeq >= $this->start && $currentSeq <= $this->end) {
-                    $seqStr = str_pad($i, 4, '0', STR_PAD_LEFT);
+                if ($currentGlobalIndex >= $this->start && $currentGlobalIndex <= $this->end) {
                     
-                    $qrList[] = [
-                        'sku' => $detail->part_number,
-                        'nama_barang' => $detail->product_name,
-                        'nomor_urut' => $seqStr,
-                        'qr_payload' => $po->no_po . '|' . $detail->part_number . '|' . $seqStr
-                    ];
+                    // Case 1: SUDAH PERNAH DICETAK (Ambil dari DB)
+                    // Kita asumsikan urutan kemunculan di DB = urutan sequence item
+                    if (isset($existingQRs[$i-1])) {
+                        
+                        $qr = $existingQRs[$i-1];
+                        
+                        $qrList[] = [
+                            'sku' => $qr->sku,
+                            'nama_barang' => $qr->nama_barang,
+                            'nomor_urut' => $qr->sequence_no,
+                            'qr_payload' => $qr->qr_code
+                        ];
+
+                    } else {
+                        // Case 2: BELUM PERNAH DICETAK (Insert Baru)
+                        $sku = $detail->part_number;
+                        
+                        $product = DB::table('mproduct')->where('sku', $sku)->first();
+                        if (!$product) {
+                            throw new \Exception("SKU {$sku} tidak ditemukan di master product");
+                        }
+
+                        // Get Next Global Sequence (Logic sama dengan Controller)
+                        $nextSeqInt = DB::table('tproduct_qr')
+                            ->where('sku', $sku)
+                            ->max(DB::raw('CAST(sequence_no AS UNSIGNED)')) + 1;
+                        
+                        $seqStr = str_pad($nextSeqInt, 4, '0', STR_PAD_LEFT);
+                        $qrValue = $po->no_po . '|' . $sku . '|' . $seqStr;
+
+                        // Simpan ke tproduct_qr agar bisa di-scan WMS
+                        DB::table('tproduct_qr')->insert([
+                            'id_po'        => $po->id,
+                            'id_po_detail' => $detail->id,
+                            'id_product'   => $product->id,
+                            'sku'          => $sku,
+                            'qr_code'      => $qrValue,
+                            'sequence_no'  => $seqStr,
+                            'nama_barang'  => $detail->product_name,
+                            'status'       => 'NEW',
+                            'used_for'     => 'IN',
+                            'printed_at'   => now(),
+                            'printed_by'   => $username,
+                        ]);
+
+                        $qrList[] = [
+                            'sku' => $sku,
+                            'nama_barang' => $detail->product_name,
+                            'nomor_urut' => $seqStr,
+                            'qr_payload' => $qrValue
+                        ];
+                    }
                 }
 
-                if ($currentSeq > $this->end) break 2;
+                // Optimalisasi: Jika sudah melewati batas akhir batch, stop
+                if ($currentGlobalIndex > $this->end) break 2;
             }
         }
 
