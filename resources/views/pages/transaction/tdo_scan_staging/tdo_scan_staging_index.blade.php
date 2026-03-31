@@ -2,10 +2,13 @@
 
 @section('content')
 <div class="card shadow">
-    <div class="card-header">
+    <div class="card-header d-flex align-items-center justify-content-between">
         <h6 class="m-0 font-weight-bold text-primary">
             Hasil Scan Staging (Belum Tersimpan)
         </h6>
+        <a href="{{ route('tdo_scan_staging.detail_all') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-list"></i> Lihat Detail (Accordion)
+        </a>
     </div>
 
     <div class="card-body">
@@ -66,6 +69,13 @@ function loadStagingTable() {
                     <a href="{{ url('tdo_scan_staging/detail') }}/${tgl}" class="btn btn-sm btn-info">
                         Detail
                     </a>
+                    <form action="{{ route('tdo_scan_staging.generate_do') }}" method="POST" style="display:inline;" onsubmit="return confirm('Generate DO for ${tgl}?')">
+                        @csrf
+                        <input type="hidden" name="tgl" value="${tgl}">
+                        <button type="submit" class="btn btn-sm btn-success">
+                            Generate DO
+                        </button>
+                    </form>
                     `;
                 }
             }

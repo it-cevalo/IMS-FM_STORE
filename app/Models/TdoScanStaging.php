@@ -10,6 +10,10 @@ class TdoScanStaging extends Model
     protected $guarded = [];
     public $timestamps = false;
 
+    protected $casts = [
+        'created_at' => 'datetime',
+    ];
+
     public function product()
     {
         return $this->belongsTo(Mproduct::class, 'id_product', 'id');
