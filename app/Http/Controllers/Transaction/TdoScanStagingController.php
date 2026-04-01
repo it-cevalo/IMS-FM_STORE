@@ -147,20 +147,20 @@ class TdoScanStagingController extends Controller
         try {
             // 1. Ambil sequence DO terakhir untuk nomor DO
             $last_do = DB::table('tdos')
-                ->whereDate('tgl_do', now())
+                ->whereDate('tgl_do', $tgl)
                 ->count();
             
-            $no_do = 'DO-' . now()->format('Ymd') . '-' . str_pad($last_do + 1, 3, '0', STR_PAD_LEFT);
+            $no_do = 'DO-' . $tgl->format('Ymd') . '-' . str_pad($last_do + 1, 3, '0', STR_PAD_LEFT);
 
             // 2. Insert Header DO
             $id_do = DB::table('tdos')->insertGetId([
-                'tgl_do' => now(),
+                'tgl_do' => $tgl,
                 'no_do' => $no_do,
                 'shipping_via' => 'EKSPEDISI',
                 'do_source' => 'REGULAR',
                 'flag_approve' => 'Y',
                 'reason_do' => 'GENERATED FROM SCAN STAGING DATE ' . $tgl,
-                'created_at' => now(),
+                'created_at' => $tgl,
                 'created_by' => auth()->id() ?? 1,
             ]);
 
@@ -174,7 +174,7 @@ class TdoScanStagingController extends Controller
                     'sku' => $sku,
                     'qty' => $skuItems->count(),
                     'seq' => 1,
-                    'created_at' => now(),
+                    'created_at' => $tgl,
                     'created_by' => auth()->id() ?? 1,
                 ]);
 
@@ -187,8 +187,8 @@ class TdoScanStagingController extends Controller
                         'sku' => $item->sku,
                         'qr_code' => $item->qr_code,
                         'qty' => 1,
-                        'out_at' => now(),
-                        'created_at' => now(),
+                        'out_at' => $tgl,
+                        'created_at' => $tgl,
                         'outbound_source' => 'REGULAR',
                         'created_by' => auth()->id() ?? 1,
                     ]);
