@@ -21,9 +21,6 @@
             Hasil Scan Staging (Belum Tersimpan)
         </h6>
         <div class="d-flex gap-2">
-            <button id="btnGenerateAll" class="btn btn-success btn-sm mr-2">
-                <i class="fas fa-play-circle"></i> Generate All DO (Queue)
-            </button>
             <a href="{{ route('tdo_scan_staging.detail_all') }}" class="btn btn-primary btn-sm">
                 <i class="fas fa-list"></i> Lihat Detail (Accordion)
             </a>
@@ -86,9 +83,6 @@ function loadStagingTable() {
                 className: 'text-center',
                 render: function (tgl) {
                     return `
-                    <a href="{{ url('tdo_scan_staging/detail') }}/${tgl}" class="btn btn-sm btn-info">
-                        Detail
-                    </a>
                     <form action="{{ route('tdo_scan_staging.generate_do') }}" method="POST" style="display:inline;" onsubmit="return confirm('Generate DO for ${tgl}?')">
                         @csrf
                         <input type="hidden" name="tgl" value="${tgl}">
