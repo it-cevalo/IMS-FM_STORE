@@ -94,6 +94,45 @@ class TdoScanStagingController extends Controller
         }
     }
 
+    public function dispatchGenerateDo(Request $request)
+    {
+        // Check if there are any OPEN records
+        $count = TdoScanStaging::where('status', 'OPEN')->count();
+        if ($count == 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada data OPEN untuk diproses.'
+            ]);
+        }
+
+        // Check if already processing
+        $processingCount = TdoScanStaging::where('status', 'PROCESSING')->count();
+        if ($processingCount > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Proses generate sedang berjalan di background.'
+            ]);
+        }
+
+        \App\Jobs\GenerateDoJob::dispatch(auth()->id() ?? 1);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Job generate DO telah dikirim ke antrian (Queue). Silakan cek berkala.'
+        ]);
+    }
+
+    public function checkStatus()
+    {
+        $open = TdoScanStaging::where('status', 'OPEN')->count();
+        $processing = TdoScanStaging::where('status', 'PROCESSING')->count();
+
+        return response()->json([
+            'open' => $open,
+            'processing' => $processing
+        ]);
+    }
+
     private function processGenerateDo($tgl)
     {
         $items = TdoScanStaging::whereDate('created_at', $tgl)
