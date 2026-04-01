@@ -86,9 +86,9 @@ class TdoScanStagingController extends Controller
         }
 
         if ($success_count > 0 && empty($errors)) {
-            return redirect()->route('delivery_order.index')->with('success', "Berhasil membuat $success_count DO.");
+            return redirect()->route('tdo_scan_staging.index')->with('success', "Berhasil membuat $success_count DO.");
         } elseif ($success_count > 0) {
-            return redirect()->route('delivery_order.index')->with('success', "Berhasil membuat $success_count DO. Ada beberapa error: " . implode(', ', $errors));
+            return redirect()->route('tdo_scan_staging.index')->with('success', "Berhasil membuat $success_count DO. Ada beberapa error: " . implode(', ', $errors));
         } else {
             return redirect()->back()->with('error', 'Gagal memproses data: ' . implode(', ', $errors));
         }
