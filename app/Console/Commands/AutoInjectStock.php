@@ -94,9 +94,9 @@ class AutoInjectStock extends Command
                     // 2️⃣ STOCK OPNAME (ANTI DOUBLE)
                     // ===============================
                     $opnameExists = DB::table('t_stock_opname')
-                        ->where('id_warehouse', $warehouseId)
+                        ->where('id_warehouse', '1')
                         ->where('id_product', $productId)
-                        ->whereDate('tgl_opname', date('Y-m-d'))
+                        // ->whereDate('tgl_opname', date('Y-m-d'))
                         ->exists();
 
                     if (!$opnameExists) {
@@ -112,44 +112,44 @@ class AutoInjectStock extends Command
                     // ===============================
                     // 3️⃣ QR + INBOUND
                     // ===============================
-                    if ($qty > 0) {
-                        for ($i = 1; $i <= $qty; $i++) {
+                    // if ($qty > 0) {
+                    //     for ($i = 1; $i <= $qty; $i++) {
 
-                            $seq = $this->getNextGlobalSequenceBySKU($sku);
-                            $seqStr = str_pad($seq, 4, '0', STR_PAD_LEFT);
+                    //         $seq = $this->getNextGlobalSequenceBySKU($sku);
+                    //         $seqStr = str_pad($seq, 4, '0', STR_PAD_LEFT);
 
-                            $qrPayload = "SA|{$sku}|{$seqStr}";
+                    //         $qrPayload = "SA|{$sku}|{$seqStr}";
 
-                            DB::table('tproduct_qr')->insert([
-                                'id_po'        => 0,
-                                'id_po_detail' => 0,
-                                'id_product'   => $productId,
-                                'sku'          => $sku,
-                                'qr_code'      => $qrPayload,
-                                'sequence_no'  => $seqStr,
-                                'nama_barang'  => $nama,
-                                'status'       => 'NEW',
-                                'used_for'     => 'IN',
-                                'printed_by'   => 'SYSTEM',
-                                'created_at'   => now()
-                            ]);
+                    //         DB::table('tproduct_qr')->insert([
+                    //             'id_po'        => 0,
+                    //             'id_po_detail' => 0,
+                    //             'id_product'   => $productId,
+                    //             'sku'          => $sku,
+                    //             'qr_code'      => $qrPayload,
+                    //             'sequence_no'  => $seqStr,
+                    //             'nama_barang'  => $nama,
+                    //             'status'       => 'NEW',
+                    //             'used_for'     => 'IN',
+                    //             'printed_by'   => 'SYSTEM',
+                    //             'created_at'   => now()
+                    //         ]);
 
-                            DB::table('tproduct_inbound')->insert([
-                                'id_po'          => 0,
-                                'id_po_detail'   => 0,
-                                'id_warehouse'   => $warehouseId,
-                                'id_product'     => $productId,
-                                'sku'            => $sku,
-                                'qr_code'        => $qrPayload,
-                                'qty'            => 1,
-                                'inbound_source' => 'SALDO_AWAL',
-                                'created_by'     => 0,
-                                'created_at'     => now()
-                            ]);
+                    //         DB::table('tproduct_inbound')->insert([
+                    //             'id_po'          => 0,
+                    //             'id_po_detail'   => 0,
+                    //             'id_warehouse'   => $warehouseId,
+                    //             'id_product'     => $productId,
+                    //             'sku'            => $sku,
+                    //             'qr_code'        => $qrPayload,
+                    //             'qty'            => 1,
+                    //             'inbound_source' => 'SALDO_AWAL',
+                    //             'created_by'     => 0,
+                    //             'created_at'     => now()
+                    //         ]);
 
-                            $totalQR++;
-                        }
-                    }
+                    //         $totalQR++;
+                    //     }
+                    // }
 
                     DB::commit();
 
@@ -172,7 +172,7 @@ class AutoInjectStock extends Command
 
             $this->info("=== SELESAI ===");
             $this->info("Total SKU : {$totalSku}");
-            $this->info("Total QR  : {$totalQR}");
+            // $this->info("Total QR  : {$totalQR}");
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -184,15 +184,15 @@ class AutoInjectStock extends Command
     /**
      * GLOBAL SEQUENCE
      */
-    private function getNextGlobalSequenceBySKU(string $sku): int
-    {
-        $last = DB::table('tproduct_qr')
-            ->where('sku', $sku)
-            ->lockForUpdate() // ⬅️ WAJIB
-            ->max(DB::raw('CAST(sequence_no AS UNSIGNED)'));
+    // private function getNextGlobalSequenceBySKU(string $sku): int
+    // {
+    //     $last = DB::table('tproduct_qr')
+    //         ->where('sku', $sku)
+    //         ->lockForUpdate() // ⬅️ WAJIB
+    //         ->max(DB::raw('CAST(sequence_no AS UNSIGNED)'));
 
-        return $last ? $last + 1 : 1;
-    }
+    //     return $last ? $last + 1 : 1;
+    // }
 
     /**
      * MANUAL FILE LOGGING
