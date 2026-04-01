@@ -64,9 +64,19 @@
         </div>
         
         @if(!in_array($purchase_order->status_po, ['0']))
-            <button type="button" class="btn btn-primary" id="btnPrintQR">
-                <i class="fas fa-print"></i> Cetak QR
-            </button>
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary" id="btnPrintQR">
+                    <i class="fas fa-print"></i> Cetak QR (Manual)
+                </button>
+                <a href="{{ route('purchase_order.generate_batch', $purchase_order->id) }}" 
+                   class="btn btn-info" 
+                   onclick="return confirm('Sistem akan memecah cetakan menjadi beberapa batch (100 label per file) untuk menjaga performa. Lanjutkan?')">
+                    <i class="fas fa-layer-group"></i> Cetak Semua (Batch Antrian)
+                </a>
+                <a href="{{ route('purchase_order.print_status', $purchase_order->id) }}" class="btn btn-secondary">
+                    <i class="fas fa-list"></i> Status Antrian
+                </a>
+            </div>
         @endif
         {{-- ===================== INPUT NOMOR URUT (INLINE) ===================== --}}
         <div id="sequenceWrapper" class="mb-3 d-none">
@@ -291,7 +301,12 @@
         $("#checkAll").on("change", function(){
             const checked = $(this).is(":checked");
             $(".chkProduct").prop("checked", checked);
-            if(checked) hideSequence();
+            if(checked) {
+                hideSequence();
+                $("#btnPrintQR").prop('disabled', true).addClass('disabled').attr('title', 'Gunakan Cetak Semua (Batch) untuk memproses seluruh data');
+            } else {
+                $("#btnPrintQR").prop('disabled', false).removeClass('disabled').removeAttr('title');
+            }
         });
     
         // ===================== MANUAL CHECK =====================
@@ -301,16 +316,15 @@
     
             if(checkedList < total){
                 $("#checkAll").prop("checked", false);
+                $("#btnPrintQR").prop('disabled', false).removeClass('disabled').removeAttr('title');
+            } else {
+                $("#checkAll").prop("checked", true);
+                $("#btnPrintQR").prop('disabled', true).addClass('disabled').attr('title', 'Gunakan Cetak Semua (Batch) untuk memproses seluruh data');
             }
     
             if(checkedList === 1){
                 showSequence();
             } else {
-                hideSequence();
-            }
-    
-            if(checkedList === total){
-                $("#checkAll").prop("checked", true);
                 hideSequence();
             }
         });

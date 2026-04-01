@@ -39,6 +39,7 @@ use App\Http\Controllers\Transaction\DeliveryOrderTransferController;
 use App\Http\Controllers\Transaction\PaymentController;
 use App\Http\Controllers\Transaction\ProductInboundController;
 use App\Http\Controllers\Transaction\ProductOutboundController;
+use App\Http\Controllers\Transaction\TdoScanStagingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -183,6 +184,8 @@ Route::middleware(['auth'])->group(function () {
     | TRANSACTION - PURCHASE ORDER
     |--------------------------------------------------------------------------
     */
+    Route::get('/purchase_order/{id}/print-status', [PurchaseOrderController::class, 'printStatus'])->name('purchase_order.print_status');
+    Route::get('/purchase_order/{id}/generate-batch', [PurchaseOrderController::class, 'generateAllQRBatch'])->name('purchase_order.generate_batch');
     Route::get('/purchase_order/data', [PurchaseOrderController::class, 'getData'])->name('purchase_order.data');
     Route::get('/bin-po/data', [PurchaseOrderController::class, 'binData'])->name('purchase_order.bin.data');
     Route::get('/bin-po', [PurchaseOrderController::class, 'bin'])->name('purchase_order.bin');
@@ -229,6 +232,18 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/product_outbound/{id}/edit', [ProductOutboundController::class, 'edit'])->name('product_outbound.edit');    
     Route::get('/product_outbound/detail/{tgl}', [ProductOutboundController::class, 'detailByDate'])->name('product_outbound.detail');
     Route::post('/product_outbound/confirm', [ProductOutboundController::class, 'confirm'])->name('product_outbound.confirm');
+
+    /*
+    |--------------------------------------------------------------------------
+    | TRANSACTION - TDO SCAN STAGING (BELUM TERSIMPAN)
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/tdo_scan_staging', [TdoScanStagingController::class, 'index'])->name('tdo_scan_staging.index');
+    Route::get('/tdo_scan_staging/datatable', [TdoScanStagingController::class, 'datatable'])->name('tdo_scan_staging.datatable');
+    Route::get('/tdo_scan_staging/detail', [TdoScanStagingController::class, 'detail'])->name('tdo_scan_staging.detail_all');
+    Route::get('/tdo_scan_staging/detail/{tgl}', [TdoScanStagingController::class, 'detailByDate'])->name('tdo_scan_staging.detail');
+    Route::post('/tdo_scan_staging/generate_do', [TdoScanStagingController::class, 'generateDoByDate'])->name('tdo_scan_staging.generate_do');
+    Route::post('/tdo_scan_staging/generate_do_batch', [TdoScanStagingController::class, 'generateDoBatch'])->name('tdo_scan_staging.generate_do_batch');
 
     /*
     |--------------------------------------------------------------------------
