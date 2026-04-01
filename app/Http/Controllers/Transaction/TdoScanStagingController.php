@@ -150,7 +150,7 @@ class TdoScanStagingController extends Controller
                 ->whereDate('tgl_do', $tgl)
                 ->count();
             
-            $no_do = 'DO-' . $tgl->format('Ymd') . '-' . str_pad($last_do + 1, 3, '0', STR_PAD_LEFT);
+            $no_do = 'DO-' . \Carbon\Carbon::parse($tgl)->format('Ymd') . '-' . str_pad($last_do + 1, 3, '0', STR_PAD_LEFT);
 
             // 2. Insert Header DO
             $id_do = DB::table('tdos')->insertGetId([
