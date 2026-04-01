@@ -60,7 +60,7 @@ class TdoScanStagingController extends Controller
         $tgl = $request->tgl;
         try {
             $no_do = $this->processGenerateDo($tgl);
-            return redirect()->route('delivery_order.index')->with('success', 'Berhasil membuat DO ' . $no_do);
+            return redirect()->route('tdo_scan_staging.index')->with('success', 'Berhasil membuat DO ' . $no_do);
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal memproses data: ' . $e->getMessage());
         }
