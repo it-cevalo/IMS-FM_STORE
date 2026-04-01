@@ -244,6 +244,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tdo_scan_staging/detail/{tgl}', [TdoScanStagingController::class, 'detailByDate'])->name('tdo_scan_staging.detail');
     Route::post('/tdo_scan_staging/generate_do', [TdoScanStagingController::class, 'generateDoByDate'])->name('tdo_scan_staging.generate_do');
     Route::post('/tdo_scan_staging/generate_do_batch', [TdoScanStagingController::class, 'generateDoBatch'])->name('tdo_scan_staging.generate_do_batch');
+    Route::post('/tdo_scan_staging/dispatch', [TdoScanStagingController::class, 'dispatchGenerateDo'])->name('tdo_scan_staging.dispatch');
+    Route::get('/tdo_scan_staging/status', [TdoScanStagingController::class, 'checkStatus'])->name('tdo_scan_staging.status');
 
     /*
     |--------------------------------------------------------------------------

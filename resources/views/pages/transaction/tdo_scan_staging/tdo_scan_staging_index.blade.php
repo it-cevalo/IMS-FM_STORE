@@ -1,14 +1,33 @@
 @extends('layouts.admin')
 
 @section('content')
+<div class="card shadow mb-4" id="processingStatus" style="display:none;">
+    <div class="card-body bg-light border-left-info">
+        <div class="d-flex align-items-center">
+            <div class="spinner-border text-info mr-3" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+            <div>
+                <h6 class="m-0 font-weight-bold text-info">Proses Generate DO sedang berjalan...</h6>
+                <small class="text-muted">Data sedang diproses di background. Sisa data OPEN: <span id="openCount">-</span>, Sedang diproses: <span id="processingCount">-</span></small>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="card shadow">
-    <div class="card-header d-flex align-items-center justify-content-between">
+    <div class="card-header d-flex align-items-center justify-content-between flex-wrap">
         <h6 class="m-0 font-weight-bold text-primary">
             Hasil Scan Staging (Belum Tersimpan)
         </h6>
-        <a href="{{ route('tdo_scan_staging.detail_all') }}" class="btn btn-primary btn-sm">
-            <i class="fas fa-list"></i> Lihat Detail (Accordion)
-        </a>
+        <div class="d-flex gap-2">
+            <button id="btnGenerateAll" class="btn btn-success btn-sm mr-2">
+                <i class="fas fa-play-circle"></i> Generate All DO (Queue)
+            </button>
+            <a href="{{ route('tdo_scan_staging.detail_all') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-list"></i> Lihat Detail (Accordion)
+            </a>
+        </div>
     </div>
 
     <div class="card-body">
@@ -28,6 +47,7 @@
 
 <script>
 let stagingTable;
+let statusInterval;
 
 function loadStagingTable() {
     if ($.fn.DataTable.isDataTable('#stagingTable')) {
@@ -72,7 +92,7 @@ function loadStagingTable() {
                     <form action="{{ route('tdo_scan_staging.generate_do') }}" method="POST" style="display:inline;" onsubmit="return confirm('Generate DO for ${tgl}?')">
                         @csrf
                         <input type="hidden" name="tgl" value="${tgl}">
-                        <button type="submit" class="btn btn-sm btn-success">
+                        <button type="submit" class="btn btn-sm btn-success btn-generate-single">
                             Generate DO
                         </button>
                     </form>
@@ -84,8 +104,64 @@ function loadStagingTable() {
     });
 }
 
+function checkProcessingStatus() {
+    $.get("{{ route('tdo_scan_staging.status') }}", function(res) {
+        $('#openCount').text(res.open);
+        $('#processingCount').text(res.processing);
+
+        if (res.processing > 0) {
+            $('#processingStatus').fadeIn();
+            $('#btnGenerateAll').prop('disabled', true);
+            $('.btn-generate-single').prop('disabled', true);
+            
+            // Start interval if not already started
+            if (!statusInterval) {
+                statusInterval = setInterval(checkProcessingStatus, 5000);
+            }
+        } else {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+                statusInterval = null;
+                $('#processingStatus').fadeOut();
+                $('#btnGenerateAll').prop('disabled', false);
+                stagingTable.ajax.reload();
+                
+                // Show success message if it was previously processing
+                Swal.fire('Selesai', 'Proses generate DO di background telah selesai.', 'success');
+            }
+        }
+    });
+}
+
 $(document).ready(function () {
     loadStagingTable();
+    checkProcessingStatus();
+
+    $('#btnGenerateAll').click(function() {
+        Swal.fire({
+            title: 'Generate All DO?',
+            text: "Semua data 'OPEN' akan diproses di background.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Jalankan!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post("{{ route('tdo_scan_staging.dispatch') }}", {
+                    _token: "{{ csrf_token() }}"
+                }, function(res) {
+                    if (res.success) {
+                        Swal.fire('Berhasil', res.message, 'success');
+                        checkProcessingStatus();
+                    } else {
+                        Swal.fire('Gagal', res.message, 'error');
+                    }
+                }).fail(function() {
+                    Swal.fire('Error', 'Terjadi kesalahan sistem.', 'error');
+                });
+            }
+        });
+    });
 });
 </script>
 @endsection
