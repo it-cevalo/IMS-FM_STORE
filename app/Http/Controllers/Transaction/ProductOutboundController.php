@@ -101,13 +101,14 @@ class ProductOutboundController extends Controller
     public function confirm(Request $request)
     {
         $request->validate([
-            'items' => 'required|array|min:1'
+            'id_warehouse' => 'required|integer',
+            'items'        => 'required|array|min:1'
         ]);
     
         DB::beginTransaction();
         try {
     
-            $warehouseId = 1;
+            $warehouseId = $request->id_warehouse;
     
             $outbounds = DB::table('tproduct_outbound')
                 ->whereIn('id', $request->items)
