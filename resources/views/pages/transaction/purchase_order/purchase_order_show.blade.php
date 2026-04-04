@@ -813,6 +813,62 @@
                         data: { _token: '{{ csrf_token() }}' },
                     });
                 } catch (xhr) {
+                    Swal.close();
+
+                    // ── QR sudah pernah dicetak → tawari reprint request ──
+                    if (xhr.status === 409 && xhr.responseJSON?.code === 'QR_ALREADY_PRINTED') {
+
+                        const conflicts = xhr.responseJSON.conflicts || [];
+                        let list = conflicts.map(c =>
+                            `• <b>${c.product_name}</b> (${c.sku}) → <b>${c.printed_range}</b>`
+                        ).join('<br>');
+
+                        Swal.fire({
+                            title: 'Cetak Semua Diblokir',
+                            html: `
+                                <div style="text-align:left;font-size:14px;line-height:1.6">
+                                    <p><b>QR berikut sudah pernah dicetak.</b><br>
+                                    Ajukan <b>cetak ulang</b> untuk melanjutkan.</p>
+                                    <hr>
+                                    ${list}
+                                </div>
+                            `,
+                            icon: 'warning',
+                            input: 'textarea',
+                            inputPlaceholder: 'Alasan cetak ulang (wajib)',
+                            showCancelButton: true,
+                            confirmButtonText: 'Ajukan Cetak Ulang',
+                            cancelButtonText: 'Batal',
+                            preConfirm: (reason) => {
+                                if (!reason || !reason.trim()) {
+                                    Swal.showValidationMessage('Alasan wajib diisi');
+                                    return false;
+                                }
+                                return reason;
+                            }
+                        }).then(r => {
+                            if (!r.isConfirmed) return;
+
+                            $.post('/qr/reprint/request', {
+                                id_po  : {{ $purchase_order->id }},
+                                reason : r.value,
+                                _token : '{{ csrf_token() }}',
+                                items  : conflicts
+                            })
+                            .done(resp => {
+                                Swal.fire('Berhasil', resp.message || 'Pengajuan cetak ulang berhasil dikirim.', 'success');
+                            })
+                            .fail(xhr2 => {
+                                const msg = xhr2.responseJSON?.code === 'REPRINT_PENDING'
+                                    ? xhr2.responseJSON.message
+                                    : (xhr2.responseJSON?.message || 'Gagal mengajukan cetak ulang.');
+                                Swal.fire('Gagal', msg, 'error');
+                            });
+                        });
+
+                        return;
+                    }
+
                     Swal.fire('Gagal', xhr.responseJSON?.error || 'Gagal membuat batch', 'error');
                     return;
                 }
@@ -859,34 +915,8 @@
                     }
                 }
 
-                // 3. Tampilkan hasil
-                let html = '';
-
-                if (readyFiles.length > 0) {
-                    html += '<p class="font-weight-bold text-success">Selesai — Klik untuk membuka PDF:</p><ul class="list-unstyled">';
-                    readyFiles.forEach(f => {
-                        const url = `/storage/temp_prints/${f.file}`;
-                        html += `<li><a href="${url}" target="_blank" class="btn btn-sm btn-outline-primary btn-block mb-1">` +
-                                `<i class="fas fa-file-pdf"></i> ${f.name}</a></li>`;
-                    });
-                    html += '</ul>';
-                }
-
-                if (errors.length > 0) {
-                    html += '<p class="font-weight-bold text-danger mt-2">Batch yang gagal:</p><ul class="list-unstyled">';
-                    errors.forEach(e => {
-                        html += `<li class="text-danger small">• ${e.name}: ${e.msg}</li>`;
-                    });
-                    html += '</ul>';
-                }
-
-                Swal.fire({
-                    title: errors.length === 0 ? 'Semua Batch Selesai!' : 'Selesai dengan Error',
-                    html: html,
-                    icon: errors.length === 0 ? 'success' : 'warning',
-                    width: 500,
-                    confirmButtonText: 'Tutup',
-                });
+                // 3. Redirect ke halaman print status
+                window.location.href = '{{ route("purchase_order.print_status", $purchase_order->id) }}';
             });
         });
 

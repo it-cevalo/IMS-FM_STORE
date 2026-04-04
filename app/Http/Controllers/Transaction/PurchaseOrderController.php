@@ -30,6 +30,55 @@ class PurchaseOrderController extends Controller
             return response()->json(['error' => 'PO tidak memiliki detail item'], 422);
         }
 
+        /*
+        |----------------------------------------------------------------------
+        | PRE-FLIGHT: Cek apakah ada QR yang sudah dicetak tanpa approved reprint
+        | Logika sama persis dengan validateQR() tapi mencakup seluruh PO
+        |----------------------------------------------------------------------
+        */
+        // 1 query: seluruh QR di PO ini yang blocked (ada di tproduct_qr, tanpa approved reprint)
+        $blockedRaw = DB::table('tproduct_qr as qr')
+            ->leftJoin('tqr_reprint_request as rr', function ($j) {
+                $j->on('rr.id_po',        '=', 'qr.id_po')
+                  ->on('rr.id_po_detail',  '=', 'qr.id_po_detail')
+                  ->on('rr.sequence_no',   '=', 'qr.sequence_no')
+                  ->where('rr.status', 'APPROVED')
+                  ->whereNull('rr.used_at');
+            })
+            ->where('qr.id_po', $id)
+            ->whereNull('rr.id')   // tidak punya approved reprint → blocked
+            ->select('qr.id_po_detail', 'qr.sequence_no')
+            ->get()
+            ->groupBy('id_po_detail');
+
+        $conflictsAll = [];
+        foreach ($po->po_detail as $detail) {
+            $detailBlocked = $blockedRaw->get($detail->id);
+            if (!$detailBlocked || $detailBlocked->isEmpty()) continue;
+
+            $blocked = $detailBlocked
+                ->pluck('sequence_no')
+                ->map(fn($s) => (int)$s)
+                ->sort()->values()->toArray();
+
+            $rangeText      = $this->compressSequenceRange($blocked);
+            $conflictsAll[] = [
+                'id_po_detail' => $detail->id,
+                'sku'          => $detail->part_number,
+                'product_name' => $detail->product_name,
+                'printed_range'=> $rangeText,
+                'sequence'     => $rangeText,
+            ];
+        }
+
+        if (!empty($conflictsAll)) {
+            return response()->json([
+                'code'      => 'QR_ALREADY_PRINTED',
+                'message'   => 'Terdapat QR yang sudah pernah dicetak. Ajukan reprint terlebih dahulu.',
+                'conflicts' => $conflictsAll,
+            ], 409);
+        }
+
         $limitPerBatch = 100;
         $totalBatches  = ceil($totalQty / $limitPerBatch);
         $details       = $po->po_detail;
@@ -169,14 +218,37 @@ class PurchaseOrderController extends Controller
                 ->orderBy('id', 'asc')
                 ->get();
 
+            // Pre-fetch approved reprints untuk detail ini — 1 query, cek in-memory
+            $approvedSeqs = DB::table('tqr_reprint_request')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->where('status', 'APPROVED')
+                ->whereNull('used_at')
+                ->pluck('sequence_no')
+                ->flip() // [sequence_no => index] untuk O(1) lookup
+                ->toArray();
+
+            $consumedSeqs = []; // dikumpulkan dulu, bulk update setelah loop
+
             for ($i = 1; $i <= $detail->qty; $i++) {
                 $currentGlobalIndex++;
 
                 if ($currentGlobalIndex >= $start && $currentGlobalIndex <= $end) {
 
                     if (isset($existingQRs[$i - 1])) {
-                        // QR sudah pernah dicetak — ambil dari DB
-                        $qr       = $existingQRs[$i - 1];
+                        // QR sudah pernah dicetak
+                        $qr = $existingQRs[$i - 1];
+
+                        // SAFETY CHECK in-memory (bukan query ke DB)
+                        if (!isset($approvedSeqs[$qr->sequence_no])) {
+                            throw new \Exception(
+                                "QR SKU {$detail->part_number} sequence {$qr->sequence_no} " .
+                                "sudah pernah dicetak. Ajukan reprint request terlebih dahulu."
+                            );
+                        }
+
+                        $consumedSeqs[] = $qr->sequence_no;
+
                         $qrList[] = [
                             'sku'         => $qr->sku,
                             'nama_barang' => $qr->nama_barang,
@@ -223,6 +295,17 @@ class PurchaseOrderController extends Controller
 
                 if ($currentGlobalIndex > $end) break 2;
             }
+
+            // Bulk consume approval — 1 query per detail, bukan per item
+            if (!empty($consumedSeqs)) {
+                DB::table('tqr_reprint_request')
+                    ->where('id_po', $po->id)
+                    ->where('id_po_detail', $detail->id)
+                    ->whereIn('sequence_no', $consumedSeqs)
+                    ->where('status', 'APPROVED')
+                    ->whereNull('used_at')
+                    ->update(['used_at' => now()]);
+            }
         }
 
         return $qrList;
@@ -233,10 +316,173 @@ class PurchaseOrderController extends Controller
         $batches = DB::table('print_batches')
             ->where('id_po', $id)
             ->where('user_id', auth()->id())
-            ->orderBy('created_at', 'desc')
+            ->orderBy('created_at', 'asc')
             ->get();
 
-        return view('pages.transaction.purchase_order.print_status', compact('batches', 'id'));
+        $po = Tpo::findOrFail($id);
+
+        return view('pages.transaction.purchase_order.print_status', compact('batches', 'id', 'po'));
+    }
+
+    public function validateBatchView(Request $request, $id, $batchId)
+    {
+        $batch = DB::table('print_batches')->where('id', $batchId)->first();
+
+        abort_if(!$batch || (int)$batch->id_po !== (int)$id, 404);
+        abort_if((int)$batch->user_id !== auth()->id(), 403);
+
+        // ── Pertama kali dilihat → tandai Printed, izinkan ──
+        if ($batch->status === 'Ready') {
+            DB::table('print_batches')
+                ->where('id', $batchId)
+                ->update(['status' => 'Printed', 'updated_at' => now()]);
+
+            return response()->json(['allowed' => true]);
+        }
+
+        // ── Sudah pernah dilihat/dicetak → wajib reprint approval ──
+        if ($batch->status === 'Printed') {
+            $po        = Tpo::with('po_detail')->findOrFail($id);
+            $conflicts = $this->findBatchConflictsFromSummary($po, $batch->content_summary);
+
+            if (empty($conflicts)) {
+                // Semua item punya approved reprint → konsumsi dan izinkan
+                $this->consumeBatchReprintApprovals($po, $batch->content_summary);
+                return response()->json(['allowed' => true]);
+            }
+
+            return response()->json([
+                'code'      => 'QR_ALREADY_PRINTED',
+                'message'   => 'Batch ini sudah pernah dicetak. Ajukan reprint terlebih dahulu.',
+                'conflicts' => $conflicts,
+            ], 409);
+        }
+
+        return response()->json(['allowed' => false, 'error' => 'Status batch tidak valid.'], 400);
+    }
+
+    private function findBatchConflictsFromSummary($po, $contentSummary)
+    {
+        $conflicts = [];
+        if (!$contentSummary) return $conflicts;
+
+        foreach (explode(',', $contentSummary) as $part) {
+            $part = trim($part);
+            if (!preg_match('/^(.+?)\s*\((\d+)-(\d+)\)$/', $part, $m)) continue;
+
+            $sku       = trim($m[1]);
+            $localFrom = (int)$m[2];
+            $localTo   = (int)$m[3];
+
+            $detail = $po->po_detail->first(fn($d) => $d->part_number === $sku);
+            if (!$detail) continue;
+
+            // Query 1: ambil sequence_no dari slice posisi lokal ini
+            $seqNos = DB::table('tproduct_qr')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->orderBy('id', 'asc')
+                ->skip($localFrom - 1)
+                ->take($localTo - $localFrom + 1)
+                ->pluck('sequence_no')
+                ->toArray();
+
+            if (empty($seqNos)) continue;
+
+            // Query 2: sequence mana yang punya approved reprint
+            $approvedSeqs = DB::table('tqr_reprint_request')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->whereIn('sequence_no', $seqNos)
+                ->where('status', 'APPROVED')
+                ->whereNull('used_at')
+                ->pluck('sequence_no')
+                ->toArray();
+
+            // Blocked = ada di batch tapi tidak punya approved reprint
+            $blocked = array_values(array_diff($seqNos, $approvedSeqs));
+
+            if (!empty($blocked)) {
+                $blocked = array_map('intval', $blocked);
+                sort($blocked);
+                $rangeText   = $this->compressSequenceRange($blocked);
+                $conflicts[] = [
+                    'id_po_detail' => $detail->id,
+                    'sku'          => $sku,
+                    'product_name' => $detail->product_name,
+                    'printed_range'=> $rangeText,
+                    'sequence'     => $rangeText,
+                ];
+            }
+        }
+
+        return $conflicts;
+    }
+
+    private function consumeBatchReprintApprovals($po, $contentSummary)
+    {
+        if (!$contentSummary) return;
+
+        foreach (explode(',', $contentSummary) as $part) {
+            $part = trim($part);
+            if (!preg_match('/^(.+?)\s*\((\d+)-(\d+)\)$/', $part, $m)) continue;
+
+            $sku       = trim($m[1]);
+            $localFrom = (int)$m[2];
+            $localTo   = (int)$m[3];
+
+            $detail = $po->po_detail->first(fn($d) => $d->part_number === $sku);
+            if (!$detail) continue;
+
+            // Query 1: ambil sequence_no yang masuk batch ini
+            $seqNos = DB::table('tproduct_qr')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->orderBy('id', 'asc')
+                ->skip($localFrom - 1)
+                ->take($localTo - $localFrom + 1)
+                ->pluck('sequence_no')
+                ->toArray();
+
+            if (empty($seqNos)) continue;
+
+            // Query 2: bulk consume — 1 UPDATE untuk semua sequence sekaligus
+            DB::table('tqr_reprint_request')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->whereIn('sequence_no', $seqNos)
+                ->where('status', 'APPROVED')
+                ->whereNull('used_at')
+                ->update(['used_at' => now()]);
+        }
+    }
+
+    public function showBatch($batchId)
+    {
+        $batch = DB::table('print_batches')->where('id', $batchId)->first();
+
+        abort_if(!$batch, 404);
+        abort_if($batch->user_id !== auth()->id(), 403);
+
+        $po = Tpo::findOrFail($batch->id_po);
+
+        // Parse content_summary menjadi array item untuk ditampilkan di tabel
+        $items = [];
+        if ($batch->content_summary) {
+            foreach (explode(',', $batch->content_summary) as $part) {
+                $part = trim($part);
+                if (preg_match('/^(.+?)\s*\((\d+)-(\d+)\)$/', $part, $m)) {
+                    $items[] = [
+                        'sku'      => trim($m[1]),
+                        'dari'     => $m[2],
+                        'sampai'   => $m[3],
+                        'jumlah'   => (int)$m[3] - (int)$m[2] + 1,
+                    ];
+                }
+            }
+        }
+
+        return view('print.batch-detail', compact('batch', 'po', 'items'));
     }
 
    /**
