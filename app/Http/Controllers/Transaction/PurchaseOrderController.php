@@ -25,64 +25,207 @@ class PurchaseOrderController extends Controller
     {
         $po = Tpo::with('po_detail')->findOrFail($id);
         $totalQty = $po->po_detail->sum('qty');
-        
-        $limitPerBatch = 100; // 100 label per PDF
-        $batches = ceil($totalQty / $limitPerBatch);
-        
-        $details = $po->po_detail;
 
-        for ($i = 0; $i < $batches; $i++) {
+        if ($totalQty === 0) {
+            return response()->json(['error' => 'PO tidak memiliki detail item'], 422);
+        }
+
+        $limitPerBatch = 100;
+        $totalBatches  = ceil($totalQty / $limitPerBatch);
+        $details       = $po->po_detail;
+        $batchList     = [];
+
+        for ($i = 0; $i < $totalBatches; $i++) {
             $batchStart = ($i * $limitPerBatch) + 1;
-            $batchEnd = min(($i + 1) * $limitPerBatch, $totalQty);
-            
-            // ==========================================
-            // HITUNG SUMMARY SKU & SEQUENCE
-            // ==========================================
+            $batchEnd   = min(($i + 1) * $limitPerBatch, $totalQty);
+
+            // Hitung summary SKU & sequence
             $summaryItems = [];
-            $itemCounter = 0;
-            
+            $itemCounter  = 0;
             foreach ($details as $d) {
-                // Rentang global untuk SKU ini
-                $skuStart = $itemCounter + 1;
-                $skuEnd = $itemCounter + $d->qty;
-                
-                // Cari overlap antara rentang batch dengan rentang SKU
+                $skuStart     = $itemCounter + 1;
+                $skuEnd       = $itemCounter + $d->qty;
                 $overlapStart = max($batchStart, $skuStart);
-                $overlapEnd = min($batchEnd, $skuEnd);
-                
+                $overlapEnd   = min($batchEnd, $skuEnd);
                 if ($overlapStart <= $overlapEnd) {
-                    // Konversi rentang global menjadi urutan lokal SKU
-                    $localStart = $overlapStart - $itemCounter;
-                    $localEnd = $overlapEnd - $itemCounter;
-                    
-                    $summaryItems[] = $d->part_number . " (" . 
-                        str_pad($localStart, 4, '0', STR_PAD_LEFT) . "-" . 
-                        str_pad($localEnd, 4, '0', STR_PAD_LEFT) . ")";
+                    $localStart     = $overlapStart - $itemCounter;
+                    $localEnd       = $overlapEnd - $itemCounter;
+                    $summaryItems[] = $d->part_number . ' (' .
+                        str_pad($localStart, 4, '0', STR_PAD_LEFT) . '-' .
+                        str_pad($localEnd, 4, '0', STR_PAD_LEFT) . ')';
                 }
                 $itemCounter += $d->qty;
             }
-            $skuSummary = implode(", ", $summaryItems);
 
-            // Simpan status ke database
             $batchId = DB::table('print_batches')->insertGetId([
-                'user_id' => auth()->id(),
-                'id_po' => $id,
-                'batch_name' => "Batch " . ($i + 1),
-                'content_summary' => $skuSummary,
-                'total_labels' => ($batchEnd - $batchStart) + 1,
-                'status' => 'Pending',
-                'created_at' => now(),
+                'user_id'         => auth()->id(),
+                'id_po'           => $id,
+                'batch_name'      => 'Batch ' . ($i + 1),
+                'content_summary' => implode(', ', $summaryItems),
+                'total_labels'    => ($batchEnd - $batchStart) + 1,
+                'status'          => 'Pending',
+                'created_at'      => now(),
+                'updated_at'      => now(),
+            ]);
+
+            $batchList[] = [
+                'id'          => $batchId,
+                'batch_name'  => 'Batch ' . ($i + 1),
+                'total'       => ($batchEnd - $batchStart) + 1,
+                'batch_start' => $batchStart,
+                'batch_end'   => $batchEnd,
+            ];
+        }
+
+        return response()->json([
+            'batches'       => $batchList,
+            'total_batches' => $totalBatches,
+            'total_labels'  => $totalQty,
+        ]);
+    }
+
+    public function processBatch(Request $request, $id, $batchId)
+    {
+        $batchStart = (int) $request->batch_start;
+        $batchEnd   = (int) $request->batch_end;
+
+        // Tandai Processing secara atomik — cegah double-process
+        $locked = DB::table('print_batches')
+            ->where('id', $batchId)
+            ->where('status', 'Pending')
+            ->update(['status' => 'Processing', 'updated_at' => now()]);
+
+        if (!$locked) {
+            $existing = DB::table('print_batches')->where('id', $batchId)->first();
+            if ($existing && $existing->status === 'Ready') {
+                return response()->json(['status' => 'ready', 'file_path' => $existing->file_path]);
+            }
+            return response()->json(['error' => 'Batch sedang diproses atau sudah selesai'], 409);
+        }
+
+        try {
+            $po       = Tpo::with('po_detail')->findOrFail($id);
+            $username = auth()->user()->username ?? auth()->user()->name ?? 'System';
+
+            DB::beginTransaction();
+            $qrList = $this->collectQRDataForBatch($po, $batchStart, $batchEnd, $username);
+            DB::commit();
+
+            if (empty($qrList)) {
+                throw new \Exception("Tidak ada data QR untuk rentang {$batchStart}-{$batchEnd}");
+            }
+
+            // Generate SVG
+            foreach ($qrList as &$q) {
+                $svg          = QrCode::format('svg')->size(220)->margin(0)->generate($q['qr_payload']);
+                $q['qr_svg']  = 'data:image/svg+xml;base64,' . base64_encode($svg);
+            }
+            unset($q);
+
+            // Generate PDF
+            $width  = 33 * 2.83465;
+            $height = 15 * 2.83465;
+            $pdf = Pdf::loadView('pages.transaction.purchase_order.purchase_order_qrcode', [
+                'po'     => $po,
+                'qrList' => $qrList,
+            ])->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled'      => false,
+                'defaultFont'          => 'DejaVu Sans',
+            ])->setPaper([0, 0, $width, $height], 'portrait');
+
+            $fileName = 'qr_po_' . $id . '_batch_' . $batchId . '.pdf';
+            Storage::put('public/temp_prints/' . $fileName, $pdf->output());
+
+            DB::table('print_batches')->where('id', $batchId)->update([
+                'status'     => 'Ready',
+                'file_path'  => $fileName,
                 'updated_at' => now(),
             ]);
 
-            $batchRecord = DB::table('print_batches')->where('id', $batchId)->first();
+            return response()->json(['status' => 'ready', 'file_path' => $fileName]);
 
-            // Kirim ke Antrian Laravel
-            GenerateQRJob::dispatch($batchRecord, $batchStart, $batchEnd, $id);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            DB::table('print_batches')->where('id', $batchId)->update([
+                'status'        => 'Failed',
+                'error_message' => $e->getMessage(),
+                'updated_at'    => now(),
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    private function collectQRDataForBatch($po, $start, $end, $username)
+    {
+        $qrList             = [];
+        $currentGlobalIndex = 0;
+
+        foreach ($po->po_detail as $detail) {
+
+            $existingQRs = DB::table('tproduct_qr')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->orderBy('id', 'asc')
+                ->get();
+
+            for ($i = 1; $i <= $detail->qty; $i++) {
+                $currentGlobalIndex++;
+
+                if ($currentGlobalIndex >= $start && $currentGlobalIndex <= $end) {
+
+                    if (isset($existingQRs[$i - 1])) {
+                        // QR sudah pernah dicetak — ambil dari DB
+                        $qr       = $existingQRs[$i - 1];
+                        $qrList[] = [
+                            'sku'         => $qr->sku,
+                            'nama_barang' => $qr->nama_barang,
+                            'nomor_urut'  => $qr->sequence_no,
+                            'qr_payload'  => $qr->qr_code,
+                        ];
+                    } else {
+                        // QR baru — generate & simpan
+                        $sku     = $detail->part_number;
+                        $product = DB::table('mproduct')->where('sku', $sku)->first();
+                        if (!$product) {
+                            throw new \Exception("SKU {$sku} tidak ditemukan di master product");
+                        }
+
+                        $nextSeqInt = DB::table('tproduct_qr')
+                            ->where('sku', $sku)
+                            ->max(DB::raw('CAST(sequence_no AS UNSIGNED)')) + 1;
+
+                        $seqStr  = str_pad($nextSeqInt, 4, '0', STR_PAD_LEFT);
+                        $qrValue = $po->no_po . '|' . $sku . '|' . $seqStr;
+
+                        DB::table('tproduct_qr')->insert([
+                            'id_po'        => $po->id,
+                            'id_po_detail' => $detail->id,
+                            'id_product'   => $product->id,
+                            'sku'          => $sku,
+                            'qr_code'      => $qrValue,
+                            'sequence_no'  => $seqStr,
+                            'nama_barang'  => $detail->product_name,
+                            'status'       => 'NEW',
+                            'used_for'     => 'IN',
+                            'printed_at'   => now(),
+                            'printed_by'   => $username,
+                        ]);
+
+                        $qrList[] = [
+                            'sku'         => $sku,
+                            'nama_barang' => $detail->product_name,
+                            'nomor_urut'  => $seqStr,
+                            'qr_payload'  => $qrValue,
+                        ];
+                    }
+                }
+
+                if ($currentGlobalIndex > $end) break 2;
+            }
         }
 
-        return redirect()->route('purchase_order.print_status', ['id' => $id])
-            ->with('success', "Permintaan cetak sedang diproses dalam $batches batch.");
+        return $qrList;
     }
 
     public function printStatus(Request $request, $id)
@@ -516,7 +659,7 @@ class PurchaseOrderController extends Controller
         $approve = TPo::find($id);
         
         if (!$approve) {
-            return response()->json(['error' => 'purchase order not found']);
+            return response()->json(['error' => 'Purchase Order tidak ditemukan']);
         }
 
         try {
@@ -529,10 +672,10 @@ class PurchaseOrderController extends Controller
             if ($updated) {
                 return response()->json(['success' => true]);
             } else {
-                return response()->json(['error' => 'approval failed']);
+                return response()->json(['error' => 'Persetujuan gagal']);
             }
         } catch (\Exception $e) {
-            return response()->json(['error' => 'approval failed: ' . $e->getMessage()]);
+            return response()->json(['error' => 'Persetujuan gagal: ' . $e->getMessage()]);
         }
     }
     
@@ -697,7 +840,7 @@ class PurchaseOrderController extends Controller
     public function delete($id)
     {
         if (!Permission::can('MENU-0301','reject')) {
-            return response()->json(['message'=>'Unauthorized'],403);
+            return response()->json(['message'=>'Tidak diizinkan'],403);
         }
         
         $po = Tpo::findOrFail($id);
@@ -1931,7 +2074,7 @@ class PurchaseOrderController extends Controller
                 ->size(220)
                 ->margin(0)
                 ->generate($q['qr_payload']);
-        
+
             $q['qr_svg'] = 'data:image/svg+xml;base64,' . base64_encode($svg);
         }
         unset($q);
@@ -2376,7 +2519,7 @@ class PurchaseOrderController extends Controller
         if (!is_array($r->items) || empty($r->items)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid reprint payload'
+                'message' => 'Data reprint tidak valid'
             ], 422);
         }
 

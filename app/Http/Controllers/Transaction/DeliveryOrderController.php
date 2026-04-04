@@ -138,8 +138,8 @@ class DeliveryOrderController extends Controller
 			'file'  => 'required|mimes:pdf',
             'id_do' => 'required'
 		],[
-            'file.required' => 'Please Input Your DO File',
-            'id_do.required' => 'Please Select Your DO',
+            'file.required' => 'File DO wajib diunggah',
+            'id_do.required' => 'DO wajib dipilih',
         ]);
  
 		// menangkap file excel

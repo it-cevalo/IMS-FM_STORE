@@ -185,7 +185,8 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/purchase_order/{id}/print-status', [PurchaseOrderController::class, 'printStatus'])->name('purchase_order.print_status');
-    Route::get('/purchase_order/{id}/generate-batch', [PurchaseOrderController::class, 'generateAllQRBatch'])->name('purchase_order.generate_batch');
+    Route::post('/purchase_order/{id}/generate-batch', [PurchaseOrderController::class, 'generateAllQRBatch'])->name('purchase_order.generate_batch');
+    Route::post('/purchase_order/{id}/qr/batch/{batchId}/process', [PurchaseOrderController::class, 'processBatch'])->name('purchase_order.process_batch');
     Route::get('/purchase_order/data', [PurchaseOrderController::class, 'getData'])->name('purchase_order.data');
     Route::get('/bin-po/data', [PurchaseOrderController::class, 'binData'])->name('purchase_order.bin.data');
     Route::get('/bin-po', [PurchaseOrderController::class, 'bin'])->name('purchase_order.bin');

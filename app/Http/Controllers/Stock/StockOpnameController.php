@@ -165,14 +165,14 @@ class StockOpnameController extends Controller
                     return redirect()
                     ->route('stock_opname.index')
                     ->with([
-                        'success' => 'Stock Opname has succesfully been added'
+                        'success' => 'Stock Opname berhasil ditambahkan'
                     ]);
                 } else {         
                     return redirect()
                     ->back()
                     ->withInput()
                     ->with([
-                        'error' => 'Some problem occurred, please try again'
+                        'error' => 'Terjadi kesalahan, silakan coba lagi'
                     ]);
                 }
             } else {         
@@ -180,7 +180,7 @@ class StockOpnameController extends Controller
                 ->back()
                 ->withInput()
                 ->with([
-                    'error' => 'Some problem occurred, please try again'
+                    'error' => 'Terjadi kesalahan, silakan coba lagi'
                 ]);
             }
         } else {         
@@ -277,14 +277,14 @@ class StockOpnameController extends Controller
                             return redirect()
                             ->route('stock_opname.index')
                             ->with([
-                                'success' => 'Stock Opname has succesfully been update'
+                                'success' => 'Stock Opname berhasil diperbarui'
                             ]);                        
                         } else {                
                             return redirect()
                             ->back()
                             ->withInput()
                             ->with([
-                                'error' => 'Some problem occurred, please try again'
+                                'error' => 'Terjadi kesalahan, silakan coba lagi'
                             ]);
                         }
                     } else {    

@@ -87,7 +87,7 @@ class PurchaseRequestController extends Controller
             return response()->json($product);
         } else {
             return response()->json([
-                'error'=>'Product not found'
+                'error'=>'Produk tidak ditemukan'
             ]);
         }
     }
@@ -108,11 +108,11 @@ class PurchaseRequestController extends Controller
             'desc_req'              => 'required',
             'qty_trf'               => 'required',
         ], [
-            'code_pr.required'              => 'Please provide a code.',
-            'request_date.required'         => 'Please provide a request_date.',
-            'id_warehouse_from.required'    => 'Please provide a warehouse ID.',
-            'desc_req.required'             => 'Please provide a description.',
-            'qty_trf.required'              => 'Please provide total quantity for all items.',
+            'code_pr.required'              => 'Kode permintaan wajib diisi.',
+            'request_date.required'         => 'Tanggal permintaan wajib diisi.',
+            'id_warehouse_from.required'    => 'Gudang asal wajib dipilih.',
+            'desc_req.required'             => 'Deskripsi wajib diisi.',
+            'qty_trf.required'              => 'Total jumlah item wajib diisi.',
         ]);
 
         if ($validator->fails()) {
@@ -155,14 +155,14 @@ class PurchaseRequestController extends Controller
             return redirect()
                 ->route('purchase_request.index')
                 ->with([
-                    'success'=>'Request saved successfully.'
+                    'success'=>'Permintaan berhasil disimpan'
             ]);
         } else {
             return redirect()
                     ->back()
                     ->withInput()
                     ->with([
-                    'error'=>'Request failed save'
+                    'error'=>'Gagal menyimpan permintaan'
                     // 'error_details' => $errorDetails
             ]);
         }
@@ -204,7 +204,7 @@ class PurchaseRequestController extends Controller
         $approve = TPurchaseRequest::find($id);
         
         if (!$approve) {
-            return response()->json(['error' => 'delivery order not found']);
+            return response()->json(['error' => 'Delivery Order tidak ditemukan']);
         }
 
         try {
@@ -217,10 +217,10 @@ class PurchaseRequestController extends Controller
             if ($updated) {
                 return response()->json(['success' => true]);
             } else {
-                return response()->json(['error' => 'approval failed']);
+                return response()->json(['error' => 'Persetujuan gagal']);
             }
         } catch (\Exception $e) {
-            return response()->json(['error' => 'approval failed: ' . $e->getMessage()]);
+            return response()->json(['error' => 'Persetujuan gagal: ' . $e->getMessage()]);
         }
     }
 
@@ -239,10 +239,10 @@ class PurchaseRequestController extends Controller
             'desc_req'              => 'required',
             'qty_trf'               => 'required',
         ], [
-            'code_pr.required'              => 'Please provide a code.',
-            'request_date.required'         => 'Please provide a request_date.',
-            'desc_req.required'             => 'Please provide a description.',
-            'qty_trf.required'              => 'Please provide total quantity for all items.',
+            'code_pr.required'              => 'Kode permintaan wajib diisi.',
+            'request_date.required'         => 'Tanggal permintaan wajib diisi.',
+            'desc_req.required'             => 'Deskripsi wajib diisi.',
+            'qty_trf.required'              => 'Total jumlah item wajib diisi.',
         ]);
 
         $id_user_request    = Auth::user()->id;
@@ -279,7 +279,7 @@ class PurchaseRequestController extends Controller
             DB::rollback();
         }
 
-        return redirect('/purchase_request')->with('success', 'Purchase Request is successfully updated');
+        return redirect('/purchase_request')->with('success', 'Purchase Request berhasil diperbarui');
     }
 
     /**

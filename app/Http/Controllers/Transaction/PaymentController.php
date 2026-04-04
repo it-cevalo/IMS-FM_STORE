@@ -63,14 +63,14 @@ class PaymentController extends Controller
             'invoice_paid'               => 'required|regex:/(^([a-zA-Z0-9_\-\s]+)(\d+)?$)/u',
             'amount_paid'                => 'required|regex:/(^([a-zA-Z0-9_\-\s]+)(\d+)?$)/u'
         ],[
-            'id_tax_inv.required'        => 'Please Select Tax Invoice',
-            'id_po.required'             => 'Please Select Purchase Order',
-            'invoice_paid.required'      => 'Please Fill Invoice Number',
-            'invoice_paid.regex'         => 'Character input is not allowed! Please input without symbol ',
-            'amount_paid.required'       => 'Please Fill Invoice Number',
-            'amount_paid.regex'          => 'Character input is not allowed! Please input without symbol ',
-            'payment_via.required'       => 'Please Select Payment Via',
-            'payment_date.required'      => 'Please Select Payment Date'
+            'id_tax_inv.required'        => 'Tax Invoice wajib dipilih',
+            'id_po.required'             => 'Purchase Order wajib dipilih',
+            'invoice_paid.required'      => 'Nomor Invoice wajib diisi',
+            'invoice_paid.regex'         => 'Karakter simbol tidak diizinkan',
+            'amount_paid.required'       => 'Jumlah pembayaran wajib diisi',
+            'amount_paid.regex'          => 'Karakter simbol tidak diizinkan',
+            'payment_via.required'       => 'Metode pembayaran wajib dipilih',
+            'payment_date.required'      => 'Tanggal pembayaran wajib dipilih'
         ]);
 
         // dd($validate);exit;
@@ -137,14 +137,14 @@ class PaymentController extends Controller
             return redirect()
                 ->route('payment.index')
                 ->with([
-                    'success' => 'New Payment has been created successfully'
+                    'success' => 'Pembayaran baru berhasil dibuat'
                 ]);
         } else {
             return redirect()
                 ->back()
                 ->withInput()
                 ->with([
-                    'error' => 'Some problem occurred, please try again'
+                    'error' => 'Terjadi kesalahan, silakan coba lagi'
                 ]);
         }
     }
@@ -198,8 +198,8 @@ class PaymentController extends Controller
             'amount_paid'   => 'required',
             'payment_date'  => 'required'
         ],[
-            'amount_paid.required' => 'Please Fill Amount Paid',
-            'payment_date.required' => 'Please Select Payment Date',
+            'amount_paid.required' => 'Jumlah pembayaran wajib diisi',
+            'payment_date.required' => 'Tanggal pembayaran wajib dipilih',
         ]);
 
         $pay                            = Tpayment::select('amount_paid')->where('id',$id)->latest()->first();
@@ -220,13 +220,13 @@ class PaymentController extends Controller
         ]);
 
         if($payment && $payment_his){
-            return redirect('/payment')->with('success', 'Payment is successfully updated');
+            return redirect('/payment')->with('success', 'Pembayaran berhasil diperbarui');
         } else {
             return redirect()
                 ->back()
                 ->withInput()
                 ->with([
-                    'error' => 'Some problem occurred, please try again'
+                    'error' => 'Terjadi kesalahan, silakan coba lagi'
                 ]);
         }
 

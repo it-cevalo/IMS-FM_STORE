@@ -68,11 +68,9 @@
                 <button type="button" class="btn btn-primary" id="btnPrintQR">
                     <i class="fas fa-print"></i> Cetak QR (Manual)
                 </button>
-                <a href="{{ route('purchase_order.generate_batch', $purchase_order->id) }}" 
-                   class="btn btn-info" 
-                   onclick="return confirm('Sistem akan memecah cetakan menjadi beberapa batch (100 label per file) untuk menjaga performa. Lanjutkan?')">
-                    <i class="fas fa-layer-group"></i> Cetak Semua (Batch Antrian)
-                </a>
+                <button type="button" class="btn btn-info" id="btnCetakSemua">
+                    <i class="fas fa-layer-group"></i> Cetak Semua (Batch)
+                </button>
                 <a href="{{ route('purchase_order.print_status', $purchase_order->id) }}" class="btn btn-secondary">
                     <i class="fas fa-list"></i> Status Antrian
                 </a>
@@ -784,7 +782,114 @@
             seqWrapper.addClass('d-none');
             seqInput.val('');
         }
-    
+
+        // ===================== Cetak Semua (Batch) =====================
+        $("#btnCetakSemua").on("click", function () {
+
+            Swal.fire({
+                title: 'Cetak Semua QR',
+                html: 'Sistem akan memproses semua label dalam batch <b>100 label per file</b>.<br>Lanjutkan?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Mulai',
+                cancelButtonText: 'Batal',
+            }).then(async function (result) {
+
+                if (!result.isConfirmed) return;
+
+                // 1. Buat batch records di server
+                Swal.fire({
+                    title: 'Menyiapkan Batch...',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                let batchData;
+                try {
+                    batchData = await $.ajax({
+                        url: '{{ route("purchase_order.generate_batch", $purchase_order->id) }}',
+                        method: 'POST',
+                        data: { _token: '{{ csrf_token() }}' },
+                    });
+                } catch (xhr) {
+                    Swal.fire('Gagal', xhr.responseJSON?.error || 'Gagal membuat batch', 'error');
+                    return;
+                }
+
+                const batches     = batchData.batches;
+                const totalLabels = batchData.total_labels;
+                const readyFiles  = [];
+                const errors      = [];
+
+                // 2. Proses satu-satu secara berurutan
+                for (let i = 0; i < batches.length; i++) {
+                    const batch   = batches[i];
+                    const current = i + 1;
+                    const pct     = Math.round((i / batches.length) * 100);
+
+                    Swal.fire({
+                        title: 'Memproses QR Label...',
+                        html:
+                            `<div class="mb-2">${batch.batch_name} (${batch.total} label)</div>` +
+                            `<div class="progress" style="height:20px">` +
+                            `  <div class="progress-bar progress-bar-striped progress-bar-animated bg-info"` +
+                            `       style="width:${pct}%">${pct}%</div>` +
+                            `</div>` +
+                            `<small class="text-muted mt-1 d-block">Batch ${current} dari ${batches.length} &bull; Total ${totalLabels} label</small>`,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                    });
+
+                    try {
+                        const res = await $.ajax({
+                            url: `/purchase_order/{{ $purchase_order->id }}/qr/batch/${batch.id}/process`,
+                            method: 'POST',
+                            timeout: 120000,
+                            data: {
+                                _token:      '{{ csrf_token() }}',
+                                batch_start: batch.batch_start,
+                                batch_end:   batch.batch_end,
+                            },
+                        });
+                        readyFiles.push({ name: batch.batch_name, file: res.file_path });
+                    } catch (xhr) {
+                        errors.push({ name: batch.batch_name, msg: xhr.responseJSON?.error || 'Error tidak diketahui' });
+                    }
+                }
+
+                // 3. Tampilkan hasil
+                let html = '';
+
+                if (readyFiles.length > 0) {
+                    html += '<p class="font-weight-bold text-success">Selesai — Klik untuk membuka PDF:</p><ul class="list-unstyled">';
+                    readyFiles.forEach(f => {
+                        const url = `/storage/temp_prints/${f.file}`;
+                        html += `<li><a href="${url}" target="_blank" class="btn btn-sm btn-outline-primary btn-block mb-1">` +
+                                `<i class="fas fa-file-pdf"></i> ${f.name}</a></li>`;
+                    });
+                    html += '</ul>';
+                }
+
+                if (errors.length > 0) {
+                    html += '<p class="font-weight-bold text-danger mt-2">Batch yang gagal:</p><ul class="list-unstyled">';
+                    errors.forEach(e => {
+                        html += `<li class="text-danger small">• ${e.name}: ${e.msg}</li>`;
+                    });
+                    html += '</ul>';
+                }
+
+                Swal.fire({
+                    title: errors.length === 0 ? 'Semua Batch Selesai!' : 'Selesai dengan Error',
+                    html: html,
+                    icon: errors.length === 0 ? 'success' : 'warning',
+                    width: 500,
+                    confirmButtonText: 'Tutup',
+                });
+            });
+        });
+
     });
-</script> 
+</script>
 @endsection

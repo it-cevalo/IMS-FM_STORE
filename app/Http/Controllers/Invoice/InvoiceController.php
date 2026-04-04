@@ -43,7 +43,7 @@ class InvoiceController extends Controller
     public function getData(Request $request)
     {
         if (Auth::user()->position !== 'SUPERADMIN') {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Tidak diizinkan'], 403);
         }
 
         $query = TinvoiceH::with('customer','bank')->latest();
@@ -319,7 +319,7 @@ class InvoiceController extends Controller
                     return redirect()
                         ->route('invoice.index')
                         ->with([
-                            'success' => 'Invoice has successfully been added'
+                            'success' => 'Invoice berhasil ditambahkan'
                     ]);
                 } else {
                     // $this->logs->write("FAILED INPUT INV HEADER",$invoice_h);
@@ -332,13 +332,13 @@ class InvoiceController extends Controller
             return redirect()
                 ->route('invoice.index')
                 ->with([
-                    'success' => 'Invoice has successfully been added'
+                    'success' => 'Invoice berhasil ditambahkan'
             ]);
         } catch (\Exception $e) {
             DB::rollback();
         
             // $errorMessage = 'An error occurred';
-            $errorMessage = 'An error occurred: ' . $e->getMessage();
+            $errorMessage = 'Terjadi kesalahan: ' . $e->getMessage();
             $errorDetails = 'File: ' . $e->getFile() . ', Line: ' . $e->getLine();
         
             return redirect()

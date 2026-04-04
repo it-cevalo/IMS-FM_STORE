@@ -95,7 +95,7 @@ class DeliveryOrderTransferController extends Controller
             return response()->json($product);
         } else {
             return response()->json([
-                'error'=>'Product not found'
+                'error'=>'Produk tidak ditemukan'
             ]);
         }
     }
@@ -291,7 +291,7 @@ class DeliveryOrderTransferController extends Controller
                 return redirect()
                     ->route('product_transfer.index')
                     ->with([
-                        'success' => 'Product Transfer has successfully been added'
+                        'success' => 'Transfer Produk berhasil ditambahkan'
                 ]);
             }
         } catch (\Exception $e) {

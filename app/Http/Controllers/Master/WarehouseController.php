@@ -70,13 +70,13 @@ class WarehouseController extends Controller
             ], [
                 // 'id_store.required' => 'Store must be selected.',
                 // 'id_store.exists'   => 'Selected store was not found.',
-                'code_wh.required'  => 'Warehouse code wajib diisi.',
-                'code_wh.unique'    => 'Warehouse code must be unique.',
-                'nama_wh.required'  => 'Warehouse name wajib diisi.',
-                'address.required'  => 'Address wajib diisi.',
-                'phone.required'    => 'Phone number wajib diisi.',
-                'email.required'    => 'Email address wajib diisi.',
-                'email.email'       => 'Invalid email format.',
+                'code_wh.required'  => 'Kode Gudang wajib diisi.',
+                'code_wh.unique'    => 'Kode Gudang harus unik.',
+                'nama_wh.required'  => 'Nama Gudang wajib diisi.',
+                'address.required'  => 'Alamat wajib diisi.',
+                'phone.required'    => 'Nomor telepon wajib diisi.',
+                'email.required'    => 'Alamat email wajib diisi.',
+                'email.email'       => 'Format email tidak valid.',
             ]);
 
             // $store = MStore::findOrFail($request->id_store);

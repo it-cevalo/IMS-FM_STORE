@@ -41,7 +41,7 @@ class BankController extends Controller
                 ->make(true);
         }
 
-        return abort(403, 'Unauthorized access.');
+        return abort(403, 'Akses tidak diizinkan.');
     }
 
     /**
