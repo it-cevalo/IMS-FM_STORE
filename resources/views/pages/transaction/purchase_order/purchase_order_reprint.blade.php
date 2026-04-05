@@ -10,8 +10,11 @@
         @foreach($requestsGrouped as $poNo => $items)
         <h5 class="mt-3">PO: {{ $poNo }} ({{ $items[0]->tgl_po }})</h5>
 
-        <!-- Bulk Action Buttons -->
-        <div class="mb-2">
+        {{-- Notifikasi + tombol preview muncul setelah approve (diisi JS) --}}
+        <div id="reprint-notice-{{ $poNo }}" class="mb-2" style="display:none;"></div>
+
+        {{-- Bulk Action Buttons --}}
+        <div class="mb-2" id="bulk-actions-{{ $poNo }}">
             <button class="btn btn-success btn-sm" onclick="bulkApprove('{{ $poNo }}')">Setujui</button>
             <button class="btn btn-danger btn-sm" onclick="bulkReject('{{ $poNo }}')">Tolak</button>
         </div>
@@ -19,9 +22,7 @@
         <table class="table table-bordered">
             <thead>
                 <tr>
-                    <th>
-                        <input type="checkbox" class="check-all" data-po="{{ $poNo }}">
-                    </th>
+                    <th><input type="checkbox" class="check-all" data-po="{{ $poNo }}"></th>
                     <th>SKU</th>
                     <th>Nama Barang</th>
                     <th>No Urut</th>
@@ -54,114 +55,172 @@
     </div>
 </div>
 
+{{-- Modal Preview PDF --}}
+<div class="modal fade" id="modalReprintPreview" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title font-weight-bold">
+                    <i class="fas fa-qrcode text-info mr-1"></i> Preview Cetak Ulang QR
+                </h6>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body p-0 position-relative">
+                {{-- Loading overlay —tampil selama iframe memuat PDF --}}
+                <div id="previewLoadingOverlay"
+                     style="position:absolute; inset:0; background:rgba(255,255,255,.9);
+                            z-index:10; display:flex; align-items:center; justify-content:center;">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
+                        <div>Membuat PDF, harap tunggu...</div>
+                        <small class="text-muted">Proses lebih lama jika QR banyak</small>
+                    </div>
+                </div>
+                <iframe id="reprintPreviewFrame"
+                        style="width:100%; height:80vh; border:none; display:block;">
+                </iframe>
+            </div>
+            <div class="modal-footer py-2">
+                <button class="btn btn-success btn-sm" id="btnPrintReprint" style="display:none;">
+                    <i class="fas fa-print mr-1"></i>Cetak
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-$(document).ready(function() {
-    // CHECK ALL LOGIC
-    $('.check-all').change(function() {
+$(document).ready(function () {
+    // Check-all toggle
+    $('.check-all').change(function () {
         var poNo = $(this).data('po');
-        var checked = $(this).is(':checked');
-        $('input.check-item[data-po="'+poNo+'"]').prop('checked', checked);
+        $('input.check-item[data-po="' + poNo + '"]').prop('checked', $(this).is(':checked'));
+    });
+    $('.check-item').change(function () {
+        var poNo = $(this).data('po');
+        var all  = $('input.check-item[data-po="' + poNo + '"]');
+        $('input.check-all[data-po="' + poNo + '"]').prop('checked', all.length === all.filter(':checked').length);
     });
 
-    $('.check-item').change(function() {
-        var poNo = $(this).data('po');
-        var all = $('input.check-item[data-po="'+poNo+'"]');
-        var allChecked = all.length === all.filter(':checked').length;
-        $('input.check-all[data-po="'+poNo+'"]').prop('checked', allChecked);
-    });
-
-    // INITIAL HIDE BULK BUTTONS IF NO PENDING ITEM
-    $('div.mb-2').each(function() {
-        var poNo = $(this).find('button.btn-success, button.btn-danger').first().attr('onclick').match(/'(.+?)'/)[1];
-        if($('input.check-item[data-po="'+poNo+'"]').length === 0) {
+    // Sembunyikan tombol aksi jika tidak ada item PENDING
+    $('[id^="bulk-actions-"]').each(function () {
+        var poNo = $(this).attr('id').replace('bulk-actions-', '');
+        if ($('input.check-item[data-po="' + poNo + '"]').length === 0) {
             $(this).hide();
         }
     });
+
+    // Cetak dari modal
+    $('#btnPrintReprint').on('click', function () {
+        var frame = document.getElementById('reprintPreviewFrame');
+        try {
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+        } catch (e) {
+            window.open(frame.src, '_blank');
+        }
+    });
+
+    // Reset modal saat ditutup
+    $('#modalReprintPreview').on('hidden.bs.modal', function () {
+        document.getElementById('reprintPreviewFrame').src = 'about:blank';
+        document.getElementById('previewLoadingOverlay').style.display = 'flex';
+        document.getElementById('btnPrintReprint').style.display = 'none';
+    });
 });
 
-// HIDE BULK BUTTONS IF ALL ITEMS PROCESSED
 function hideButtonsIfAllProcessed(poNo) {
-    if($('input.check-item[data-po="'+poNo+'"]').length === 0) {
-        $('button:contains("Approve Selected")[onclick*="'+poNo+'"]').hide();
-        $('button:contains("Reject Selected")[onclick*="'+poNo+'"]').hide();
+    if ($('input.check-item[data-po="' + poNo + '"]').length === 0) {
+        $('#bulk-actions-' + poNo).hide();
     }
 }
 
-// SWEETALERT2 BULK APPROVE / REJECT
+// Buka modal preview — PDF di-generate on-demand di server
+function openReprintPreview(batchId) {
+    var frame   = document.getElementById('reprintPreviewFrame');
+    var overlay = document.getElementById('previewLoadingOverlay');
+    var btnPrint = document.getElementById('btnPrintReprint');
+
+    overlay.style.display  = 'flex';
+    btnPrint.style.display = 'none';
+    frame.src = 'about:blank';
+
+    frame.onload = function () {
+        if (frame.src && frame.src !== 'about:blank') {
+            overlay.style.display  = 'none';
+            btnPrint.style.display = 'inline-block';
+        }
+    };
+
+    frame.src = '/reprint/batch/' + batchId + '/preview';
+    $('#modalReprintPreview').modal('show');
+}
+
+// Bulk action: approve / reject
 function bulkAction(poNo, action) {
-    let ids = [];
-    $('input.check-item[data-po="'+poNo+'"]:checked').each(function(){
+    var ids = [];
+    $('input.check-item[data-po="' + poNo + '"]:checked').each(function () {
         ids.push($(this).data('id'));
     });
-    if(ids.length === 0){
+
+    if (ids.length === 0) {
         Swal.fire('Oops', 'Pilih minimal 1 barang.', 'warning');
         return;
     }
 
     Swal.fire({
-        title: (action === 'approve' ? 'Proses Persetujuan...' : 'Proses Menolak...'),
+        title            : action === 'approve' ? 'Proses Persetujuan...' : 'Proses Menolak...',
         allowOutsideClick: false,
-        didOpen: () => {
+        didOpen: function () {
             Swal.showLoading();
             $.post(
-                action === 'approve'
-                    ? '{{ route("reprint.approve") }}'
-                    : '{{ route("reprint.reject") }}',
-                {_token:'{{ csrf_token() }}', ids:ids},
-                function(res){
+                action === 'approve' ? '{{ route("reprint.approve") }}' : '{{ route("reprint.reject") }}',
+                { _token: '{{ csrf_token() }}', ids: ids },
+                function (res) {
                     Swal.close();
 
-                    if(res.success){
+                    if (!res.success) {
+                        Swal.fire('Error', 'Operasi gagal.', 'error');
+                        return;
+                    }
 
-                        ids.forEach(function(id){
-                            $('#status-'+id).text(action === 'approve' ? 'APPROVED' : 'REJECTED');
-                            $('#row-'+id+' input.check-item').remove();
+                    // Update label status di tabel
+                    ids.forEach(function (id) {
+                        $('#status-' + id).text(action === 'approve' ? 'APPROVED' : 'REJECTED');
+                        $('#row-' + id + ' input.check-item').remove();
+                    });
+                    hideButtonsIfAllProcessed(poNo);
+
+                    if (action === 'approve') {
+                        // Tampilkan tombol Preview Cetak langsung — PDF dibuat saat diklik
+                        $('#reprint-notice-' + poNo).show().html(
+                            '<div class="alert alert-success py-2 d-flex align-items-center justify-content-between">' +
+                            '<span><i class="fas fa-check-circle mr-1"></i>' + (res.message || 'Disetujui.') + '</span>' +
+                            '<button class="btn btn-primary btn-sm ml-3" onclick="openReprintPreview(' + res.batch_id + ')">' +
+                            '<i class="fas fa-eye mr-1"></i>Preview Cetak' +
+                            '</button>' +
+                            '</div>'
+                        );
+                        Swal.fire({
+                            icon             : 'success',
+                            title            : 'Disetujui',
+                            text             : res.message || 'Klik "Preview Cetak" untuk mencetak.',
+                            confirmButtonText: 'OK',
                         });
-
-                        hideButtonsIfAllProcessed(poNo);
-
-                        Swal.fire('Success', 'Operation completed.', 'success');
-
-                        // 🔥 AUTO PRINT SETELAH APPROVE
-                        if(action === 'approve' && res.printUrl){
-                            window.open(res.printUrl, '_blank');
-                        }
-
                     } else {
-                        Swal.fire('Error', 'Operation failed.', 'error');
+                        Swal.fire('Ditolak', 'Pengajuan berhasil ditolak.', 'success');
                     }
                 }
-            )
-            // $.post(
-            //     action === 'approve' ? '{{ route("reprint.approve") }}' : '{{ route("reprint.reject") }}',
-            //     {_token:'{{ csrf_token() }}', ids:ids},
-            //     function(res){
-            //         Swal.close();
-            //         if(res.success){
-            //             ids.forEach(function(id){
-            //                 $('#status-'+id).text(action === 'approve' ? 'APPROVED' : 'REJECTED');
-            //                 $('#row-'+id+' input.check-item').remove();
-            //             });
-            //             hideButtonsIfAllProcessed(poNo);
-            //             Swal.fire('Success', 'Operation completed.', 'success');
-            //         } else {
-            //             Swal.fire('Error', 'Operation failed.', 'error');
-            //         }
-            //     }
-            // ).fail(function(){
-            //     Swal.close();
-            //     Swal.fire('Error', 'Request failed.', 'error');
-            // });
+            ).fail(function () {
+                Swal.close();
+                Swal.fire('Error', 'Request gagal.', 'error');
+            });
         }
     });
 }
 
-function bulkApprove(poNo) {
-    bulkAction(poNo, 'approve');
-}
-
-function bulkReject(poNo) {
-    bulkAction(poNo, 'reject');
-}
+function bulkApprove(poNo) { bulkAction(poNo, 'approve'); }
+function bulkReject(poNo)  { bulkAction(poNo, 'reject');  }
 </script>
 @endsection

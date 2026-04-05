@@ -2711,32 +2711,195 @@ class PurchaseOrderController extends Controller
         $poId    = $requests->first()->id_po;
         $seqList = $requests->pluck('sequence_no')->implode(', ');
         $this->poLog('APPROVE_REPRINT', "User: {$this->actor()} | PO ID: {$poId} | Request IDs: " . implode(',', $reqIds) . " | Sequences: {$seqList} | Status: APPROVED");
-    
+
         /**
          * =========================================
-         * BUILD PRINT URL (MULTI SEQUENCE)
+         * BUAT BATCH RECORD — ringan & cepat
+         * PDF akan di-generate on-demand saat user
+         * membuka preview (tidak pakai job/queue)
          * =========================================
          */
-    
-        $first = $requests->first();
-    
-        // Ambil sequence unik (0001,0002,0010 → 1,2,10)
-        $seqList = $requests
-            ->pluck('sequence_no')
-            ->map(fn ($s) => (int) $s)
-            ->unique()
-            ->sort()
-            ->implode(',');
-    
-        $printUrl = url(
-            "/po/{$first->id_po}/qr/pdf"
-            . "?detail={$first->id_po_detail}"
-            . "&seq={$seqList}"
-        );
-    
+        $batchId = DB::table('print_batches')->insertGetId([
+            'user_id'             => Auth::id(),
+            'id_po'               => $poId,
+            'batch_name'          => 'Cetak Ulang ' . now()->format('d/m/Y H:i'),
+            'content_summary'     => 'Reprint: ' . count($reqIds) . ' QR Code',
+            'total_labels'        => count($reqIds),
+            'batch_type'          => 'reprint',
+            'reprint_request_ids' => json_encode(array_map('intval', $reqIds)),
+            'status'              => 'Pending',
+            'created_at'          => now(),
+            'updated_at'          => now(),
+        ]);
+
+        $this->poLog('APPROVE_REPRINT', "User: {$this->actor()} | PO ID: {$poId} | Batch ID: {$batchId} | Status: BATCH_CREATED");
+
         return response()->json([
-            'success'   => true,
-            'printUrl' => $printUrl
+            'success'  => true,
+            'batch_id' => $batchId,
+            'po_id'    => $poId,
+            'message'  => 'Persetujuan berhasil. Klik "Preview Cetak" untuk mencetak.',
+        ]);
+    }
+
+    public function reprintBatchPreview($batchId)
+    {
+        if (!Permission::approve('MENU-0301') && !Permission::print('MENU-0301')) {
+            abort(403);
+        }
+
+        $batch = DB::table('print_batches')
+            ->where('id', $batchId)
+            ->where('batch_type', 'reprint')
+            ->first();
+
+        abort_if(!$batch, 404, 'Batch tidak ditemukan');
+
+        // Sudah ada file — langsung stream
+        if (in_array($batch->status, ['Ready', 'Printed'])) {
+            return $this->streamReprintPDF($batch, $batchId);
+        }
+
+        // Sedang diproses oleh request lain — coba lagi sebentar
+        if ($batch->status === 'Processing') {
+            abort(503, 'PDF sedang dibuat, muat ulang halaman beberapa saat lagi.');
+        }
+
+        if ($batch->status === 'Failed') {
+            abort(500, 'Pembuatan PDF sebelumnya gagal: ' . ($batch->error_message ?? 'unknown error'));
+        }
+
+        // Status Pending → generate PDF on-demand (di sini, bukan di job)
+        // Lock atomik agar tidak double-generate
+        $locked = DB::table('print_batches')
+            ->where('id', $batchId)
+            ->where('status', 'Pending')
+            ->update(['status' => 'Processing', 'updated_at' => now()]);
+
+        if (!$locked) {
+            // Race condition — request lain sudah mengambil lock
+            $batch = DB::table('print_batches')->where('id', $batchId)->first();
+            if (in_array($batch->status, ['Ready', 'Printed'])) {
+                return $this->streamReprintPDF($batch, $batchId);
+            }
+            abort(503, 'PDF sedang dibuat oleh proses lain.');
+        }
+
+        try {
+            set_time_limit(600);
+            ini_set('memory_limit', '512M');
+
+            $requestIds = json_decode($batch->reprint_request_ids ?? '[]', true);
+
+            if (empty($requestIds)) {
+                throw new \Exception('Tidak ada request reprint untuk batch ini');
+            }
+
+            // Ambil QR data via join reprint_request → tproduct_qr
+            $rows = DB::table('tqr_reprint_request as r')
+                ->join('tproduct_qr as qr', function ($j) {
+                    $j->on('qr.id_po',       '=', 'r.id_po')
+                      ->on('qr.id_po_detail', '=', 'r.id_po_detail')
+                      ->on(
+                          DB::raw('`qr`.`sequence_no` COLLATE utf8mb4_unicode_ci'),
+                          '=',
+                          DB::raw('`r`.`sequence_no` COLLATE utf8mb4_unicode_ci')
+                      );
+                })
+                ->whereIn('r.id', $requestIds)
+                ->where('r.status', 'APPROVED')
+                ->whereNull('r.used_at')
+                ->select('r.id as request_id', 'qr.sku', 'qr.nama_barang', 'qr.sequence_no', 'qr.qr_code as qr_payload')
+                ->get();
+
+            if ($rows->isEmpty()) {
+                throw new \Exception('Tidak ada QR yang siap diproses');
+            }
+
+            // Generate SVG dalam chunk 50 untuk hindari memory spike
+            $qrList = [];
+            foreach (array_chunk($rows->all(), 50) as $chunk) {
+                foreach ($chunk as $row) {
+                    $svg = QrCode::format('svg')->size(220)->margin(0)->generate($row->qr_payload);
+                    $qrList[] = [
+                        'sku'         => $row->sku,
+                        'nama_barang' => $row->nama_barang,
+                        'nomor_urut'  => $row->sequence_no,
+                        'qr_payload'  => $row->qr_payload,
+                        'qr_svg'      => 'data:image/svg+xml;base64,' . base64_encode($svg),
+                    ];
+                }
+                gc_collect_cycles();
+            }
+
+            $po     = \App\Models\Tpo::findOrFail($batch->id_po);
+            $width  = 33 * 2.83465;
+            $height = 15 * 2.83465;
+
+            $pdf = Pdf::loadView('pages.transaction.purchase_order.purchase_order_qrcode', [
+                'po'     => $po,
+                'qrList' => $qrList,
+            ])->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled'      => false,
+                'defaultFont'          => 'DejaVu Sans',
+            ])->setPaper([0, 0, $width, $height], 'portrait');
+
+            $fileName = 'qr_reprint_po_' . $batch->id_po . '_batch_' . $batchId . '.pdf';
+            Storage::put('public/temp_prints/' . $fileName, $pdf->output());
+
+            // Konsumsi approval setelah PDF berhasil dibuat
+            DB::table('tqr_reprint_request')
+                ->whereIn('id', $requestIds)
+                ->where('status', 'APPROVED')
+                ->whereNull('used_at')
+                ->update(['used_at' => now()]);
+
+            DB::table('print_batches')->where('id', $batchId)->update([
+                'status'     => 'Printed',
+                'file_path'  => $fileName,
+                'updated_at' => now(),
+            ]);
+
+            $totalQr = count($qrList);
+            $this->poLog('REPRINT_PREVIEW', "User: {$this->actor()} | Batch ID: {$batchId} | File: {$fileName} | Total QR: {$totalQr} | Status: PRINTED");
+
+            $path = storage_path('app/public/temp_prints/' . $fileName);
+            return response()->file($path, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="cetak_ulang_' . $batchId . '.pdf"',
+                'X-Frame-Options'     => 'SAMEORIGIN',
+                'Cache-Control'       => 'no-store',
+            ]);
+
+        } catch (\Exception $e) {
+            DB::table('print_batches')->where('id', $batchId)->update([
+                'status'        => 'Failed',
+                'error_message' => $e->getMessage(),
+                'updated_at'    => now(),
+            ]);
+            $this->poLog('REPRINT_PREVIEW', "User: {$this->actor()} | Batch ID: {$batchId} | Status: FAILED | Error: {$e->getMessage()}");
+            abort(500, 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    private function streamReprintPDF($batch, $batchId): \Symfony\Component\HttpFoundation\Response
+    {
+        $path = storage_path('app/public/temp_prints/' . $batch->file_path);
+        abort_if(!file_exists($path), 404, 'File PDF tidak ditemukan');
+
+        if ($batch->status === 'Ready') {
+            DB::table('print_batches')->where('id', $batchId)->update([
+                'status'     => 'Printed',
+                'updated_at' => now(),
+            ]);
+        }
+
+        return response()->file($path, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="cetak_ulang_' . $batchId . '.pdf"',
+            'X-Frame-Options'     => 'SAMEORIGIN',
+            'Cache-Control'       => 'no-store',
         ]);
     }
     
