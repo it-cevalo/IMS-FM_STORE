@@ -211,22 +211,29 @@
 
     // ── Reprint: buka modal, generate PDF on-demand ──────────────────────────
     window.openReprintPreview = function (batchId) {
-        var frame   = document.getElementById('reprintPreviewFrame');
-        var overlay = document.getElementById('reprintLoadingOverlay');
+        var frame    = document.getElementById('reprintPreviewFrame');
+        var overlay  = document.getElementById('reprintLoadingOverlay');
         var btnPrint = document.getElementById('btnPrintReprint');
+        var targetUrl = '/reprint/batch/' + batchId + '/preview';
 
         overlay.style.display  = 'flex';
         btnPrint.style.display = 'none';
-        frame.src = 'about:blank';
 
+        // Gunakan '' bukan 'about:blank' agar tidak memicu onload spurious
+        // yang menyebabkan overlay hilang sebelum PDF selesai dimuat
+        frame.onload = null;
+        frame.src    = '';
+
+        // Pasang handler SETELAH src dikosongkan
         frame.onload = function () {
-            if (frame.src && frame.src !== 'about:blank') {
+            // Pastikan yang load adalah URL target, bukan blank/error lain
+            if (frame.src === targetUrl) {
                 overlay.style.display  = 'none';
                 btnPrint.style.display = 'inline-block';
             }
         };
 
-        frame.src = '/reprint/batch/' + batchId + '/preview';
+        frame.src = targetUrl;
         $('#modalReprintPreview').modal('show');
     };
 
