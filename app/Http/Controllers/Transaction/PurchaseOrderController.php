@@ -207,8 +207,8 @@ class PurchaseOrderController extends Controller
 
             // Generate SVG
             foreach ($qrList as &$q) {
-                $svg          = QrCode::format('svg')->size(220)->margin(0)->generate($q['qr_payload']);
-                $q['qr_svg']  = 'data:image/svg+xml;base64,' . base64_encode($svg);
+                $svg         = QrCode::format('svg')->size(220)->margin(0)->generate($q['qr_payload']);
+                $q['qr_svg'] = 'data:image/svg+xml;base64,' . base64_encode($svg);
             }
             unset($q);
 
@@ -358,9 +358,14 @@ class PurchaseOrderController extends Controller
 
     public function printStatus(Request $request, $id)
     {
+        // Batch regular: milik user ini saja
+        // Batch reprint: semua (approver berbeda dengan requester asli)
         $batches = DB::table('print_batches')
             ->where('id_po', $id)
-            ->where('user_id', auth()->id())
+            ->where(function ($q) {
+                $q->where('user_id', auth()->id())
+                  ->orWhere('batch_type', 'reprint');
+            })
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -2394,7 +2399,6 @@ class PurchaseOrderController extends Controller
         |--------------------------------------------------------------------------
         */
         foreach ($qrList as &$q) {
-
             $svg = QrCode::format('svg')
                 ->size(220)
                 ->margin(0)
@@ -2735,10 +2739,11 @@ class PurchaseOrderController extends Controller
         $this->poLog('APPROVE_REPRINT', "User: {$this->actor()} | PO ID: {$poId} | Batch ID: {$batchId} | Status: BATCH_CREATED");
 
         return response()->json([
-            'success'  => true,
-            'batch_id' => $batchId,
-            'po_id'    => $poId,
-            'message'  => 'Persetujuan berhasil. Klik "Preview Cetak" untuk mencetak.',
+            'success'      => true,
+            'batch_id'     => $batchId,
+            'po_id'        => $poId,
+            'message'      => 'Persetujuan berhasil.',
+            'redirect_url' => route('purchase_order.print_status', $poId),
         ]);
     }
 
@@ -2816,7 +2821,8 @@ class PurchaseOrderController extends Controller
                 throw new \Exception('Tidak ada QR yang siap diproses');
             }
 
-            // Generate SVG dalam chunk 50 untuk hindari memory spike
+            // Generate PNG dalam chunk 50 untuk hindari memory spike
+            // Pakai PNG bukan SVG — dompdf tidak reliable render SVG di <img> tag
             $qrList = [];
             foreach (array_chunk($rows->all(), 50) as $chunk) {
                 foreach ($chunk as $row) {
