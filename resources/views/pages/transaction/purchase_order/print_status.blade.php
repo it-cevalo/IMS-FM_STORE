@@ -392,7 +392,10 @@
         frame.src = 'about:blank';
 
         // Open modal first so user gets instant feedback
-        $('#modalReprintPreview').modal('show');
+        // Gunakan __bsJQuery (jQuery yang sudah attach Bootstrap plugin .modal())
+        // karena CDN jQuery yang dimuat belakangan menimpa window.$ tanpa Bootstrap plugin
+        var $bs = window.__bsJQuery || window.jQuery;
+        $bs('#modalReprintPreview').modal('show');
 
         // Small delay so modal animation completes before heavy iframe load
         setTimeout(function () {
@@ -419,7 +422,8 @@
         }
     });
 
-    $('#modalReprintPreview').on('hidden.bs.modal', function () {
+    var $bs = window.__bsJQuery || window.jQuery;
+    $bs('#modalReprintPreview').on('hidden.bs.modal', function () {
         const frame = document.getElementById('reprintPreviewFrame');
         frame.onload = null;
         frame.src = 'about:blank';
