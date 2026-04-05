@@ -1,6 +1,142 @@
 @extends('layouts.admin')
 
 @section('content')
+<style>
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    @keyframes gl-indeterminate {
+        0%   { left: -35%; right: 100%; }
+        60%  { left: 100%;  right: -90%; }
+        100% { left: 100%;  right: -90%; }
+    }
+    @keyframes gl-indeterminate2 {
+        0%   { left: -200%; right: 100%; }
+        60%  { left: 107%;  right: -8%; }
+        100% { left: 107%;  right: -8%; }
+    }
+    @keyframes fadeInDown {
+        from { opacity:0; transform:translateY(-12px); }
+        to   { opacity:1; transform:translateY(0); }
+    }
+    @keyframes pulse-dot {
+        0%, 80%, 100% { transform:scale(0.6); opacity:.4; }
+        40%            { transform:scale(1);   opacity:1; }
+    }
+
+    #globalLoadingOverlay {
+        position: fixed; inset: 0;
+        background: rgba(15, 23, 42, 0.72);
+        backdrop-filter: blur(3px);
+        z-index: 99999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+    .gl-card {
+        background: #fff;
+        border-radius: 18px;
+        padding: 40px 44px;
+        max-width: 420px;
+        width: 92%;
+        text-align: center;
+        box-shadow: 0 24px 60px rgba(0,0,0,.28);
+        animation: fadeInDown .3s ease;
+    }
+    .gl-spinner-ring {
+        width: 68px; height: 68px;
+        border: 5px solid #e2e8f0;
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin .75s linear infinite;
+        margin: 0 auto 22px;
+    }
+    .gl-progress-wrap {
+        background: #f1f5f9;
+        border-radius: 999px;
+        height: 7px;
+        overflow: hidden;
+        position: relative;
+        margin: 0 0 14px;
+    }
+    .gl-progress-bar {
+        position: absolute;
+        left: -35%; right: 100%;
+        top: 0; bottom: 0;
+        background: linear-gradient(90deg, #3b82f6, #818cf8);
+        border-radius: 999px;
+        animation: gl-indeterminate 2.1s cubic-bezier(.65,.815,.735,.395) infinite;
+    }
+    .gl-progress-bar::after {
+        content: '';
+        position: absolute;
+        left: -200%; right: 100%;
+        top: 0; bottom: 0;
+        background: linear-gradient(90deg, #3b82f6, #818cf8);
+        border-radius: 999px;
+        animation: gl-indeterminate2 2.1s cubic-bezier(.165,.84,.44,1) infinite;
+        animation-delay: 1.15s;
+    }
+    .gl-dots span {
+        display: inline-block;
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: #94a3b8;
+        margin: 0 3px;
+        animation: pulse-dot 1.4s ease-in-out infinite;
+    }
+    .gl-dots span:nth-child(2) { animation-delay: .2s; }
+    .gl-dots span:nth-child(3) { animation-delay: .4s; }
+
+    /* PDF preview slide-in */
+    #pdfPreviewContainer {
+        animation: fadeInDown .35s ease;
+    }
+
+    /* Smooth badge transitions */
+    [id^="status-"] .badge {
+        transition: opacity .25s ease;
+    }
+
+    /* Reprint modal overlay polished */
+    #reprintLoadingOverlay .rl-spinner {
+        width: 52px; height: 52px;
+        border: 4px solid #e2e8f0;
+        border-top-color: #f59e0b;
+        border-radius: 50%;
+        animation: spin .8s linear infinite;
+        margin: 0 auto 16px;
+    }
+    #pdfLoading .pdf-spin {
+        width: 48px; height: 48px;
+        border: 4px solid #e2e8f0;
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin .8s linear infinite;
+        margin: 0 auto 12px;
+    }
+</style>
+
+{{-- ═══════════════════ GLOBAL LOADING OVERLAY ═══════════════════ --}}
+<div id="globalLoadingOverlay">
+    <div class="gl-card">
+        <div class="gl-spinner-ring"></div>
+        <h5 id="glTitle" style="font-weight:700;color:#1e293b;margin-bottom:6px;font-size:17px;">Membuat QR Code...</h5>
+        <p id="glSubtitle" style="color:#64748b;font-size:13.5px;margin-bottom:18px;line-height:1.5;">
+            Harap tunggu, proses ini memerlukan beberapa saat.
+        </p>
+        <div class="gl-progress-wrap">
+            <div class="gl-progress-bar"></div>
+        </div>
+        <div style="min-height:20px;">
+            <span id="glStatusMsg" style="color:#94a3b8;font-size:12px;"></span>
+        </div>
+        <div class="gl-dots mt-3">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
+</div>
+
 <div class="container-fluid">
 
     {{-- Header --}}
@@ -68,7 +204,6 @@
                             </td>
                             <td class="text-center" id="action-{{ $batch->id }}">
                                 @if($isReprint)
-                                    {{-- Reprint batch: PDF di-generate on-demand saat preview dibuka --}}
                                     @if($batch->status === 'Failed')
                                         <span class="text-danger small" title="{{ $batch->error_message }}">
                                             <i class="fas fa-times-circle"></i> Gagal
@@ -78,7 +213,6 @@
                                             <i class="fas fa-spinner fa-spin mr-1"></i>Sedang diproses...
                                         </button>
                                     @else
-                                        {{-- Pending / Ready / Printed → langsung bisa dipreview --}}
                                         <button
                                             class="btn btn-primary btn-sm btn-block"
                                             onclick="openReprintPreview({{ $batch->id }})">
@@ -86,7 +220,6 @@
                                         </button>
                                     @endif
                                 @else
-                                    {{-- Regular batch: flow lama --}}
                                     @if($batch->status === 'Pending')
                                         <button
                                             id="btn-batch-{{ $batch->id }}"
@@ -154,12 +287,10 @@
         </div>
         <div class="card-body p-0 position-relative">
             <div id="pdfLoading"
-                 style="display:none; position:absolute; inset:0; background:rgba(255,255,255,.85);
-                        z-index:10; display:flex; align-items:center; justify-content:center;">
-                <div class="text-center text-muted">
-                    <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
-                    Memuat QR...
-                </div>
+                 style="display:none; position:absolute; inset:0; background:rgba(255,255,255,.9);
+                        z-index:10; align-items:center; justify-content:center; flex-direction:column;">
+                <div class="pdf-spin"></div>
+                <span style="color:#64748b;font-size:13px;">Memuat dokumen QR...</span>
             </div>
             <iframe id="pdfPreviewFrame"
                     style="width:100%; height:80vh; border:none; display:block;">
@@ -181,13 +312,11 @@
             </div>
             <div class="modal-body p-0 position-relative">
                 <div id="reprintLoadingOverlay"
-                     style="position:absolute; inset:0; background:rgba(255,255,255,.92);
-                            z-index:10; display:flex; align-items:center; justify-content:center;">
-                    <div class="text-center text-muted">
-                        <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
-                        <div>Membuat PDF cetak ulang...</div>
-                        <small>Proses lebih lama jika jumlah QR besar</small>
-                    </div>
+                     style="position:absolute; inset:0; background:rgba(255,255,255,.95);
+                            z-index:10; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+                    <div class="rl-spinner"></div>
+                    <div style="color:#1e293b;font-weight:600;font-size:14px;margin-bottom:4px;">Membuat PDF cetak ulang...</div>
+                    <small style="color:#94a3b8;">Proses lebih lama jika jumlah QR besar</small>
                 </div>
                 <iframe id="reprintPreviewFrame"
                         style="width:100%; height:80vh; border:none; display:block;">
@@ -209,36 +338,79 @@
     const PO_ID = {{ $id }};
     let activeBatchId = null;
 
+    // ── Global loading overlay helpers ───────────────────────────────────────
+    const glOverlay   = document.getElementById('globalLoadingOverlay');
+    const glTitle     = document.getElementById('glTitle');
+    const glSubtitle  = document.getElementById('glSubtitle');
+    const glStatusMsg = document.getElementById('glStatusMsg');
+
+    const GENERATE_MESSAGES = [
+        'Mempersiapkan data QR...',
+        'Menghasilkan kode QR unik...',
+        'Menyusun label cetak...',
+        'Merender halaman PDF...',
+        'Mengoptimalkan ukuran file...',
+        'Hampir selesai, mohon tunggu...',
+    ];
+
+    let glMsgInterval = null;
+
+    function showGlobalLoading(title, subtitle) {
+        glTitle.textContent    = title    || 'Membuat QR Code...';
+        glSubtitle.textContent = subtitle || 'Harap tunggu, proses ini memerlukan beberapa saat.';
+        glStatusMsg.textContent = GENERATE_MESSAGES[0];
+        glOverlay.style.display = 'flex';
+
+        let idx = 0;
+        glMsgInterval = setInterval(function () {
+            idx = (idx + 1) % GENERATE_MESSAGES.length;
+            glStatusMsg.textContent = GENERATE_MESSAGES[idx];
+        }, 2800);
+
+        // Prevent scroll
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hideGlobalLoading() {
+        clearInterval(glMsgInterval);
+        glMsgInterval = null;
+        glOverlay.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
     // ── Reprint: buka modal, generate PDF on-demand ──────────────────────────
     window.openReprintPreview = function (batchId) {
-        var frame    = document.getElementById('reprintPreviewFrame');
-        var overlay  = document.getElementById('reprintLoadingOverlay');
-        var btnPrint = document.getElementById('btnPrintReprint');
-        var targetUrl = '/reprint/batch/' + batchId + '/preview';
+        const frame    = document.getElementById('reprintPreviewFrame');
+        const overlay  = document.getElementById('reprintLoadingOverlay');
+        const btnPrint = document.getElementById('btnPrintReprint');
+        const targetUrl = '/reprint/batch/' + batchId + '/preview';
 
+        // Reset state
         overlay.style.display  = 'flex';
         btnPrint.style.display = 'none';
-
-        // Gunakan '' bukan 'about:blank' agar tidak memicu onload spurious
-        // yang menyebabkan overlay hilang sebelum PDF selesai dimuat
         frame.onload = null;
-        frame.src    = '';
+        frame.src = 'about:blank';
 
-        // Pasang handler SETELAH src dikosongkan
-        frame.onload = function () {
-            // Pastikan yang load adalah URL target, bukan blank/error lain
-            if (frame.src === targetUrl) {
+        // Open modal first so user gets instant feedback
+        $('#modalReprintPreview').modal('show');
+
+        // Small delay so modal animation completes before heavy iframe load
+        setTimeout(function () {
+            var loaded = false;
+            frame.onload = function () {
+                if (loaded) return;
+                // about:blank fires onload too — skip it
+                if (!frame.src || frame.src === 'about:blank') return;
+                loaded = true;
                 overlay.style.display  = 'none';
                 btnPrint.style.display = 'inline-block';
-            }
-        };
-
-        frame.src = targetUrl;
-        $('#modalReprintPreview').modal('show');
+            };
+            frame.src = targetUrl;
+        }, 250);
     };
 
     document.getElementById('btnPrintReprint').addEventListener('click', function () {
-        var frame = document.getElementById('reprintPreviewFrame');
+        const frame = document.getElementById('reprintPreviewFrame');
         try {
             frame.contentWindow.focus();
             frame.contentWindow.print();
@@ -248,7 +420,9 @@
     });
 
     $('#modalReprintPreview').on('hidden.bs.modal', function () {
-        document.getElementById('reprintPreviewFrame').src = 'about:blank';
+        const frame = document.getElementById('reprintPreviewFrame');
+        frame.onload = null;
+        frame.src = 'about:blank';
         document.getElementById('reprintLoadingOverlay').style.display = 'flex';
         document.getElementById('btnPrintReprint').style.display = 'none';
     });
@@ -258,13 +432,19 @@
         const btn = document.getElementById('btn-batch-' + batchId);
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Membuat QR...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Memproses...';
         }
 
         const statusCell = document.getElementById('status-' + batchId);
         if (statusCell) {
             statusCell.innerHTML = '<span class="badge badge-warning text-dark"><i class="fas fa-spinner fa-spin mr-1"></i>Diproses</span>';
         }
+
+        // Show friendly full-screen overlay
+        showGlobalLoading(
+            'Membuat QR Code...',
+            'Harap tunggu, proses ini memerlukan beberapa saat.'
+        );
 
         $.ajax({
             url    : `/purchase_order/${poId}/qr/batch/${batchId}/process`,
@@ -273,13 +453,32 @@
             data   : { _token: CSRF },
         })
         .done(function (res) {
+            hideGlobalLoading();
+
             if (statusCell) {
                 statusCell.innerHTML = '<span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i>Siap Cetak</span>';
             }
-            const fileUrl = '/storage/temp_prints/' + res.file_path;
-            validateAndPreview(fileUrl, batchId, poId);
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-eye mr-1"></i>Lihat QR';
+            }
+
+            // Brief success toast before opening preview
+            Swal.fire({
+                toast             : true,
+                position          : 'top-end',
+                icon              : 'success',
+                title             : 'QR berhasil dibuat!',
+                showConfirmButton : false,
+                timer             : 1800,
+                timerProgressBar  : true,
+            }).then(function () {
+                const fileUrl = '/storage/temp_prints/' + res.file_path;
+                validateAndPreview(fileUrl, batchId, poId);
+            });
         })
         .fail(function (xhr) {
+            hideGlobalLoading();
+
             if (btn) {
                 btn.disabled = false;
                 btn.className = 'btn btn-outline-danger btn-sm btn-block';
@@ -289,7 +488,12 @@
             if (statusCell) {
                 statusCell.innerHTML = '<span class="badge badge-danger"><i class="fas fa-times-circle mr-1"></i>Gagal</span>';
             }
-            Swal.fire('Gagal', xhr.responseJSON?.error || 'Gagal membuat QR.', 'error');
+            Swal.fire({
+                icon  : 'error',
+                title : 'Gagal Membuat QR',
+                text  : xhr.responseJSON?.error || 'Terjadi kesalahan saat membuat QR. Silakan coba lagi.',
+                confirmButtonText: 'Tutup',
+            });
         });
     };
 
@@ -298,7 +502,7 @@
         const btn = document.getElementById('btn-batch-' + batchId);
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Mengecek...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Menyiapkan...';
         }
 
         $.ajax({
@@ -333,7 +537,11 @@
                 return;
             }
 
-            Swal.fire('Error', xhr.responseJSON?.error || 'Gagal memvalidasi batch.', 'error');
+            Swal.fire({
+                icon  : 'error',
+                title : 'Validasi Gagal',
+                text  : xhr.responseJSON?.error || 'Gagal memvalidasi batch.',
+            });
         });
     };
 
@@ -369,6 +577,12 @@
         }).then(r => {
             if (!r.isConfirmed) return;
 
+            Swal.fire({
+                title             : 'Mengirim pengajuan...',
+                allowOutsideClick : false,
+                didOpen           : () => Swal.showLoading(),
+            });
+
             $.post('/qr/reprint/request', {
                 id_po  : poId,
                 reason : r.value,
@@ -376,13 +590,20 @@
                 items  : conflicts,
             })
             .done(resp => {
-                Swal.fire('Berhasil', resp.message || 'Pengajuan cetak ulang berhasil dikirim.', 'success');
+                Swal.fire({
+                    icon  : 'success',
+                    title : 'Pengajuan Terkirim',
+                    text  : resp.message || 'Pengajuan cetak ulang berhasil dikirim.',
+                    timer : 2500,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                });
             })
             .fail(xhr2 => {
                 const msg = xhr2.responseJSON?.code === 'REPRINT_PENDING'
                     ? xhr2.responseJSON.message
                     : (xhr2.responseJSON?.message || 'Gagal mengajukan cetak ulang.');
-                Swal.fire('Gagal', msg, 'error');
+                Swal.fire({ icon: 'error', title: 'Gagal', text: msg });
             });
         });
     }
@@ -403,24 +624,30 @@
 
         container.style.display = 'block';
         loading.style.display   = 'flex';
-        frame.src = '';
+        frame.onload = null;
+        frame.src = 'about:blank';
 
-        frame.onload = function () {
-            if (frame.src && frame.src !== 'about:blank') {
+        setTimeout(function () {
+            var loaded = false;
+            frame.onload = function () {
+                if (loaded) return;
+                if (!frame.src || frame.src === 'about:blank') return;
+                loaded = true;
                 loading.style.display = 'none';
-            }
-        };
-
-        frame.src = url + '#toolbar=0&navpanes=0&scrollbar=0';
+            };
+            frame.src = url + '#toolbar=0&navpanes=0&scrollbar=0';
+        }, 100);
 
         setTimeout(function () {
             container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
+        }, 150);
     };
 
     window.closePreview = function () {
         document.getElementById('pdfPreviewContainer').style.display = 'none';
-        document.getElementById('pdfPreviewFrame').src = 'about:blank';
+        const frame = document.getElementById('pdfPreviewFrame');
+        frame.onload = null;
+        frame.src = 'about:blank';
         activeBatchId = null;
     };
 
@@ -429,7 +656,7 @@
 
         const frame = document.getElementById('pdfPreviewFrame');
         if (!frame.src || frame.src === 'about:blank') {
-            alert('QR belum dimuat.');
+            Swal.fire({ icon: 'warning', title: 'Belum Siap', text: 'QR belum selesai dimuat.', timer: 2000, showConfirmButton: false });
             return;
         }
 
@@ -444,7 +671,7 @@
         }
     });
 
-    // Polling hanya jika ada batch regular yang sedang diproses
+    // ── Polling jika ada batch regular yang sedang diproses ──────────────────
     @php $hasProcessing = $batches->where('status', 'Processing')->where('batch_type', 'regular')->count(); @endphp
     @if($hasProcessing > 0)
     const processingPoller = setInterval(function () {
