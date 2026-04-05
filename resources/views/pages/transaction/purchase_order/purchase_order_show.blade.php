@@ -788,26 +788,26 @@
 
             Swal.fire({
                 title: 'Cetak Semua QR',
-                html: 'Sistem akan memproses semua label dalam batch <b>100 label per file</b>.<br>Lanjutkan?',
+                html: 'Sistem akan membagi label menjadi batch <b>100 label per file</b>.<br>' +
+                      'PDF di-generate saat kamu klik <b>Generate & Cetak</b> di halaman berikutnya.',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Ya, Mulai',
+                confirmButtonText: 'Ya, Lanjutkan',
                 cancelButtonText: 'Batal',
             }).then(async function (result) {
 
                 if (!result.isConfirmed) return;
 
-                // 1. Buat batch records di server
+                // 1. Buat batch records (validasi + insert), tanpa generate PDF
                 Swal.fire({
-                    title: 'Menyiapkan Batch...',
+                    title: 'Menyiapkan Antrian...',
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                     didOpen: () => Swal.showLoading()
                 });
 
-                let batchData;
                 try {
-                    batchData = await $.ajax({
+                    await $.ajax({
                         url: '{{ route("purchase_order.generate_batch", $purchase_order->id) }}',
                         method: 'POST',
                         data: { _token: '{{ csrf_token() }}' },
@@ -869,53 +869,11 @@
                         return;
                     }
 
-                    Swal.fire('Gagal', xhr.responseJSON?.error || 'Gagal membuat batch', 'error');
+                    Swal.fire('Gagal', xhr.responseJSON?.error || 'Gagal membuat antrian batch', 'error');
                     return;
                 }
 
-                const batches     = batchData.batches;
-                const totalLabels = batchData.total_labels;
-                const readyFiles  = [];
-                const errors      = [];
-
-                // 2. Proses satu-satu secara berurutan
-                for (let i = 0; i < batches.length; i++) {
-                    const batch   = batches[i];
-                    const current = i + 1;
-                    const pct     = Math.round((i / batches.length) * 100);
-
-                    Swal.fire({
-                        title: 'Memproses QR Label...',
-                        html:
-                            `<div class="mb-2">${batch.batch_name} (${batch.total} label)</div>` +
-                            `<div class="progress" style="height:20px">` +
-                            `  <div class="progress-bar progress-bar-striped progress-bar-animated bg-info"` +
-                            `       style="width:${pct}%">${pct}%</div>` +
-                            `</div>` +
-                            `<small class="text-muted mt-1 d-block">Batch ${current} dari ${batches.length} &bull; Total ${totalLabels} label</small>`,
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                    });
-
-                    try {
-                        const res = await $.ajax({
-                            url: `/purchase_order/{{ $purchase_order->id }}/qr/batch/${batch.id}/process`,
-                            method: 'POST',
-                            timeout: 120000,
-                            data: {
-                                _token:      '{{ csrf_token() }}',
-                                batch_start: batch.batch_start,
-                                batch_end:   batch.batch_end,
-                            },
-                        });
-                        readyFiles.push({ name: batch.batch_name, file: res.file_path });
-                    } catch (xhr) {
-                        errors.push({ name: batch.batch_name, msg: xhr.responseJSON?.error || 'Error tidak diketahui' });
-                    }
-                }
-
-                // 3. Redirect ke halaman print status
+                // 2. Langsung ke halaman status — PDF di-generate saat user klik tombol
                 window.location.href = '{{ route("purchase_order.print_status", $purchase_order->id) }}';
             });
         });

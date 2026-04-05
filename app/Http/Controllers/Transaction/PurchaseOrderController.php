@@ -60,10 +60,10 @@ class PurchaseOrderController extends Controller
         // 1 query: seluruh QR di PO ini yang blocked (ada di tproduct_qr, tanpa approved reprint)
         $blockedRaw = DB::table('tproduct_qr as qr')
             ->leftJoin('tqr_reprint_request as rr', function ($j) {
-                $j->on('rr.id_po',        '=', 'qr.id_po')
-                  ->on('rr.id_po_detail',  '=', 'qr.id_po_detail')
-                  ->on('rr.sequence_no',   '=', 'qr.sequence_no')
-                  ->where('rr.status', 'APPROVED')
+                $j->on('rr.id_po',       '=', 'qr.id_po')
+                  ->on('rr.id_po_detail', '=', 'qr.id_po_detail')
+                  ->on(DB::raw('`rr`.`sequence_no` COLLATE utf8mb4_unicode_ci'), '=', DB::raw('`qr`.`sequence_no` COLLATE utf8mb4_unicode_ci'))
+                  ->where(DB::raw('`rr`.`status` COLLATE utf8mb4_unicode_ci'), 'APPROVED')
                   ->whereNull('rr.used_at');
             })
             ->where('qr.id_po', $id)
@@ -135,6 +135,8 @@ class PurchaseOrderController extends Controller
                 'batch_name'      => 'Batch ' . ($i + 1),
                 'content_summary' => implode(', ', $summaryItems),
                 'total_labels'    => ($batchEnd - $batchStart) + 1,
+                'batch_start'     => $batchStart,
+                'batch_end'       => $batchEnd,
                 'status'          => 'Pending',
                 'created_at'      => now(),
                 'updated_at'      => now(),
@@ -160,8 +162,18 @@ class PurchaseOrderController extends Controller
 
     public function processBatch(Request $request, $id, $batchId)
     {
-        $batchStart = (int) $request->batch_start;
-        $batchEnd   = (int) $request->batch_end;
+        $batchRecord = DB::table('print_batches')->where('id', $batchId)->first();
+
+        if (!$batchRecord || (int)$batchRecord->id_po !== (int)$id) {
+            return response()->json(['error' => 'Batch tidak ditemukan'], 404);
+        }
+
+        if ((int)$batchRecord->user_id !== auth()->id()) {
+            return response()->json(['error' => 'Tidak diizinkan'], 403);
+        }
+
+        $batchStart = (int) $batchRecord->batch_start;
+        $batchEnd   = (int) $batchRecord->batch_end;
 
         $this->poLog('PROSES_BATCH', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Range: {$batchStart}-{$batchEnd} | Status: PROCESS");
 

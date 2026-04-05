@@ -61,25 +61,36 @@
                                 @endif
                             </td>
                             <td class="text-center" id="action-{{ $batch->id }}">
-                                @if(in_array($batch->status, ['Ready', 'Printed']))
+                                @if($batch->status === 'Pending')
                                     <button
                                         id="btn-batch-{{ $batch->id }}"
-                                        class="btn {{ $batch->status === 'Printed' ? 'btn-warning' : 'btn-primary' }} btn-sm btn-block"
+                                        class="btn btn-primary btn-sm btn-block"
+                                        onclick="generateAndPreview({{ $batch->id }}, {{ $id }})">
+                                        <i class="fas fa-qrcode mr-1"></i>Generate &amp; Cetak
+                                    </button>
+                                @elseif($batch->status === 'Processing')
+                                    <button id="btn-batch-{{ $batch->id }}" class="btn btn-outline-warning btn-sm btn-block" disabled>
+                                        <i class="fas fa-spinner fa-spin mr-1"></i>Sedang diproses...
+                                    </button>
+                                @elseif(in_array($batch->status, ['Ready', 'Printed']))
+                                    <button
+                                        id="btn-batch-{{ $batch->id }}"
+                                        class="btn {{ $batch->status === 'Printed' ? 'btn-warning' : 'btn-success' }} btn-sm btn-block"
                                         onclick="validateAndPreview(
                                             '{{ asset('storage/temp_prints/'.$batch->file_path) }}',
                                             {{ $batch->id }},
                                             {{ $id }}
                                         )">
                                         <i class="fas {{ $batch->status === 'Printed' ? 'fa-redo' : 'fa-eye' }} mr-1"></i>
-                                        {{ $batch->status === 'Printed' ? 'Cetak Ulang' : 'Lihat PDF' }}
+                                        {{ $batch->status === 'Printed' ? 'Cetak Ulang' : 'Lihat QR' }}
                                     </button>
                                 @elseif($batch->status === 'Failed')
-                                    <button class="btn btn-danger btn-sm btn-block" disabled title="{{ $batch->error_message }}">
-                                        <i class="fas fa-times mr-1"></i>Error
-                                    </button>
-                                @else
-                                    <button class="btn btn-outline-secondary btn-sm btn-block" disabled>
-                                        <i class="fas fa-spinner fa-spin mr-1"></i>Menunggu...
+                                    <button
+                                        id="btn-batch-{{ $batch->id }}"
+                                        class="btn btn-outline-danger btn-sm btn-block"
+                                        onclick="generateAndPreview({{ $batch->id }}, {{ $id }})"
+                                        title="{{ $batch->error_message }}">
+                                        <i class="fas fa-redo mr-1"></i>Coba Lagi
                                     </button>
                                 @endif
                             </td>
@@ -102,7 +113,7 @@
     <div id="pdfPreviewContainer" style="display:none;" class="card shadow">
         <div class="card-header py-2 d-flex justify-content-between align-items-center">
             <span class="font-weight-bold text-dark">
-                <i class="fas fa-file-pdf text-danger mr-2"></i>
+                <i class="fas fa-qrcode text-info mr-2"></i>
                 Preview: <span id="pdfPreviewLabel">-</span>
             </span>
             <div>
@@ -120,7 +131,7 @@
                         z-index:10; display:flex; align-items:center; justify-content:center;">
                 <div class="text-center text-muted">
                     <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
-                    Memuat PDF...
+                    Memuat QR...
                 </div>
             </div>
             <iframe id="pdfPreviewFrame"
@@ -137,7 +148,48 @@
     const PO_ID = {{ $id }};
     let activeBatchId = null;
 
-    // ── Validasi dulu sebelum buka PDF ──────────────────────────────────────
+    // ── Generate PDF on-demand lalu buka ────────────────────────────────────
+    window.generateAndPreview = function (batchId, poId) {
+        const btn = document.getElementById('btn-batch-' + batchId);
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Membuat QR...';
+        }
+
+        const statusCell = document.getElementById('status-' + batchId);
+        if (statusCell) {
+            statusCell.innerHTML = '<span class="badge badge-warning text-dark"><i class="fas fa-spinner fa-spin mr-1"></i>Diproses</span>';
+        }
+
+        $.ajax({
+            url    : `/purchase_order/${poId}/qr/batch/${batchId}/process`,
+            method : 'POST',
+            timeout: 180000,
+            data   : { _token: CSRF },
+        })
+        .done(function (res) {
+            if (statusCell) {
+                statusCell.innerHTML = '<span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i>Siap Cetak</span>';
+            }
+            // Setelah PDF ready, validasi dan buka
+            const fileUrl = '/storage/temp_prints/' + res.file_path;
+            validateAndPreview(fileUrl, batchId, poId);
+        })
+        .fail(function (xhr) {
+            if (btn) {
+                btn.disabled = false;
+                btn.className = 'btn btn-outline-danger btn-sm btn-block';
+                btn.innerHTML = '<i class="fas fa-redo mr-1"></i>Coba Lagi';
+                btn.setAttribute('onclick', `generateAndPreview(${batchId}, ${poId})`);
+            }
+            if (statusCell) {
+                statusCell.innerHTML = '<span class="badge badge-danger"><i class="fas fa-times-circle mr-1"></i>Gagal</span>';
+            }
+            Swal.fire('Gagal', xhr.responseJSON?.error || 'Gagal membuat QR.', 'error');
+        });
+    };
+
+    // ── Validasi dulu sebelum buka PDF (untuk Ready/Printed) ────────────────
     window.validateAndPreview = function (url, batchId, poId) {
         const btn = document.getElementById('btn-batch-' + batchId);
         if (btn) {
@@ -151,13 +203,12 @@
             data   : { _token: CSRF },
         })
         .done(function () {
-            // Izinkan — update tombol jadi "Cetak Ulang"
             if (btn) {
                 btn.disabled = false;
                 btn.className = 'btn btn-warning btn-sm btn-block';
                 btn.innerHTML = '<i class="fas fa-redo mr-1"></i>Cetak Ulang';
+                btn.setAttribute('onclick', `validateAndPreview('${url}', ${batchId}, ${poId})`);
             }
-            // Update badge status di tabel
             const statusCell = document.getElementById('status-' + batchId);
             if (statusCell) {
                 statusCell.innerHTML = '<span class="badge badge-info"><i class="fas fa-check-double mr-1"></i>Sudah Dicetak</span>';
@@ -167,11 +218,10 @@
         .fail(function (xhr) {
             if (btn) {
                 btn.disabled = false;
-                // Kembalikan label sesuai status saat ini
                 const isPrinted = btn.className.includes('btn-warning');
                 btn.innerHTML = isPrinted
                     ? '<i class="fas fa-redo mr-1"></i>Cetak Ulang'
-                    : '<i class="fas fa-eye mr-1"></i>Lihat PDF';
+                    : '<i class="fas fa-eye mr-1"></i>Lihat QR';
             }
 
             if (xhr.status === 409 && xhr.responseJSON?.code === 'QR_ALREADY_PRINTED') {
@@ -275,7 +325,7 @@
 
         const frame = document.getElementById('pdfPreviewFrame');
         if (!frame.src || frame.src === 'about:blank') {
-            alert('PDF belum dimuat.');
+            alert('QR belum dimuat.');
             return;
         }
 
@@ -290,9 +340,10 @@
         }
     });
 
-    @php $hasPending = $batches->whereIn('status', ['Pending', 'Processing'])->count(); @endphp
-    @if($hasPending > 0)
-    setInterval(function () {
+    // Polling hanya jika ada batch yang sedang diproses (Processing) �� situasi tab reload/crash
+    @php $hasProcessing = $batches->where('status', 'Processing')->count(); @endphp
+    @if($hasProcessing > 0)
+    const processingPoller = setInterval(function () {
         fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(r => r.text())
             .then(html => {
@@ -301,9 +352,15 @@
                     const newEl = doc.getElementById(el.id);
                     if (newEl) el.innerHTML = newEl.innerHTML;
                 });
-                if (!document.querySelector('.badge-secondary, .badge-warning')) location.reload();
+                document.querySelectorAll('[id^="action-"]').forEach(el => {
+                    const newEl = doc.getElementById(el.id);
+                    if (newEl) el.innerHTML = newEl.innerHTML;
+                });
+                if (!doc.querySelector('.badge-warning')) {
+                    clearInterval(processingPoller);
+                }
             });
-    }, 5000);
+    }, 4000);
     @endif
 
 }());
