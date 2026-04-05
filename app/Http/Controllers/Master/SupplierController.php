@@ -6,9 +6,27 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\MSupplier;
 use Yajra\DataTables\Facades\DataTables;
+use App\Logs;
+use Auth;
 
 class SupplierController extends Controller
 {
+    private function masterLog(string $section, string $content): void
+    {
+        try {
+            (new Logs('Logs_Master_SupplierController'))->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[SupplierController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     /**
      * Display the supplier list page.
      */
@@ -62,6 +80,8 @@ class SupplierController extends Controller
      */
     public function store(Request $request)
     {
+        $this->masterLog('TAMBAH_PEMASOK', "User: {$this->actor()} | Kode: {$request->code_spl} | Nama: {$request->nama_spl} | Status: PROCESS");
+
         try {
             $this->validate($request, [
                 'code_spl'      => 'required|unique:m_suppliers,code_spl',
@@ -107,17 +127,20 @@ class SupplierController extends Controller
                 'tgl_spl'      => now(),
             ]);
 
+            $this->masterLog('TAMBAH_PEMASOK', "User: {$this->actor()} | Kode: {$request->code_spl} | Nama: {$request->nama_spl} | Status: SUCCESS");
             return response()->json([
                 'status' => 'success',
                 'message' => 'Pemasok telah berhasil ditambahkan.'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('TAMBAH_PEMASOK', "User: {$this->actor()} | Kode: {$request->code_spl} | Status: VALIDATION_ERROR | Error: " . json_encode($e->errors()));
             return response()->json([
                 'status' => 'fail',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('TAMBAH_PEMASOK', "User: {$this->actor()} | Kode: {$request->code_spl} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
@@ -140,6 +163,8 @@ class SupplierController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->masterLog('UBAH_PEMASOK', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_spl} | Nama: {$request->nama_spl} | Status: PROCESS");
+
         try {
             $validatedData = $request->validate([
                 'code_spl'      => 'required',
@@ -169,17 +194,20 @@ class SupplierController extends Controller
 
             MSupplier::whereId($id)->update($validatedData);
 
+            $this->masterLog('UBAH_PEMASOK', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_spl} | Nama: {$request->nama_spl} | Status: SUCCESS");
             return response()->json([
                 'status' => 'success',
                 'message' => 'Pemasok data telah berhasil diubah.'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('UBAH_PEMASOK', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_spl} | Status: VALIDATION_ERROR | Error: " . json_encode($e->errors()));
             return response()->json([
                 'status' => 'fail',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('UBAH_PEMASOK', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_spl} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
@@ -195,6 +223,7 @@ class SupplierController extends Controller
     {
         try {
             $supplier = MSupplier::findOrFail($id);
+            $this->masterLog('HAPUS_PEMASOK', "User: {$this->actor()} | ID: {$id} | Kode: {$supplier->code_spl} | Nama: {$supplier->nama_spl} | Status: DELETED");
             $supplier->delete();
 
             return response()->json([
@@ -202,11 +231,13 @@ class SupplierController extends Controller
                 'message' => 'Pemasok telah berhasil dihapus.'
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $this->masterLog('HAPUS_PEMASOK', "User: {$this->actor()} | ID: {$id} | Status: FAILED | Error: Data tidak ditemukan");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Pemasok tidak ditemukan.'
             ], 404);
         } catch (\Exception $e) {
+            $this->masterLog('HAPUS_PEMASOK', "User: {$this->actor()} | ID: {$id} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',

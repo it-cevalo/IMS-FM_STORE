@@ -10,9 +10,27 @@ use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Illuminate\Support\Facades\DB;
+use App\Logs;
+use Auth;
 
 class SKUController extends Controller
 {
+    private function masterLog(string $section, string $content): void
+    {
+        try {
+            (new Logs('Logs_Master_SKUController'))->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[SKUController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     /**
      * Display a listing of the SKU resources.
      *
@@ -76,6 +94,8 @@ class SKUController extends Controller
      */
     public function store(Request $request)
     {
+        $this->masterLog('TAMBAH_SKU', "User: {$this->actor()} | Kode: {$request->kode} | Status: PROCESS");
+
         try {
             $this->validate($request, [
                 // 'nama' => 'required',
@@ -92,31 +112,35 @@ class SKUController extends Controller
             ]);
     
             if ($sku) {
+                $this->masterLog('TAMBAH_SKU', "User: {$this->actor()} | Kode: {$request->kode} | Status: SUCCESS");
                 return response()->json([
                     'status' => 'success',
                     'message' => 'SKU telah berhasil ditambahkan.'
                 ], 200);
             } else {
+                $this->masterLog('TAMBAH_SKU', "User: {$this->actor()} | Kode: {$request->kode} | Status: FAILED");
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.'
                 ], 500);
             }
-    
+
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('TAMBAH_SKU', "User: {$this->actor()} | Kode: {$request->kode} | Status: VALIDATION_ERROR | Error: " . implode(', ', array_merge(...array_values($e->errors()))));
             $messages = [];
             foreach ($e->errors() as $field => $errors) {
                 foreach ($errors as $msg) {
                     $messages[] = $msg;
                 }
             }
-    
+
             return response()->json([
                 'status' => 'validation_error',
                 'message' => 'Gagal menambahkan data SKU',
                 'errors' => $messages
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('TAMBAH_SKU', "User: {$this->actor()} | Kode: {$request->kode} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
@@ -159,6 +183,8 @@ class SKUController extends Controller
      */
     public function import(Request $request)
     {
+        $this->masterLog('IMPORT_SKU', "User: {$this->actor()} | File: " . ($request->file('file') ? $request->file('file')->getClientOriginalName() : '-') . " | Status: PROCESS");
+
         $request->validate([
             'file' => 'required|mimes:xlsx|max:10240',
         ]);
@@ -192,6 +218,7 @@ class SKUController extends Controller
 
             DB::commit();
 
+            $this->masterLog('IMPORT_SKU', "User: {$this->actor()} | Inserted: {$inserted} | Status: SUCCESS");
             return response()->json([
                 'status' => 'success',
                 'message' => "Import berhasil. $inserted data SKU ditambahkan."
@@ -199,6 +226,7 @@ class SKUController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $this->masterLog('IMPORT_SKU', "User: {$this->actor()} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan saat memasukan data.',
@@ -239,7 +267,8 @@ class SKUController extends Controller
      */
     public function update(Request $request, $kode)
     {
-        // VALIDATION (simple + custom message)
+        $this->masterLog('UBAH_SKU', "User: {$this->actor()} | Kode: {$kode} | Status: PROCESS");
+
         $request->validate(
             [
                 'nama' => 'required|string|max:150',
@@ -249,19 +278,21 @@ class SKUController extends Controller
                 'nama.max'      => 'Nama SKU maksimal 150 karakter',
             ]
         );
-    
+
         try {
             $sku = MSku::findOrFail($kode);
-    
+
             $sku->update([
                 'nama' => $request->nama,
             ]);
-    
+
+            $this->masterLog('UBAH_SKU', "User: {$this->actor()} | Kode: {$kode} | Nama: {$request->nama} | Status: SUCCESS");
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Data SKU berhasil diperbarui'
             ]);
         } catch (\Exception $e) {
+            $this->masterLog('UBAH_SKU', "User: {$this->actor()} | Kode: {$kode} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Gagal memperbarui data SKU'
@@ -281,18 +312,21 @@ class SKUController extends Controller
 
         try {
             $sku = MSku::where('kode', $kode)->firstOrFail();
+            $this->masterLog('HAPUS_SKU', "User: {$this->actor()} | Kode: {$kode} | Status: DELETED");
             $sku->delete();
-    
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Data SKU telah berhasil dihapus.'
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $this->masterLog('HAPUS_SKU', "User: {$this->actor()} | Kode: {$kode} | Status: FAILED | Error: Data tidak ditemukan");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Data SKU tidak ditemukan.'
             ], 404);
         } catch (\Exception $e) {
+            $this->masterLog('HAPUS_SKU', "User: {$this->actor()} | Kode: {$kode} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',

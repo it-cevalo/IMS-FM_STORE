@@ -13,9 +13,27 @@ use App\Models\Hdo;
 use App\Imports\DeliveryOrderImport;
 use Storage, Excel, Response, Auth, DB;
 use Yajra\DataTables\Facades\DataTables;
+use App\Logs;
 
 class DeliveryOrderController extends Controller
 {
+    private function doLog(string $section, string $content): void
+    {
+        try {
+            $log = new Logs('Logs_DeliveryOrderController');
+            $log->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[DeliveryOrderController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     public function index()
     {
         $delivery_order = Tdo::with(['po'])->latest('id')->paginate(5);
@@ -131,9 +149,8 @@ class DeliveryOrderController extends Controller
 		return redirect()->route('delivery_order.index');
 	}
 
-    public function uploadDO(Request $request) 
+    public function uploadDO(Request $request)
 	{
-		// validasi
 		$this->validate($request, [
 			'file'  => 'required|mimes:pdf',
             'id_do' => 'required'
@@ -141,25 +158,23 @@ class DeliveryOrderController extends Controller
             'file.required' => 'File DO wajib diunggah',
             'id_do.required' => 'DO wajib dipilih',
         ]);
- 
-		// menangkap file excel
-		$file = $request->file('file');
- 
-		// membuat nama file unik
+
+        $do = Tdo::find($request->id_do);
+        $doNo = $do ? $do->no_do : '-';
+
+        $this->doLog('UPLOAD_FILE_DO', "User: {$this->actor()} | DO: {$doNo} (ID:{$request->id_do}) | Status: PROCESS");
+
+		$file      = $request->file('file');
 		$nama_file = rand().$file->getClientOriginalName();
- 
-		// upload ke folder file_do di dalam folder public
-		$file->move('file_do/berkas_do',$nama_file);
- 
-		// notifikasi dengan session
-		// Session::flash('sukses','Data PO Berhasil Diimport!');
- 
-		// alihkan halaman kembali
-        Tdo::where('id',$request->id_do)->update([
-			'file' => $nama_file,
+		$file->move('file_do/berkas_do', $nama_file);
+
+        Tdo::where('id', $request->id_do)->update([
+			'file'           => $nama_file,
             'upload_date_at' => date("Y-m-d H:i:s")
 		]);
- 
+
+        $this->doLog('UPLOAD_FILE_DO', "User: {$this->actor()} | DO: {$doNo} (ID:{$request->id_do}) | File: {$nama_file} | Status: SUCCESS");
+
 		return redirect()->back();
 	}
 
@@ -213,6 +228,9 @@ class DeliveryOrderController extends Controller
      */
     public function store(Request $request)
     {
+        $skuCount = is_array($request->sku) ? count($request->sku) : 0;
+        $this->doLog('BUAT_DO', "User: {$this->actor()} | No DO: {$request->no_do} | Tgl: {$request->tgl_do} | Via: {$request->shipping_via} | Jumlah SKU: {$skuCount} | Status: PROCESS");
+
         $request->validate([
             'tgl_do'        => 'required',
             'no_do'         => 'required|unique:tdos,no_do',
@@ -241,13 +259,16 @@ class DeliveryOrderController extends Controller
                     'sku'           => $request->sku[$i] ?? '',
                     'sku'   => $sku,
                     'qty'           => $request->qty[$i],
-                    'seq'           => str_pad($sequence++, 4, '0', STR_PAD_LEFT), // 0001, 0002, 0003...
+                    'seq'           => str_pad($sequence++, 4, '0', STR_PAD_LEFT),
                     'created_at'    => now(),
                     'updated_at'    => now()
                 ]);
             }
 
             DB::commit();
+
+            $this->doLog('BUAT_DO', "User: {$this->actor()} | No DO: {$request->no_do} | DO ID: {$do->id} | Via: {$request->shipping_via} | Status: SUCCESS");
+
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Delivery Order berhasil dibuat'
@@ -255,6 +276,7 @@ class DeliveryOrderController extends Controller
 
         } catch (\Exception $e) {
             DB::rollback();
+            $this->doLog('BUAT_DO', "User: {$this->actor()} | No DO: {$request->no_do} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status'  => 'error',
                 'message' => $e->getMessage()
@@ -264,24 +286,28 @@ class DeliveryOrderController extends Controller
     
     public function approve(Request $request, $id)
     {
+        $this->doLog('APPROVE_DO', "User: {$this->actor()} | DO ID: {$id} | Status: PROCESS");
+
         DB::beginTransaction();
-    
+
         try {
-    
+
             $do = Tdo::with('do_detail')->find($id);
-    
+
             if (!$do) {
+                $this->doLog('APPROVE_DO', "User: {$this->actor()} | DO ID: {$id} | Status: FAILED | Error: Delivery Order tidak ditemukan");
                 return response()->json([
                     'error' => 'Delivery Order tidak ditemukan'
                 ], 404);
             }
-    
+
             if ($do->flag_approve === 'Y') {
+                $this->doLog('APPROVE_DO', "User: {$this->actor()} | DO: {$do->no_do} (ID:{$id}) | Status: BLOCKED | Info: DO sudah di-approve sebelumnya");
                 return response()->json([
                     'error' => 'Delivery Order sudah di-approve'
                 ], 422);
             }
-    
+
             // 1. Update header DO
             $do->update([
                 'approve_by'   => Auth::user()->username,
@@ -355,16 +381,22 @@ class DeliveryOrderController extends Controller
             }
     
             DB::commit();
-    
+
+            $totalDetail = $do->do_detail->count();
+            $this->doLog('APPROVE_DO', "User: {$this->actor()} | DO: {$do->no_do} (ID:{$id}) | Via: {$do->shipping_via} | Jumlah SKU: {$totalDetail} | Status: APPROVED");
+
             return response()->json([
                 'success' => true,
                 'message' => 'Delivery Order berhasil di-approve'
             ]);
-    
+
         } catch (\Throwable $e) {
-    
+
             DB::rollBack();
-    
+
+            $noDoInfo = isset($do) ? $do->no_do : '-';
+            $this->doLog('APPROVE_DO', "User: {$this->actor()} | DO: {$noDoInfo} (ID:{$id}) | Status: FAILED | Error: {$e->getMessage()}");
+
             return response()->json([
                 'error' => $e->getMessage()
             ], 500);
@@ -456,6 +488,8 @@ class DeliveryOrderController extends Controller
     {
         $do = Tdo::findOrFail($id);
 
+        $this->doLog('UPDATE_DO', "User: {$this->actor()} | DO: {$do->no_do} (ID:{$id}) | Flag Approve: {$do->flag_approve} | Status: PROCESS");
+
         /**
          * ==================================
          * CASE 1: SUDAH APPROVED
@@ -471,6 +505,8 @@ class DeliveryOrderController extends Controller
             $do->update([
                 'no_resi' => $request->no_resi
             ]);
+
+            $this->doLog('UPDATE_DO', "User: {$this->actor()} | DO: {$do->no_do} (ID:{$id}) | No Resi: {$request->no_resi} | Status: RESI_UPDATED");
 
             return redirect()
                 ->back()
@@ -517,12 +553,16 @@ class DeliveryOrderController extends Controller
 
             DB::commit();
 
+            $skuCount = count($request->sku);
+            $this->doLog('UPDATE_DO', "User: {$this->actor()} | DO: {$do->no_do} (ID:{$id}) | Via: {$request->shipping_via} | Jumlah SKU: {$skuCount} | Status: UPDATED");
+
             return redirect()
                 ->route('delivery_order.index')
                 ->with('success', 'Delivery Order berhasil diperbarui');
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $this->doLog('UPDATE_DO', "User: {$this->actor()} | DO: {$do->no_do} (ID:{$id}) | Status: FAILED | Error: {$e->getMessage()}");
 
             return redirect()
                 ->back()
@@ -539,9 +579,19 @@ class DeliveryOrderController extends Controller
     
     public function delete2($id)
     {
-        // dd("Masuk");
         $data = Tdo::with(['po'])->find($id);
+
+        if (!$data) {
+            $this->doLog('DELETE_DO', "User: {$this->actor()} | DO ID: {$id} | Status: FAILED | Error: Data tidak ditemukan");
+            return redirect()->route('delivery_order.index');
+        }
+
+        $this->doLog('DELETE_DO', "User: {$this->actor()} | DO: {$data->no_do} (ID:{$id}) | Status: PROCESS");
+
         $data->delete();
+
+        $this->doLog('DELETE_DO', "User: {$this->actor()} | DO: {$data->no_do} (ID:{$id}) | Status: DELETED");
+
         return redirect()->route('delivery_order.index');
     }
 
@@ -568,17 +618,24 @@ class DeliveryOrderController extends Controller
     
     public function rollbackPost(Request $request)
     {
+        $id = $request->id;
+        $this->doLog('ROLLBACK_DO', "User: {$this->actor()} | DO ID: {$id} | Status: PROCESS");
+
         try {
-            $id = $request->id;
             $tdo = Tdo::onlyTrashed()->where('id', $id)->first();
-    
+
             if (!$tdo) {
+                $this->doLog('ROLLBACK_DO', "User: {$this->actor()} | DO ID: {$id} | Status: FAILED | Error: Data tidak ditemukan atau sudah aktif");
                 return response()->json(['message' => 'Data tidak ditemukan atau sudah aktif.'], 404);
             }
-    
+
             $tdo->restore();
+
+            $this->doLog('ROLLBACK_DO', "User: {$this->actor()} | DO: {$tdo->no_do} (ID:{$id}) | Status: RESTORED");
+
             return response()->json(['message' => 'Data berhasil dipulihkan.']);
         } catch (\Exception $e) {
+            $this->doLog('ROLLBACK_DO', "User: {$this->actor()} | DO ID: {$id} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json(['message' => 'Gagal memulihkan data.'], 500);
         }
     }

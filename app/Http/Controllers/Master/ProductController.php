@@ -12,9 +12,27 @@ use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use DB;
+use App\Logs;
+use Auth;
 
 class ProductController extends Controller
 {
+    private function masterLog(string $section, string $content): void
+    {
+        try {
+            (new Logs('Logs_Master_ProductController'))->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[ProductController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -77,6 +95,8 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+        $this->masterLog('TAMBAH_PRODUK', "User: {$this->actor()} | SKU: {$request->sku} | Nama: {$request->nama_barang} | Status: PROCESS");
+
         try {
             // Validate user input
             $this->validate($request, [
@@ -110,11 +130,13 @@ class ProductController extends Controller
             ]);
 
             if ($product) {
+                $this->masterLog('TAMBAH_PRODUK', "User: {$this->actor()} | SKU: {$request->sku} | Nama: {$request->nama_barang} | Status: SUCCESS");
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Data produk telah berhasil ditambahkan.'
                 ], 200);
             } else {
+                $this->masterLog('TAMBAH_PRODUK', "User: {$this->actor()} | SKU: {$request->sku} | Status: FAILED");
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.'
@@ -122,7 +144,7 @@ class ProductController extends Controller
             }
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // Collect all validation messages as an array
+            $this->masterLog('TAMBAH_PRODUK', "User: {$this->actor()} | SKU: {$request->sku} | Status: VALIDATION_ERROR | Error: " . implode(', ', array_merge(...array_values($e->errors()))));
             $messages = [];
             foreach ($e->errors() as $field => $errorArray) {
                 foreach ($errorArray as $errorMessage) {
@@ -136,6 +158,7 @@ class ProductController extends Controller
                 'errors' => $messages
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('TAMBAH_PRODUK', "User: {$this->actor()} | SKU: {$request->sku} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
@@ -214,10 +237,12 @@ class ProductController extends Controller
      */
     public function import(Request $request)
     {
+        $this->masterLog('IMPORT_PRODUK', "User: {$this->actor()} | File: " . ($request->file('file') ? $request->file('file')->getClientOriginalName() : '-') . " | Status: PROCESS");
+
         $request->validate([
             'file' => 'required|mimes:xlsx|max:10240',
         ]);
-    
+
         try {
             $path = $request->file('file')->getRealPath();
             $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
@@ -306,6 +331,7 @@ class ProductController extends Controller
             // =========================
             // RESPONSE (UNTUK SWAL)
             // =========================
+            $this->masterLog('IMPORT_PRODUK', "User: {$this->actor()} | Total: {$total} | Inserted: {$inserted} | Duplicated: {$duplicated} | Status: SUCCESS");
             return response()->json([
                 'status'      => 'success',
                 'message'     => 'Import selesai',
@@ -314,9 +340,10 @@ class ProductController extends Controller
                 'failed'      => $duplicated,
                 'duplicated'  => $duplicated
             ]);
-    
+
         } catch (\Exception $e) {
             DB::rollBack();
+            $this->masterLog('IMPORT_PRODUK', "User: {$this->actor()} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Terjadi kesalahan saat import data.',
@@ -385,6 +412,8 @@ class ProductController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->masterLog('UBAH_PRODUK', "User: {$this->actor()} | ID: {$id} | Status: PROCESS");
+
         try {
             // Validate user input
             $this->validate($request, [
@@ -410,12 +439,14 @@ class ProductController extends Controller
                 'flag_active'       => $request->flag_active
             ]);
 
+            $this->masterLog('UBAH_PRODUK', "User: {$this->actor()} | ID: {$id} | SKU: {$product->sku} | Nama: {$product->nama_barang} | Status: SUCCESS");
             return response()->json([
                 'status' => 'success',
                 'message' => 'Data produk telah berhasil diubah.'
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('UBAH_PRODUK', "User: {$this->actor()} | ID: {$id} | Status: VALIDATION_ERROR | Error: " . implode(', ', array_merge(...array_values($e->errors()))));
             $messages = [];
             foreach ($e->errors() as $field => $errors) {
                 foreach ($errors as $msg) {
@@ -430,6 +461,7 @@ class ProductController extends Controller
             ], 422);
 
         } catch (\Exception $e) {
+            $this->masterLog('UBAH_PRODUK', "User: {$this->actor()} | ID: {$id} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',

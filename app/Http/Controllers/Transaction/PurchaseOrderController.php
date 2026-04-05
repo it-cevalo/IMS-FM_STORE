@@ -16,17 +16,38 @@ use Storage, Excel, DB, Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Yajra\DataTables\Facades\DataTables;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use App\Logs;
 
 use App\Jobs\GenerateQRJob;
 
 class PurchaseOrderController extends Controller
 {
+    private function poLog(string $section, string $content): void
+    {
+        try {
+            $log = new Logs('Logs_PurchaseOrderController');
+            $log->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[PurchaseOrderController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     public function generateAllQRBatch(Request $request, $id)
     {
         $po = Tpo::with('po_detail')->findOrFail($id);
         $totalQty = $po->po_detail->sum('qty');
 
+        $this->poLog('CETAK_QR_BATCH', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Total QR: {$totalQty} | Status: PROCESS");
+
         if ($totalQty === 0) {
+            $this->poLog('CETAK_QR_BATCH', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status: FAILED | Error: PO tidak memiliki detail item");
             return response()->json(['error' => 'PO tidak memiliki detail item'], 422);
         }
 
@@ -72,6 +93,8 @@ class PurchaseOrderController extends Controller
         }
 
         if (!empty($conflictsAll)) {
+            $conflictSkus = implode(', ', array_column($conflictsAll, 'sku'));
+            $this->poLog('CETAK_QR_BATCH', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status: BLOCKED | SKU konflik: {$conflictSkus}");
             return response()->json([
                 'code'      => 'QR_ALREADY_PRINTED',
                 'message'   => 'Terdapat QR yang sudah pernah dicetak. Ajukan reprint terlebih dahulu.',
@@ -126,6 +149,8 @@ class PurchaseOrderController extends Controller
             ];
         }
 
+        $this->poLog('CETAK_QR_BATCH', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status: BATCH_CREATED | Jumlah batch: {$totalBatches} | Total QR: {$totalQty}");
+
         return response()->json([
             'batches'       => $batchList,
             'total_batches' => $totalBatches,
@@ -138,6 +163,8 @@ class PurchaseOrderController extends Controller
         $batchStart = (int) $request->batch_start;
         $batchEnd   = (int) $request->batch_end;
 
+        $this->poLog('PROSES_BATCH', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Range: {$batchStart}-{$batchEnd} | Status: PROCESS");
+
         // Tandai Processing secara atomik — cegah double-process
         $locked = DB::table('print_batches')
             ->where('id', $batchId)
@@ -147,8 +174,10 @@ class PurchaseOrderController extends Controller
         if (!$locked) {
             $existing = DB::table('print_batches')->where('id', $batchId)->first();
             if ($existing && $existing->status === 'Ready') {
+                $this->poLog('PROSES_BATCH', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Status: ALREADY_READY");
                 return response()->json(['status' => 'ready', 'file_path' => $existing->file_path]);
             }
+            $this->poLog('PROSES_BATCH', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Status: SKIPPED | Info: Batch sedang diproses atau sudah selesai");
             return response()->json(['error' => 'Batch sedang diproses atau sudah selesai'], 409);
         }
 
@@ -192,6 +221,9 @@ class PurchaseOrderController extends Controller
                 'updated_at' => now(),
             ]);
 
+            $totalQr = count($qrList);
+            $this->poLog('PROSES_BATCH', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Batch ID: {$batchId} | File: {$fileName} | Total QR: {$totalQr} | Status: READY");
+
             return response()->json(['status' => 'ready', 'file_path' => $fileName]);
 
         } catch (\Exception $e) {
@@ -201,6 +233,7 @@ class PurchaseOrderController extends Controller
                 'error_message' => $e->getMessage(),
                 'updated_at'    => now(),
             ]);
+            $this->poLog('PROSES_BATCH', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -337,6 +370,8 @@ class PurchaseOrderController extends Controller
                 ->where('id', $batchId)
                 ->update(['status' => 'Printed', 'updated_at' => now()]);
 
+            $this->poLog('CETAK_QR', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Status: PRINTED | Info: Pertama kali dicetak");
+
             return response()->json(['allowed' => true]);
         }
 
@@ -348,8 +383,12 @@ class PurchaseOrderController extends Controller
             if (empty($conflicts)) {
                 // Semua item punya approved reprint → konsumsi dan izinkan
                 $this->consumeBatchReprintApprovals($po, $batch->content_summary);
+                $this->poLog('CETAK_QR', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Batch ID: {$batchId} | Status: REPRINT_ALLOWED | Info: Semua sequence sudah di-approve");
                 return response()->json(['allowed' => true]);
             }
+
+            $conflictSkus = implode(', ', array_column($conflicts, 'sku'));
+            $this->poLog('CETAK_QR', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Batch ID: {$batchId} | Status: BLOCKED_REPRINT | SKU konflik: {$conflictSkus}");
 
             return response()->json([
                 'code'      => 'QR_ALREADY_PRINTED',
@@ -357,6 +396,8 @@ class PurchaseOrderController extends Controller
                 'conflicts' => $conflicts,
             ], 409);
         }
+
+        $this->poLog('CETAK_QR', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Status: INVALID | Info: Status batch tidak valid ({$batch->status})");
 
         return response()->json(['allowed' => false, 'error' => 'Status batch tidak valid.'], 400);
     }
@@ -710,6 +751,8 @@ class PurchaseOrderController extends Controller
     
     public function store(Request $request)
     {
+        $this->poLog('BUAT_PO', "User: {$this->actor()} | No PO: {$request->no_po} | Supplier ID: {$request->id_supplier} | Tipe: {$request->po_type} | Tgl: {$request->tgl_po} | Status: PROCESS");
+
         try {
             $this->validate($request, [
                 'id_supplier' => 'required',
@@ -803,6 +846,8 @@ class PurchaseOrderController extends Controller
 
             DB::commit();
 
+            $this->poLog('BUAT_PO', "User: {$this->actor()} | No PO: {$finalNoPo} | Supplier: {$supplier->nama_spl} | Tipe: {$request->po_type} | PO ID: {$purchase_order->id} | Status: SUCCESS");
+
             return response()->json([
                 'status'  => 'success',
                 'message' => 'PO berhasil dibuat'
@@ -810,6 +855,7 @@ class PurchaseOrderController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $this->poLog('BUAT_PO', "User: {$this->actor()} | No PO: {$request->no_po} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status'  => 'error',
                 'message' => $e->getMessage()
@@ -896,61 +942,73 @@ class PurchaseOrderController extends Controller
     public function approve(Request $request, $id)
     {
         if (!Permission::approve('MENU-0301')) {
+            $this->poLog('APPROVE_PO', "User: {$this->actor()} | PO ID: {$id} | Status: FORBIDDEN | Error: Tidak punya hak konfirmasi");
             abort(403, 'Anda tidak punya hak konfirmasi');
         }
-        
+
         $approve_by = Auth::user()->id;
-        // dd($approve_by);
-        
+
         $approve = TPo::find($id);
-        
+
         if (!$approve) {
+            $this->poLog('APPROVE_PO', "User: {$this->actor()} | PO ID: {$id} | Status: FAILED | Error: Purchase Order tidak ditemukan");
             return response()->json(['error' => 'Purchase Order tidak ditemukan']);
         }
+
+        $this->poLog('APPROVE_PO', "User: {$this->actor()} | PO: {$approve->no_po} (ID:{$id}) | Status: PROCESS");
 
         try {
             $approve->approve_by = $approve_by;
             $approve->approve_date = date('Y-m-d');
             $approve->flag_approve = "Y";
-            
+
             $updated = $approve->save();
-            
+
             if ($updated) {
+                $this->poLog('APPROVE_PO', "User: {$this->actor()} | PO: {$approve->no_po} (ID:{$id}) | Status: APPROVED");
                 return response()->json(['success' => true]);
             } else {
+                $this->poLog('APPROVE_PO', "User: {$this->actor()} | PO: {$approve->no_po} (ID:{$id}) | Status: FAILED | Error: save() returned false");
                 return response()->json(['error' => 'Persetujuan gagal']);
             }
         } catch (\Exception $e) {
+            $this->poLog('APPROVE_PO', "User: {$this->actor()} | PO: {$approve->no_po} (ID:{$id}) | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json(['error' => 'Persetujuan gagal: ' . $e->getMessage()]);
         }
     }
     
     public function confirm(Request $request, $id)
     {
-        
         if (!Permission::approve('MENU-0301')) {
+            $this->poLog('CONFIRM_PO', "User: {$this->actor()} | PO ID: {$id} | Status: FORBIDDEN | Error: Tidak punya hak konfirmasi");
             abort(403, 'Anda tidak punya hak konfirmasi');
         }
-        
+
         $confirm = Tpo::find($id);
-    
+
         if (!$confirm) {
+            $this->poLog('CONFIRM_PO', "User: {$this->actor()} | PO ID: {$id} | Status: FAILED | Error: PO tidak ditemukan");
             return response()->json([
                 'success' => false,
                 'error' => 'PO tidak ditemukan'
             ]);
         }
-    
+
+        $this->poLog('CONFIRM_PO', "User: {$this->actor()} | PO: {$confirm->no_po} (ID:{$id}) | Status: PROCESS");
+
         try {
             $confirm->confirm_by   = Auth::user()->id;
             $confirm->confirm_date = date('Y-m-d');
             $confirm->status_po = '4';
             $confirm->save();
-    
+
+            $this->poLog('CONFIRM_PO', "User: {$this->actor()} | PO: {$confirm->no_po} (ID:{$id}) | Status: CONFIRMED | Status PO: 4");
+
             return response()->json([
                 'success' => true
             ]);
         } catch (\Exception $e) {
+            $this->poLog('CONFIRM_PO', "User: {$this->actor()} | PO: {$confirm->no_po} (ID:{$id}) | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage()
@@ -962,16 +1020,19 @@ class PurchaseOrderController extends Controller
     {
         $po = Tpo::findOrFail($id);
         $status = $po->status_po;
-    
+
+        $this->poLog('UPDATE_PO', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status PO saat ini: {$status} | Status: PROCESS");
+
         // ===============================
         // STATUS 3 = PARTIAL (LOCK TOTAL)
         // ===============================
         if ($status == 3) {
+            $this->poLog('UPDATE_PO', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status: BLOCKED | Info: PO sudah PARTIAL tidak bisa diedit");
             return redirect()
                 ->back()
                 ->with('error','PO sudah PARTIAL, tidak bisa diedit');
         }
-    
+
         DB::beginTransaction();
         try {
     
@@ -1056,14 +1117,17 @@ class PurchaseOrderController extends Controller
             ]);
     
             DB::commit();
-    
+
+            $this->poLog('UPDATE_PO', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status PO: {$status} | Status: UPDATED");
+
             return redirect()
                 ->route('purchase_order.index')
                 ->with('success','PO berhasil diperbarui');
-    
+
         } catch (\Exception $e) {
             DB::rollBack();
-    
+            $this->poLog('UPDATE_PO', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status: FAILED | Error: {$e->getMessage()}");
+
             return redirect()
                 ->back()
                 ->with('error', $e->getMessage());
@@ -1086,23 +1150,26 @@ class PurchaseOrderController extends Controller
     public function delete($id)
     {
         if (!Permission::can('MENU-0301','reject')) {
+            $this->poLog('REJECT_PO', "User: {$this->actor()} | PO ID: {$id} | Status: FORBIDDEN | Error: Tidak punya hak reject");
             return response()->json(['message'=>'Tidak diizinkan'],403);
         }
-        
+
         $po = Tpo::findOrFail($id);
 
         // safety check (backend tetap wajib)
         if (in_array($po->status_po, [2, 3])) {
+            $this->poLog('REJECT_PO', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status PO saat ini: {$po->status_po} | Status: BLOCKED | Info: PO tidak bisa dibatalkan");
             return response()->json([
                 'success' => false,
                 'message' => 'PO tidak bisa dibatalkan'
             ], 422);
         }
 
-        // contoh: status_po = 9 artinya CANCEL
         $po->status_po  = 5;
-        $po->reason_po  = 'Canceled by user'; // opsional
+        $po->reason_po  = 'Canceled by user';
         $po->save();
+
+        $this->poLog('REJECT_PO', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status: CANCELED");
 
         return response()->json([
             'success' => true,
@@ -2599,24 +2666,27 @@ class PurchaseOrderController extends Controller
     public function approveReprint(Request $request)
     {
         if (!Permission::approve('MENU-0301')) {
+            $this->poLog('APPROVE_REPRINT', "User: {$this->actor()} | Status: FORBIDDEN | Error: Tidak punya hak approve reprint");
             abort(403);
-        }    
-        
+        }
+
         $reqIds = $request->ids ?? [];
-    
+
         if (empty($reqIds)) {
+            $this->poLog('APPROVE_REPRINT', "User: {$this->actor()} | Status: FAILED | Error: IDs kosong");
             return response()->json(['success' => false]);
         }
-    
+
         // Ambil semua request yang di-approve
         $requests = DB::table('tqr_reprint_request')
             ->whereIn('id', $reqIds)
             ->get();
-    
+
         if ($requests->isEmpty()) {
+            $this->poLog('APPROVE_REPRINT', "User: {$this->actor()} | IDs: " . implode(',', $reqIds) . " | Status: FAILED | Error: Data tidak ditemukan");
             return response()->json(['success' => false]);
         }
-    
+
         // Approve semua
         DB::table('tqr_reprint_request')
             ->whereIn('id', $reqIds)
@@ -2625,6 +2695,10 @@ class PurchaseOrderController extends Controller
                 'approved_by'  => Auth::user()->username,
                 'approved_at'  => now()
             ]);
+
+        $poId    = $requests->first()->id_po;
+        $seqList = $requests->pluck('sequence_no')->implode(', ');
+        $this->poLog('APPROVE_REPRINT', "User: {$this->actor()} | PO ID: {$poId} | Request IDs: " . implode(',', $reqIds) . " | Sequences: {$seqList} | Status: APPROVED");
     
         /**
          * =========================================
@@ -2657,14 +2731,24 @@ class PurchaseOrderController extends Controller
     public function rejectReprint(Request $request)
     {
         if (!Permission::reject('MENU-0301')) {
+            $this->poLog('REJECT_REPRINT', "User: {$this->actor()} | Status: FORBIDDEN | Error: Tidak punya hak reject reprint");
             abort(403);
         }
-        
+
         $reqIds = $request->ids ?? [];
-        DB::table('tqr_reprint_request')
-            ->whereIn('id', $reqIds)
-            ->update(['status' => 'REJECTED', 'approved_by' => Auth::user()->username, 'approved_at' => now()]);
-    
+
+        if (!empty($reqIds)) {
+            $requests = DB::table('tqr_reprint_request')->whereIn('id', $reqIds)->get();
+            $poId     = $requests->isNotEmpty() ? $requests->first()->id_po : '-';
+            $seqList  = $requests->isNotEmpty() ? $requests->pluck('sequence_no')->implode(', ') : '-';
+
+            DB::table('tqr_reprint_request')
+                ->whereIn('id', $reqIds)
+                ->update(['status' => 'REJECTED', 'approved_by' => Auth::user()->username, 'approved_at' => now()]);
+
+            $this->poLog('REJECT_REPRINT', "User: {$this->actor()} | PO ID: {$poId} | Request IDs: " . implode(',', $reqIds) . " | Sequences: {$seqList} | Status: REJECTED");
+        }
+
         return response()->json(['success' => true]);
     }
     
@@ -2762,7 +2846,11 @@ class PurchaseOrderController extends Controller
     
     public function requestReprint(Request $r)
     {
+        $itemCount = is_array($r->items) ? count($r->items) : 0;
+        $this->poLog('REQUEST_REPRINT', "User: {$this->actor()} | PO ID: {$r->id_po} | Jumlah item: {$itemCount} | Alasan: {$r->reason} | Status: PROCESS");
+
         if (!is_array($r->items) || empty($r->items)) {
+            $this->poLog('REQUEST_REPRINT', "User: {$this->actor()} | PO ID: {$r->id_po} | Status: FAILED | Error: Data reprint tidak valid");
             return response()->json([
                 'success' => false,
                 'message' => 'Data reprint tidak valid'
@@ -2780,6 +2868,7 @@ class PurchaseOrderController extends Controller
             ->exists();
 
         if ($existsPending) {
+            $this->poLog('REQUEST_REPRINT', "User: {$this->actor()} | PO ID: {$r->id_po} | Status: BLOCKED | Info: Masih ada pengajuan PENDING");
             return response()->json([
                 'success' => false,
                 'code'    => 'REPRINT_PENDING',
@@ -2864,6 +2953,9 @@ class PurchaseOrderController extends Controller
 
             DB::commit();
 
+            $seqSummary = implode(', ', array_column($rowsToInsert, 'sequence_no'));
+            $this->poLog('REQUEST_REPRINT', "User: {$this->actor()} | PO ID: {$r->id_po} | Sequences: {$seqSummary} | Jumlah: " . count($rowsToInsert) . " | Status: PENDING");
+
             return response()->json([
                 'success' => true,
                 'message' => 'Pengajuan cetak ulang berhasil dikirim dan menunggu persetujuan.'
@@ -2872,6 +2964,8 @@ class PurchaseOrderController extends Controller
         } catch (\Exception $e) {
 
             DB::rollBack();
+
+            $this->poLog('REQUEST_REPRINT', "User: {$this->actor()} | PO ID: {$r->id_po} | Status: FAILED | Error: {$e->getMessage()}");
 
             return response()->json([
                 'success' => false,

@@ -6,9 +6,27 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\MStore;
 use Yajra\DataTables\Facades\DataTables;
+use App\Logs;
+use Auth;
 
 class StoreController extends Controller
 {
+    private function masterLog(string $section, string $content): void
+    {
+        try {
+            (new Logs('Logs_Master_StoreController'))->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[StoreController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     public function index()
     {
         return view('pages.master.store.store_index');
@@ -53,6 +71,8 @@ class StoreController extends Controller
 
     public function store(Request $request)
     {
+        $this->masterLog('TAMBAH_TOKO', "User: {$this->actor()} | Kode: {$request->code_store} | Nama: {$request->nama_store} | Status: PROCESS");
+
         try {
             $this->validate($request, [
                 'code_store' => 'required|unique:m_stores,code_store',
@@ -81,18 +101,21 @@ class StoreController extends Controller
             ]);
 
             if ($store) {
+                $this->masterLog('TAMBAH_TOKO', "User: {$this->actor()} | Kode: {$request->code_store} | Nama: {$request->nama_store} | Status: SUCCESS");
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Toko telah berhasil ditambahkan.'
                 ], 200);
             }
 
+            $this->masterLog('TAMBAH_TOKO', "User: {$this->actor()} | Kode: {$request->code_store} | Status: FAILED");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Gagal menyimpan data Toko.'
             ], 500);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('TAMBAH_TOKO', "User: {$this->actor()} | Kode: {$request->code_store} | Status: VALIDATION_ERROR | Error: " . implode(', ', array_merge(...array_values($e->errors()))));
             $messages = [];
             foreach ($e->errors() as $field => $errors) {
                 foreach ($errors as $msg) {
@@ -106,6 +129,7 @@ class StoreController extends Controller
                 'errors' => $messages
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('TAMBAH_TOKO', "User: {$this->actor()} | Kode: {$request->code_store} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
@@ -122,6 +146,8 @@ class StoreController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->masterLog('UBAH_TOKO', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_store} | Nama: {$request->nama_store} | Status: PROCESS");
+
         try {
             $this->validate($request, [
                 'code_store' => 'required',
@@ -148,18 +174,21 @@ class StoreController extends Controller
             ]);
 
             if ($updated) {
+                $this->masterLog('UBAH_TOKO', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_store} | Nama: {$request->nama_store} | Status: SUCCESS");
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Data Toko telah berhasil diubah.'
                 ]);
             }
 
+            $this->masterLog('UBAH_TOKO', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_store} | Status: FAILED");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Gagal mengubah data toko.'
             ], 500);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('UBAH_TOKO', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_store} | Status: VALIDATION_ERROR | Error: " . implode(', ', array_merge(...array_values($e->errors()))));
             $messages = [];
             foreach ($e->errors() as $field => $errors) {
                 foreach ($errors as $msg) {
@@ -173,6 +202,7 @@ class StoreController extends Controller
                 'errors' => $messages
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('UBAH_TOKO', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_store} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
@@ -185,6 +215,7 @@ class StoreController extends Controller
     {
         try {
             $store = MStore::findOrFail($id);
+            $this->masterLog('HAPUS_TOKO', "User: {$this->actor()} | ID: {$id} | Kode: {$store->code_store} | Nama: {$store->nama_store} | Status: DELETED");
             $store->delete();
 
             return response()->json([
@@ -192,11 +223,13 @@ class StoreController extends Controller
                 'message' => 'Toko telah berhasil dihapus.'
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $this->masterLog('HAPUS_TOKO', "User: {$this->actor()} | ID: {$id} | Status: FAILED | Error: Data tidak ditemukan");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Toko tidak ditemukan.'
             ], 404);
         } catch (\Exception $e) {
+            $this->masterLog('HAPUS_TOKO', "User: {$this->actor()} | ID: {$id} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Gagal menghapus data toko.',

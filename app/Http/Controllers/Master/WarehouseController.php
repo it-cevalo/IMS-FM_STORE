@@ -7,9 +7,27 @@ use Illuminate\Http\Request;
 use App\Models\MWarehouse;
 use App\Models\MStore;
 use Yajra\DataTables\Facades\DataTables;
+use App\Logs;
+use Auth;
 
 class WarehouseController extends Controller
 {
+    private function masterLog(string $section, string $content): void
+    {
+        try {
+            (new Logs('Logs_Master_WarehouseController'))->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[WarehouseController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     public function index()
     {
         return view('pages.master.warehouse.warehouse_index');
@@ -59,6 +77,8 @@ class WarehouseController extends Controller
 
     public function store(Request $request)
     {
+        $this->masterLog('TAMBAH_GUDANG', "User: {$this->actor()} | Kode: {$request->code_wh} | Nama: {$request->nama_wh} | Status: PROCESS");
+
         try {
             $this->validate($request, [
                 // 'id_store' => 'required|exists:m_stores,id',
@@ -93,12 +113,14 @@ class WarehouseController extends Controller
                 'updated_at' => now(),
             ]);
 
+            $this->masterLog('TAMBAH_GUDANG', "User: {$this->actor()} | Kode: {$request->code_wh} | Nama: {$request->nama_wh} | Status: SUCCESS");
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Warehouse telah berhasil ditambahkan.'
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('TAMBAH_GUDANG', "User: {$this->actor()} | Kode: {$request->code_wh} | Status: VALIDATION_ERROR | Error: " . implode(', ', array_merge(...array_values($e->errors()))));
             $messages = [];
             foreach ($e->errors() as $field => $errors) {
                 foreach ($errors as $msg) {
@@ -112,6 +134,7 @@ class WarehouseController extends Controller
                 'errors'  => $messages
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('TAMBAH_GUDANG', "User: {$this->actor()} | Kode: {$request->code_wh} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
@@ -129,6 +152,8 @@ class WarehouseController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->masterLog('UBAH_GUDANG', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_wh} | Nama: {$request->nama_wh} | Status: PROCESS");
+
         try {
             $this->validate($request, [
                 // 'id_store' => 'required|exists:m_stores,id',
@@ -161,12 +186,14 @@ class WarehouseController extends Controller
                 'updated_at' => now(),
             ]);
 
+            $this->masterLog('UBAH_GUDANG', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_wh} | Nama: {$request->nama_wh} | Status: SUCCESS");
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Data Gudang telah berhasil diubah.'
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('UBAH_GUDANG', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_wh} | Status: VALIDATION_ERROR | Error: " . implode(', ', array_merge(...array_values($e->errors()))));
             $messages = [];
             foreach ($e->errors() as $field => $errors) {
                 foreach ($errors as $msg) {
@@ -180,6 +207,7 @@ class WarehouseController extends Controller
                 'errors'  => $messages
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('UBAH_GUDANG', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_wh} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
@@ -192,6 +220,7 @@ class WarehouseController extends Controller
     {
         try {
             $warehouse = MWarehouse::findOrFail($id);
+            $this->masterLog('HAPUS_GUDANG', "User: {$this->actor()} | ID: {$id} | Kode: {$warehouse->code_wh} | Nama: {$warehouse->nama_wh} | Status: DELETED");
             $warehouse->delete();
 
             return response()->json([
@@ -199,11 +228,13 @@ class WarehouseController extends Controller
                 'message' => 'Gudang telah berhasil dihapus.'
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $this->masterLog('HAPUS_GUDANG', "User: {$this->actor()} | ID: {$id} | Status: FAILED | Error: Data tidak ditemukan");
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Gudang tidak ditemukan.'
             ], 404);
         } catch (\Exception $e) {
+            $this->masterLog('HAPUS_GUDANG', "User: {$this->actor()} | ID: {$id} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',

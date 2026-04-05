@@ -6,9 +6,27 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\MproductType;
 use Yajra\DataTables\Facades\DataTables;
+use App\Logs;
+use Auth;
 
 class ProductTypeController extends Controller
 {
+    private function masterLog(string $section, string $content): void
+    {
+        try {
+            (new Logs('Logs_Master_ProductTypeController'))->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[ProductTypeController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -68,6 +86,8 @@ class ProductTypeController extends Controller
      */
     public function store(Request $request)
     {
+        $this->masterLog('TAMBAH_TIPE_PRODUK', "User: {$this->actor()} | Nama Tipe: {$request->nama_tipe} | Status: PROCESS");
+
         try {
             $this->validate($request, [
                 'nama_tipe' => 'required|unique:mproduct_type,nama_tipe'
@@ -81,31 +101,35 @@ class ProductTypeController extends Controller
             ]);
     
             if ($product_type) {
+                $this->masterLog('TAMBAH_TIPE_PRODUK', "User: {$this->actor()} | Nama Tipe: {$request->nama_tipe} | Status: SUCCESS");
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Tipe Poduk telah berhasil ditambahkan!'
                 ], 200);
             } else {
+                $this->masterLog('TAMBAH_TIPE_PRODUK', "User: {$this->actor()} | Nama Tipe: {$request->nama_tipe} | Status: FAILED");
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.'
                 ], 500);
             }
-    
+
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('TAMBAH_TIPE_PRODUK', "User: {$this->actor()} | Nama Tipe: {$request->nama_tipe} | Status: VALIDATION_ERROR | Error: " . implode(', ', array_merge(...array_values($e->errors()))));
             $messages = [];
             foreach ($e->errors() as $field => $errors) {
                 foreach ($errors as $msg) {
                     $messages[] = $msg;
                 }
             }
-    
+
             return response()->json([
                 'status' => 'validation_error',
                 'message' => 'Gagal menambahkan data tipe produk.',
                 'errors' => $messages
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('TAMBAH_TIPE_PRODUK', "User: {$this->actor()} | Nama Tipe: {$request->nama_tipe} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi. Silahkan coba lagi nanti.',
@@ -149,6 +173,8 @@ class ProductTypeController extends Controller
     
     public function update(Request $request, $id)
     {
+        $this->masterLog('UBAH_TIPE_PRODUK', "User: {$this->actor()} | ID: {$id} | Nama Tipe: {$request->nama_tipe} | Status: PROCESS");
+
         try {
             $this->validate($request, [
                 'nama_tipe' => 'required|unique:mproduct_type,nama_tipe'
@@ -162,38 +188,42 @@ class ProductTypeController extends Controller
             ]);
     
             if ($updated) {
+                $this->masterLog('UBAH_TIPE_PRODUK', "User: {$this->actor()} | ID: {$id} | Nama Tipe: {$request->nama_tipe} | Status: SUCCESS");
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Tipe Produk telah berhasil diubah!'
                 ]);
             } else {
+                $this->masterLog('UBAH_TIPE_PRODUK', "User: {$this->actor()} | ID: {$id} | Nama Tipe: {$request->nama_tipe} | Status: FAILED");
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Gagal mengubah Tipe Produk.'
                 ], 500);
             }
-    
+
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('UBAH_TIPE_PRODUK', "User: {$this->actor()} | ID: {$id} | Nama Tipe: {$request->nama_tipe} | Status: VALIDATION_ERROR | Error: " . implode(', ', array_merge(...array_values($e->errors()))));
             $messages = [];
             foreach ($e->errors() as $field => $errors) {
                 foreach ($errors as $msg) {
                     $messages[] = $msg;
                 }
             }
-    
+
             return response()->json([
                 'status' => 'validation_error',
                 'message' => 'Gagal menambahkan data tipe produk.',
                 'errors' => $messages
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('UBAH_TIPE_PRODUK', "User: {$this->actor()} | ID: {$id} | Nama Tipe: {$request->nama_tipe} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi. Silahkan coba lagi nanti.',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
-    }    
+    }
 
     /**
      * Remove the specified resource from storage.
@@ -206,6 +236,7 @@ class ProductTypeController extends Controller
     {
         try {
             $product_type = MproductType::findOrFail($id);
+            $this->masterLog('HAPUS_TIPE_PRODUK', "User: {$this->actor()} | ID: {$id} | Nama Tipe: {$product_type->nama_tipe} | Status: DELETED");
             $product_type->delete();
 
             return response()->json([
@@ -214,12 +245,14 @@ class ProductTypeController extends Controller
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $this->masterLog('HAPUS_TIPE_PRODUK', "User: {$this->actor()} | ID: {$id} | Status: FAILED | Error: Data tidak ditemukan");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Tipe Produk tidak ditemukan.'
             ], 404);
 
         } catch (\Exception $e) {
+            $this->masterLog('HAPUS_TIPE_PRODUK', "User: {$this->actor()} | ID: {$id} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi. Silahkan coba lagi nanti.',

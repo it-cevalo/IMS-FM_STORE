@@ -6,9 +6,27 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\MBank;
 use Yajra\DataTables\Facades\DataTables;
+use App\Logs;
+use Auth;
 
 class BankController extends Controller
 {
+    private function masterLog(string $section, string $content): void
+    {
+        try {
+            (new Logs('Logs_Master_BankController'))->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[BankController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -63,6 +81,8 @@ class BankController extends Controller
     
     public function store(Request $request)
     {
+        $this->masterLog('TAMBAH_BANK', "User: {$this->actor()} | Kode: {$request->code_bank} | Nama: {$request->nama_bank} | Status: PROCESS");
+
         try {
             $validatedData = $request->validate([
                 'code_bank'         => 'required',
@@ -78,16 +98,20 @@ class BankController extends Controller
 
             MBank::create($validatedData);
 
+            $this->masterLog('TAMBAH_BANK', "User: {$this->actor()} | Kode: {$request->code_bank} | Nama: {$request->nama_bank} | No Rek: {$request->norek_bank} | Status: SUCCESS");
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Data Bank berhasil ditambahkan.'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('TAMBAH_BANK', "User: {$this->actor()} | Kode: {$request->code_bank} | Status: VALIDATION_ERROR | Error: " . json_encode($e->errors()));
             return response()->json([
                 'status' => 'fail',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('TAMBAH_BANK', "User: {$this->actor()} | Kode: {$request->code_bank} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
@@ -130,6 +154,8 @@ class BankController extends Controller
     
     public function update(Request $request, $id)
     {
+        $this->masterLog('UBAH_BANK', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_bank} | Nama: {$request->nama_bank} | Status: PROCESS");
+
         try {
             $validated = $request->validate([
                 'code_bank'         => 'required',
@@ -145,16 +171,20 @@ class BankController extends Controller
 
             MBank::whereId($id)->update($validated);
 
+            $this->masterLog('UBAH_BANK', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_bank} | Nama: {$request->nama_bank} | Status: SUCCESS");
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Data bank berhasil diperbarui.'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('UBAH_BANK', "User: {$this->actor()} | ID: {$id} | Status: VALIDATION_ERROR | Error: " . json_encode($e->errors()));
             return response()->json([
                 'status' => 'fail',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('UBAH_BANK', "User: {$this->actor()} | ID: {$id} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
@@ -172,6 +202,7 @@ class BankController extends Controller
     public function destroy($id)
     {
         $bank = MBank::findOrFail($id);
+        $this->masterLog('HAPUS_BANK', "User: {$this->actor()} | ID: {$id} | Kode: {$bank->code_bank} | Nama: {$bank->nama_bank} | Status: DELETED");
         $bank->delete();
 
         return redirect('/bank')->with('success', 'Bank berhasil dihapus');
