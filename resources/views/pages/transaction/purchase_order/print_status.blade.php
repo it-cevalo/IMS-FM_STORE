@@ -203,7 +203,17 @@
                                         <button class="btn btn-outline-warning btn-sm btn-block" disabled>
                                             <i class="fas fa-spinner fa-spin mr-1"></i>Sedang diproses...
                                         </button>
+                                    @elseif($batch->status === 'Printed')
+                                        {{-- Reprint batch sudah digunakan — tidak boleh dicetak lagi langsung.
+                                             Harus ajukan permintaan cetak ulang baru via batch asli. --}}
+                                        <span class="text-info small d-block">
+                                            <i class="fas fa-check-double"></i> Sudah Dicetak
+                                        </span>
+                                        <small class="text-muted" style="font-size:10px;">
+                                            Ajukan cetak ulang baru
+                                        </small>
                                     @else
+                                        {{-- Pending / Ready: izin cetak masih valid --}}
                                         <button
                                             class="btn btn-primary btn-sm btn-block"
                                             onclick="openReprintPreview({{ $batch->id }})">

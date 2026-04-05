@@ -2760,8 +2760,13 @@ class PurchaseOrderController extends Controller
 
         abort_if(!$batch, 404, 'Batch tidak ditemukan');
 
-        // Sudah ada file — langsung stream
-        if (in_array($batch->status, ['Ready', 'Printed'])) {
+        // Sudah pernah dicetak — tolak, wajib ajukan cetak ulang baru
+        if ($batch->status === 'Printed') {
+            abort(403, 'Batch cetak ulang ini sudah pernah dicetak. Ajukan permintaan cetak ulang baru melalui batch asli.');
+        }
+
+        // PDF sudah di-generate tapi belum dicetak — langsung stream
+        if ($batch->status === 'Ready') {
             return $this->streamReprintPDF($batch, $batchId);
         }
 
