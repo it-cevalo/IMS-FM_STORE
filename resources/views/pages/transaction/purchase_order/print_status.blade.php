@@ -98,16 +98,7 @@
         transition: opacity .25s ease;
     }
 
-    /* Reprint modal overlay polished */
-    #reprintLoadingOverlay .rl-spinner {
-        width: 52px; height: 52px;
-        border: 4px solid #e2e8f0;
-        border-top-color: #f59e0b;
-        border-radius: 50%;
-        animation: spin .8s linear infinite;
-        margin: 0 auto 16px;
-    }
-    #pdfLoading .pdf-spin {
+#pdfLoading .pdf-spin {
         width: 48px; height: 48px;
         border: 4px solid #e2e8f0;
         border-top-color: #3b82f6;
@@ -300,37 +291,6 @@
 
 </div>
 
-{{-- Modal Preview Reprint (on-demand generate) --}}
-<div class="modal fade" id="modalReprintPreview" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-xl" role="document">
-        <div class="modal-content">
-            <div class="modal-header py-2">
-                <h6 class="modal-title font-weight-bold">
-                    <i class="fas fa-print text-warning mr-1"></i> Preview Cetak Ulang QR
-                </h6>
-                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-            </div>
-            <div class="modal-body p-0 position-relative">
-                <div id="reprintLoadingOverlay"
-                     style="position:absolute; inset:0; background:rgba(255,255,255,.95);
-                            z-index:10; display:flex; align-items:center; justify-content:center; flex-direction:column;">
-                    <div class="rl-spinner"></div>
-                    <div style="color:#1e293b;font-weight:600;font-size:14px;margin-bottom:4px;">Membuat PDF cetak ulang...</div>
-                    <small style="color:#94a3b8;">Proses lebih lama jika jumlah QR besar</small>
-                </div>
-                <iframe id="reprintPreviewFrame"
-                        style="width:100%; height:80vh; border:none; display:block;">
-                </iframe>
-            </div>
-            <div class="modal-footer py-2">
-                <button class="btn btn-success btn-sm" id="btnPrintReprint" style="display:none;">
-                    <i class="fas fa-print mr-1"></i>Cetak
-                </button>
-                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Tutup</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
 (function () {
@@ -378,58 +338,22 @@
         document.body.style.overflow = '';
     }
 
-    // ── Reprint: buka modal, generate PDF on-demand ──────────────────────────
+    // ── Reprint: tampilkan PDF inline (sama persis dengan flow Generate & Cetak) ─
     window.openReprintPreview = function (batchId) {
-        const frame    = document.getElementById('reprintPreviewFrame');
-        const overlay  = document.getElementById('reprintLoadingOverlay');
-        const btnPrint = document.getElementById('btnPrintReprint');
         const targetUrl = '/reprint/batch/' + batchId + '/preview';
 
-        // Reset state
-        overlay.style.display  = 'flex';
-        btnPrint.style.display = 'none';
-        frame.onload = null;
-        frame.src = 'about:blank';
+        // Global loading overlay — PDF di-generate server-side saat URL di-fetch,
+        // sehingga iframe sendiri yang "menunggu" respon server.
+        // Overlay ini ditutup otomatis via callback onLoaded di openPreview.
+        showGlobalLoading(
+            'Membuat PDF Cetak Ulang...',
+            'Harap tunggu, proses lebih lama jika jumlah QR besar.'
+        );
 
-        // Open modal first so user gets instant feedback
-        // Gunakan __bsJQuery (jQuery yang sudah attach Bootstrap plugin .modal())
-        // karena CDN jQuery yang dimuat belakangan menimpa window.$ tanpa Bootstrap plugin
-        var $bs = window.__bsJQuery || window.jQuery;
-        $bs('#modalReprintPreview').modal('show');
-
-        // Small delay so modal animation completes before heavy iframe load
-        setTimeout(function () {
-            var loaded = false;
-            frame.onload = function () {
-                if (loaded) return;
-                // about:blank fires onload too — skip it
-                if (!frame.src || frame.src === 'about:blank') return;
-                loaded = true;
-                overlay.style.display  = 'none';
-                btnPrint.style.display = 'inline-block';
-            };
-            frame.src = targetUrl;
-        }, 250);
+        // Buka inline preview (sama dengan regular batch) — global loading
+        // akan ditutup oleh callback ketika iframe selesai memuat PDF.
+        openPreview(targetUrl, batchId, hideGlobalLoading);
     };
-
-    document.getElementById('btnPrintReprint').addEventListener('click', function () {
-        const frame = document.getElementById('reprintPreviewFrame');
-        try {
-            frame.contentWindow.focus();
-            frame.contentWindow.print();
-        } catch (e) {
-            window.open(frame.src, '_blank');
-        }
-    });
-
-    var $bs = window.__bsJQuery || window.jQuery;
-    $bs('#modalReprintPreview').on('hidden.bs.modal', function () {
-        const frame = document.getElementById('reprintPreviewFrame');
-        frame.onload = null;
-        frame.src = 'about:blank';
-        document.getElementById('reprintLoadingOverlay').style.display = 'flex';
-        document.getElementById('btnPrintReprint').style.display = 'none';
-    });
 
     // ── Regular batch: generate PDF on-demand lalu buka ─────────────────────
     window.generateAndPreview = function (batchId, poId) {
@@ -612,8 +536,9 @@
         });
     }
 
-    // ── Regular batch: buka PDF di inline card ────────────────────────────────
-    window.openPreview = function (url, batchId) {
+    // ── Buka PDF di inline card (dipakai regular batch & reprint) ────────────
+    // onLoaded (opsional): callback dipanggil saat iframe selesai memuat PDF
+    window.openPreview = function (url, batchId, onLoaded) {
         activeBatchId = batchId;
 
         const container = document.getElementById('pdfPreviewContainer');
@@ -638,6 +563,7 @@
                 if (!frame.src || frame.src === 'about:blank') return;
                 loaded = true;
                 loading.style.display = 'none';
+                if (typeof onLoaded === 'function') onLoaded();
             };
             frame.src = url + '#toolbar=0&navpanes=0&scrollbar=0';
         }, 100);
