@@ -195,29 +195,38 @@
                             </td>
                             <td class="text-center" id="action-{{ $batch->id }}">
                                 @if($isReprint)
-                                    @if($batch->status === 'Failed')
-                                        <span class="text-danger small" title="{{ $batch->error_message }}">
-                                            <i class="fas fa-times-circle"></i> Gagal
-                                        </span>
-                                    @elseif($batch->status === 'Processing')
-                                        <button class="btn btn-outline-warning btn-sm btn-block" disabled>
-                                            <i class="fas fa-spinner fa-spin mr-1"></i>Sedang diproses...
+                                    @if($batch->status === 'Processing')
+                                        <button id="btn-reprint-{{ $batch->id }}" class="btn btn-secondary btn-sm btn-block" disabled>
+                                            <i class="fas fa-spinner fa-spin mr-1"></i>Processing...
                                         </button>
                                     @elseif($batch->status === 'Printed')
-                                        {{-- Reprint batch sudah digunakan — tidak boleh dicetak lagi langsung.
-                                             Harus ajukan permintaan cetak ulang baru via batch asli. --}}
-                                        <span class="text-info small d-block">
-                                            <i class="fas fa-check-double"></i> Sudah Dicetak
-                                        </span>
-                                        <small class="text-muted" style="font-size:10px;">
-                                            Ajukan cetak ulang baru
-                                        </small>
+                                        {{-- Reprint batch sudah digunakan — tidak boleh dicetak lagi langsung. --}}
+                                        <button id="btn-reprint-{{ $batch->id }}" class="btn btn-success btn-sm btn-block" disabled>
+                                            <i class="fas fa-check-circle mr-1"></i>Sudah Dicetak
+                                        </button>
+                                    @elseif($batch->status === 'Failed')
+                                        <button
+                                            id="btn-reprint-{{ $batch->id }}"
+                                            class="btn btn-outline-danger btn-sm btn-block"
+                                            data-batch-id="{{ $batch->id }}"
+                                            data-content="{!! e($batch->content_summary) !!}"
+                                            data-start="{{ (int)($batch->batch_start ?? 1) }}"
+                                            data-end="{{ (int)($batch->batch_end ?? 1) }}"
+                                            onclick="confirmReprintPreview(this)"
+                                            title="{{ $batch->error_message }}">
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>Cetak Ulang
+                                        </button>
                                     @else
                                         {{-- Pending / Ready: izin cetak masih valid --}}
                                         <button
-                                            class="btn btn-primary btn-sm btn-block"
-                                            onclick="openReprintPreview({{ $batch->id }})">
-                                            <i class="fas fa-print mr-1"></i>Preview &amp; Cetak Ulang
+                                            id="btn-reprint-{{ $batch->id }}"
+                                            class="btn btn-warning btn-sm btn-block"
+                                            data-batch-id="{{ $batch->id }}"
+                                            data-content="{!! e($batch->content_summary) !!}"
+                                            data-start="{{ (int)($batch->batch_start ?? 1) }}"
+                                            data-end="{{ (int)($batch->batch_end ?? 1) }}"
+                                            onclick="confirmReprintPreview(this)">
+                                            <i class="fas fa-sync-alt mr-1"></i>Cetak Ulang
                                         </button>
                                     @endif
                                 @else
@@ -233,17 +242,31 @@
                                             <i class="fas fa-spinner fa-spin mr-1"></i>Sedang diproses...
                                         </button>
                                     @elseif(in_array($batch->status, ['Ready', 'Printed']))
+                                        @if($batch->status === 'Printed')
                                         <button
                                             id="btn-batch-{{ $batch->id }}"
-                                            class="btn {{ $batch->status === 'Printed' ? 'btn-warning' : 'btn-success' }} btn-sm btn-block"
+                                            class="btn btn-warning btn-sm btn-block"
+                                            data-batch-id="{{ $batch->id }}"
+                                            data-po-id="{{ $id }}"
+                                            data-file-url="{{ asset('storage/temp_prints/'.$batch->file_path) }}"
+                                            data-content="{!! e($batch->content_summary) !!}"
+                                            data-start="{{ (int)($batch->batch_start ?? 1) }}"
+                                            data-end="{{ (int)($batch->batch_end ?? 1) }}"
+                                            onclick="confirmCetakUlang(this)">
+                                            <i class="fas fa-sync-alt mr-1"></i>Cetak Ulang
+                                        </button>
+                                        @else
+                                        <button
+                                            id="btn-batch-{{ $batch->id }}"
+                                            class="btn btn-success btn-sm btn-block"
                                             onclick="validateAndPreview(
                                                 '{{ asset('storage/temp_prints/'.$batch->file_path) }}',
                                                 {{ $batch->id }},
                                                 {{ $id }}
                                             )">
-                                            <i class="fas {{ $batch->status === 'Printed' ? 'fa-redo' : 'fa-eye' }} mr-1"></i>
-                                            {{ $batch->status === 'Printed' ? 'Cetak Ulang' : 'Lihat QR' }}
+                                            <i class="fas fa-eye mr-1"></i>Lihat QR
                                         </button>
+                                        @endif
                                     @elseif($batch->status === 'Failed')
                                         <button
                                             id="btn-batch-{{ $batch->id }}"
@@ -308,6 +331,9 @@
     const PO_ID = {{ $id }};
     let activeBatchId = null;
 
+    // Track batch IDs currently being processed (anti-spam)
+    const processingSet = new Set();
+
     // ── Global loading overlay helpers ───────────────────────────────────────
     const glOverlay   = document.getElementById('globalLoadingOverlay');
     const glTitle     = document.getElementById('glTitle');
@@ -337,7 +363,6 @@
             glStatusMsg.textContent = GENERATE_MESSAGES[idx];
         }, 2800);
 
-        // Prevent scroll
         document.body.style.overflow = 'hidden';
     }
 
@@ -348,29 +373,157 @@
         document.body.style.overflow = '';
     }
 
-    // ── Reprint: tampilkan PDF inline (sama persis dengan flow Generate & Cetak) ─
-    window.openReprintPreview = function (batchId) {
+    // ── Confirmation: "Cetak Ulang" untuk regular batch yang sudah Printed ───
+    window.confirmCetakUlang = function (btn) {
+        const batchId    = btn.dataset.batchId;
+        const poId       = btn.dataset.poId;
+        const fileUrl    = btn.dataset.fileUrl;
+        const content    = btn.dataset.content || '-';
+        const qrStart    = btn.dataset.start;
+        const qrEnd      = btn.dataset.end;
+
+        if (processingSet.has(batchId)) return;
+
+        Swal.fire({
+            title             : 'Konfirmasi Cetak Ulang',
+            html              : `
+                <div style="text-align:left;font-size:13.5px;line-height:1.7">
+                    <div class="mb-3 p-2" style="background:#fffbeb;border-radius:8px;border:1px solid #fcd34d">
+                        <b><i class="fas fa-info-circle text-warning mr-1"></i>Informasi Batch</b>
+                        <div class="mt-1 small text-muted" style="word-break:break-word">${content}</div>
+                        <div class="mt-1"><b>Range QR:</b> #${qrStart} &ndash; #${qrEnd}</div>
+                    </div>
+                    <p class="text-danger small mb-0">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                        QR ini sudah pernah dicetak. Masukkan alasan yang jelas sebelum mencetak ulang.
+                    </p>
+                </div>
+            `,
+            input             : 'textarea',
+            inputLabel        : 'Alasan Cetak Ulang',
+            inputPlaceholder  : 'Contoh: Label rusak saat pengepakan, barcode tidak terbaca...',
+            inputAttributes   : { rows: 3, minlength: 5 },
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : '<i class="fas fa-print mr-1"></i> Lanjutkan Cetak Ulang',
+            cancelButtonText  : 'Batal',
+            confirmButtonColor: '#f59e0b',
+            preConfirm: function (reason) {
+                if (!reason || !reason.trim()) {
+                    Swal.showValidationMessage('Alasan wajib diisi');
+                    return false;
+                }
+                if (reason.trim().length < 5) {
+                    Swal.showValidationMessage('Alasan terlalu singkat (minimal 5 karakter)');
+                    return false;
+                }
+                return reason.trim();
+            }
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+
+            processingSet.add(batchId);
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Processing...';
+            btn.className = 'btn btn-secondary btn-sm btn-block';
+
+            validateAndPreview(fileUrl, batchId, poId, result.value);
+        });
+    };
+
+    // ── Confirmation: "Cetak Ulang" untuk reprint batch (batch_type=reprint) ─
+    window.confirmReprintPreview = function (btn) {
+        const batchId = btn.dataset.batchId;
+        const content = btn.dataset.content || '-';
+        const qrStart = btn.dataset.start;
+        const qrEnd   = btn.dataset.end;
+
+        if (processingSet.has(batchId)) return;
+
+        Swal.fire({
+            title             : 'Konfirmasi Cetak Ulang',
+            html              : `
+                <div style="text-align:left;font-size:13.5px;line-height:1.7">
+                    <div class="mb-3 p-2" style="background:#fffbeb;border-radius:8px;border:1px solid #fcd34d">
+                        <b><i class="fas fa-info-circle text-warning mr-1"></i>Informasi Batch Cetak Ulang</b>
+                        <div class="mt-1 small text-muted" style="word-break:break-word">${content}</div>
+                        <div class="mt-1"><b>Range QR:</b> #${qrStart} &ndash; #${qrEnd}</div>
+                    </div>
+                    <p class="small text-muted mb-0">
+                        Pastikan persetujuan sudah diberikan sebelum melanjutkan.
+                    </p>
+                </div>
+            `,
+            input             : 'textarea',
+            inputLabel        : 'Alasan / Keterangan',
+            inputPlaceholder  : 'Masukkan alasan cetak ulang...',
+            inputAttributes   : { rows: 3 },
+            icon              : 'question',
+            showCancelButton  : true,
+            confirmButtonText : '<i class="fas fa-print mr-1"></i> Cetak Ulang',
+            cancelButtonText  : 'Batal',
+            confirmButtonColor: '#10b981',
+            preConfirm: function (reason) {
+                if (!reason || !reason.trim()) {
+                    Swal.showValidationMessage('Alasan wajib diisi');
+                    return false;
+                }
+                return reason.trim();
+            }
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+
+            processingSet.add(batchId);
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Processing...';
+            btn.className = 'btn btn-secondary btn-sm btn-block';
+
+            const statusCell = document.getElementById('status-' + batchId);
+            if (statusCell) {
+                statusCell.innerHTML = '<span class="badge badge-warning text-dark"><i class="fas fa-spinner fa-spin mr-1"></i>Diproses</span>';
+            }
+
+            _doReprintPreview(batchId);
+        });
+    };
+
+    // ── Reprint: eksekusi generate & tampilkan PDF ───────────────────────────
+    function _doReprintPreview(batchId) {
         const targetUrl = '/reprint/batch/' + batchId + '/preview';
 
-        // Global loading overlay — PDF di-generate server-side saat URL di-fetch,
-        // sehingga iframe sendiri yang "menunggu" respon server.
-        // Overlay ini ditutup otomatis via callback onLoaded di openPreview.
         showGlobalLoading(
             'Membuat PDF Cetak Ulang...',
             'Harap tunggu, proses lebih lama jika jumlah QR besar.'
         );
 
-        // Buka inline preview (sama dengan regular batch) — global loading
-        // akan ditutup oleh callback ketika iframe selesai memuat PDF.
-        openPreview(targetUrl, batchId, hideGlobalLoading);
-    };
+        openPreview(targetUrl, batchId, function () {
+            hideGlobalLoading();
+            processingSet.delete(batchId);
+
+            // Update button → Sudah Dicetak (green, disabled)
+            const btn = document.getElementById('btn-reprint-' + batchId);
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-check-circle mr-1"></i>Sudah Dicetak';
+                btn.className = 'btn btn-success btn-sm btn-block';
+            }
+            const statusCell = document.getElementById('status-' + batchId);
+            if (statusCell) {
+                statusCell.innerHTML = '<span class="badge badge-info"><i class="fas fa-check-double mr-1"></i>Sudah Dicetak</span>';
+            }
+        });
+    }
 
     // ── Regular batch: generate PDF on-demand lalu buka ─────────────────────
     window.generateAndPreview = function (batchId, poId) {
         const btn = document.getElementById('btn-batch-' + batchId);
+        if (processingSet.has(String(batchId))) return;
+        processingSet.add(String(batchId));
+
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Memproses...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Processing...';
+            btn.className = 'btn btn-secondary btn-sm btn-block';
         }
 
         const statusCell = document.getElementById('status-' + batchId);
@@ -378,7 +531,6 @@
             statusCell.innerHTML = '<span class="badge badge-warning text-dark"><i class="fas fa-spinner fa-spin mr-1"></i>Diproses</span>';
         }
 
-        // Show friendly full-screen overlay
         showGlobalLoading(
             'Membuat QR Code...',
             'Harap tunggu, proses ini memerlukan beberapa saat.'
@@ -392,15 +544,17 @@
         })
         .done(function (res) {
             hideGlobalLoading();
+            processingSet.delete(String(batchId));
 
             if (statusCell) {
                 statusCell.innerHTML = '<span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i>Siap Cetak</span>';
             }
             if (btn) {
+                btn.disabled = false;
+                btn.className = 'btn btn-success btn-sm btn-block';
                 btn.innerHTML = '<i class="fas fa-eye mr-1"></i>Lihat QR';
             }
 
-            // Brief success toast before opening preview
             Swal.fire({
                 toast             : true,
                 position          : 'top-end',
@@ -416,6 +570,7 @@
         })
         .fail(function (xhr) {
             hideGlobalLoading();
+            processingSet.delete(String(batchId));
 
             if (btn) {
                 btn.disabled = false;
@@ -436,24 +591,32 @@
     };
 
     // ── Regular batch: validasi sebelum buka PDF ─────────────────────────────
-    window.validateAndPreview = function (url, batchId, poId) {
+    window.validateAndPreview = function (url, batchId, poId, reason) {
         const btn = document.getElementById('btn-batch-' + batchId);
-        if (btn) {
+
+        // Jika dipanggil langsung (tanpa reason dari dialog), disable button
+        if (!reason && btn) {
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Menyiapkan...';
         }
 
+        const postData = { _token: CSRF };
+        if (reason) postData.reason = reason;
+
         $.ajax({
             url    : `/purchase_order/${poId}/qr/batch/${batchId}/validate-view`,
             method : 'POST',
-            data   : { _token: CSRF },
+            data   : postData,
         })
         .done(function () {
+            processingSet.delete(String(batchId));
+
             if (btn) {
                 btn.disabled = false;
                 btn.className = 'btn btn-warning btn-sm btn-block';
-                btn.innerHTML = '<i class="fas fa-redo mr-1"></i>Cetak Ulang';
-                btn.setAttribute('onclick', `validateAndPreview('${url}', ${batchId}, ${poId})`);
+                btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i>Cetak Ulang';
+                // Update data attributes so next click triggers confirmCetakUlang properly
+                btn.setAttribute('onclick', 'confirmCetakUlang(this)');
             }
             const statusCell = document.getElementById('status-' + batchId);
             if (statusCell) {
@@ -462,16 +625,16 @@
             openPreview(url, batchId);
         })
         .fail(function (xhr) {
+            processingSet.delete(String(batchId));
+
             if (btn) {
                 btn.disabled = false;
-                const isPrinted = btn.className.includes('btn-warning');
-                btn.innerHTML = isPrinted
-                    ? '<i class="fas fa-redo mr-1"></i>Cetak Ulang'
-                    : '<i class="fas fa-eye mr-1"></i>Lihat QR';
+                btn.className = 'btn btn-warning btn-sm btn-block';
+                btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i>Cetak Ulang';
             }
 
             if (xhr.status === 409 && xhr.responseJSON?.code === 'QR_ALREADY_PRINTED') {
-                showReprintDialog(xhr.responseJSON.conflicts || [], PO_ID);
+                showReprintDialog(xhr.responseJSON.conflicts || [], PO_ID, reason);
                 return;
             }
 
@@ -483,42 +646,45 @@
         });
     };
 
-    // ── Dialog reprint request ────────────────────────────────────────────────
-    function showReprintDialog(conflicts, poId) {
-        const list = conflicts.map(c =>
-            `• <b>${c.product_name}</b> (${c.sku}) → <b>${c.printed_range}</b>`
-        ).join('<br>');
+    // ── Dialog pengajuan reprint (saat ada konflik QR_ALREADY_PRINTED) ────────
+    function showReprintDialog(conflicts, poId, prefillReason) {
+        const list = conflicts.map(function (c) {
+            return `• <b>${c.product_name}</b> (${c.sku}) &rarr; <b>${c.printed_range}</b>`;
+        }).join('<br>');
 
         Swal.fire({
-            title : 'Cetak Ulang Diperlukan',
-            html  : `
+            title             : 'Cetak Ulang Diperlukan',
+            html              : `
                 <div style="text-align:left;font-size:14px;line-height:1.6">
                     <p><b>QR berikut sudah pernah dicetak.</b><br>
-                    Ajukan <b>cetak ulang</b> dan tunggu persetujuan.</p>
-                    <hr>
-                    ${list}
+                    Ajukan <b>cetak ulang</b> dan tunggu persetujuan manajer.</p>
+                    <div class="p-2 mb-2" style="background:#fef2f2;border-radius:6px;border:1px solid #fca5a5">
+                        ${list}
+                    </div>
                 </div>
             `,
             icon              : 'warning',
             input             : 'textarea',
+            inputLabel        : 'Alasan cetak ulang',
+            inputValue        : prefillReason || '',
             inputPlaceholder  : 'Alasan cetak ulang (wajib)',
             showCancelButton  : true,
             confirmButtonText : 'Ajukan Cetak Ulang',
             cancelButtonText  : 'Batal',
-            preConfirm: (reason) => {
+            preConfirm: function (reason) {
                 if (!reason || !reason.trim()) {
                     Swal.showValidationMessage('Alasan wajib diisi');
                     return false;
                 }
                 return reason;
             }
-        }).then(r => {
+        }).then(function (r) {
             if (!r.isConfirmed) return;
 
             Swal.fire({
                 title             : 'Mengirim pengajuan...',
                 allowOutsideClick : false,
-                didOpen           : () => Swal.showLoading(),
+                didOpen           : function () { Swal.showLoading(); },
             });
 
             $.post('/qr/reprint/request', {
@@ -527,17 +693,17 @@
                 _token : CSRF,
                 items  : conflicts,
             })
-            .done(resp => {
+            .done(function (resp) {
                 Swal.fire({
-                    icon  : 'success',
-                    title : 'Pengajuan Terkirim',
-                    text  : resp.message || 'Pengajuan cetak ulang berhasil dikirim.',
-                    timer : 2500,
-                    timerProgressBar: true,
+                    icon             : 'success',
+                    title            : 'Pengajuan Terkirim',
+                    text             : resp.message || 'Pengajuan cetak ulang berhasil dikirim.',
+                    timer            : 2500,
+                    timerProgressBar : true,
                     showConfirmButton: false,
                 });
             })
-            .fail(xhr2 => {
+            .fail(function (xhr2) {
                 const msg = xhr2.responseJSON?.code === 'REPRINT_PENDING'
                     ? xhr2.responseJSON.message
                     : (xhr2.responseJSON?.message || 'Gagal mengajukan cetak ulang.');
@@ -546,8 +712,7 @@
         });
     }
 
-    // ── Buka PDF di inline card (dipakai regular batch & reprint) ────────────
-    // onLoaded (opsional): callback dipanggil saat iframe selesai memuat PDF
+    // ── Buka PDF di inline card ───────────────────────────────────────────────
     window.openPreview = function (url, batchId, onLoaded) {
         activeBatchId = batchId;
 
@@ -616,14 +781,14 @@
     @if($hasProcessing > 0)
     const processingPoller = setInterval(function () {
         fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(r => r.text())
-            .then(html => {
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
                 const doc = new DOMParser().parseFromString(html, 'text/html');
-                document.querySelectorAll('[id^="status-"]').forEach(el => {
+                document.querySelectorAll('[id^="status-"]').forEach(function (el) {
                     const newEl = doc.getElementById(el.id);
                     if (newEl) el.innerHTML = newEl.innerHTML;
                 });
-                document.querySelectorAll('[id^="action-"]').forEach(el => {
+                document.querySelectorAll('[id^="action-"]').forEach(function (el) {
                     const newEl = doc.getElementById(el.id);
                     if (newEl) el.innerHTML = newEl.innerHTML;
                 });

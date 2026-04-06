@@ -381,13 +381,16 @@ class PurchaseOrderController extends Controller
         abort_if(!$batch || (int)$batch->id_po !== (int)$id, 404);
         abort_if((int)$batch->user_id !== auth()->id(), 403);
 
+        $reason = trim($request->input('reason', ''));
+
         // ── Pertama kali dilihat → tandai Printed, izinkan ──
         if ($batch->status === 'Ready') {
             DB::table('print_batches')
                 ->where('id', $batchId)
                 ->update(['status' => 'Printed', 'updated_at' => now()]);
 
-            $this->poLog('CETAK_QR', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Status: PRINTED | Info: Pertama kali dicetak");
+            $reasonInfo = $reason ? " | Alasan: {$reason}" : '';
+            $this->poLog('CETAK_QR', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Status: PRINTED | Info: Pertama kali dicetak{$reasonInfo}");
 
             return response()->json(['allowed' => true]);
         }
@@ -400,7 +403,8 @@ class PurchaseOrderController extends Controller
             if (empty($conflicts)) {
                 // Semua item punya approved reprint → konsumsi dan izinkan
                 $this->consumeBatchReprintApprovals($po, $batch->content_summary);
-                $this->poLog('CETAK_QR', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Batch ID: {$batchId} | Status: REPRINT_ALLOWED | Info: Semua sequence sudah di-approve");
+                $reasonInfo = $reason ? " | Alasan: {$reason}" : '';
+                $this->poLog('CETAK_QR', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Batch ID: {$batchId} | Status: REPRINT_ALLOWED | Info: Semua sequence sudah di-approve{$reasonInfo}");
                 return response()->json(['allowed' => true]);
             }
 
@@ -2775,16 +2779,12 @@ class PurchaseOrderController extends Controller
             abort(503, 'PDF sedang dibuat, muat ulang halaman beberapa saat lagi.');
         }
 
-        if ($batch->status === 'Failed') {
-            abort(500, 'Pembuatan PDF sebelumnya gagal: ' . ($batch->error_message ?? 'unknown error'));
-        }
-
-        // Status Pending → generate PDF on-demand (di sini, bukan di job)
-        // Lock atomik agar tidak double-generate
+        // Status Pending/Failed → generate PDF on-demand (di sini, bukan di job)
+        // Failed diizinkan retry: lock atomik agar tidak double-generate
         $locked = DB::table('print_batches')
             ->where('id', $batchId)
-            ->where('status', 'Pending')
-            ->update(['status' => 'Processing', 'updated_at' => now()]);
+            ->whereIn('status', ['Pending', 'Failed'])
+            ->update(['status' => 'Processing', 'error_message' => null, 'updated_at' => now()]);
 
         if (!$locked) {
             // Race condition — request lain sudah mengambil lock
