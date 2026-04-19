@@ -9,6 +9,8 @@
     <meta name="description" content="">
     <meta name="author" content="">
     <link rel="icon" type="image/x-icon" href="{{asset('assets/img/logo_customer.png')}}">
+    <meta name="app-url" content="{{ url('') }}">
+    <meta name="help-route" content="{{ Route::currentRouteName() }}">
 
     {{-- Script Datatable  --}}
         <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
@@ -59,6 +61,7 @@
     </a>
 
     @include('includes.script')
+    @include('components.help-panel')
     
     {{-- <!-- Logout Modal-->
     <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"

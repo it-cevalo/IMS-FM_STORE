@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Role;
+use App\Logs;
+use Auth;
 use DB;
 use Hash;
 use Illuminate\Support\Facades\Validator;
@@ -12,6 +14,22 @@ use Illuminate\Support\Arr;
 
 class UserController extends Controller
 {
+    private function activityLog(string $section, string $content): void
+    {
+        try {
+            (new Logs('Logs_UserController'))->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[UserController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     public function __construct()
     {
         ini_set('memory_limit', '-1');
@@ -34,6 +52,8 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $this->activityLog('TAMBAH_USER', "User: {$this->actor()} | Username: {$request->username} | Email: {$request->email} | Status: PROCESS");
+
         $validator = Validator::make($request->all(), [
             'name'     => 'required',
             'username' => 'required|unique:users,username',
@@ -43,10 +63,8 @@ class UserController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'status'  => 'validation_error',
-                'message' => $validator->errors()->first()
-            ], 422);
+            $this->activityLog('TAMBAH_USER', "User: {$this->actor()} | Username: {$request->username} | Status: VALIDATION_ERROR | Error: " . $validator->errors()->first());
+            return response()->json(['status' => 'validation_error', 'message' => $validator->errors()->first()], 422);
         }
 
         try {
@@ -61,15 +79,13 @@ class UserController extends Controller
                 ]);
             });
 
-            return response()->json([
-                'status'  => 'success',
-                'message' => 'User berhasil dibuat'
-            ]);
+            $this->activityLog('TAMBAH_USER', "User: {$this->actor()} | Username: {$request->username} | Email: {$request->email} | Role ID: {$request->role_id} | Status: SUCCESS");
+
+            return response()->json(['status' => 'success', 'message' => 'User berhasil dibuat']);
+
         } catch (\Throwable $e) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Gagal menyimpan  user'
-            ], 500);
+            $this->activityLog('TAMBAH_USER', "User: {$this->actor()} | Username: {$request->username} | Status: FAILED | Error: {$e->getMessage()} | File: {$e->getFile()}:{$e->getLine()}");
+            return response()->json(['status' => 'error', 'message' => 'Gagal menyimpan user'], 500);
         }
     }
 
@@ -83,46 +99,37 @@ class UserController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->activityLog('UBAH_USER', "User: {$this->actor()} | ID: {$id} | Username: {$request->username} | Status: PROCESS");
+
         $validator = Validator::make($request->all(), [
             'name'     => 'required',
-            'username' => 'required|unique:users,username,'.$id,
-            'email'    => 'required|email|unique:users,email,'.$id,
+            'username' => 'required|unique:users,username,' . $id,
+            'email'    => 'required|email|unique:users,email,' . $id,
             'role_id'  => 'required|exists:roles,id',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'status'  => 'validation_error',
-                'message' => $validator->errors()->first()
-            ], 422);
+            $this->activityLog('UBAH_USER', "User: {$this->actor()} | ID: {$id} | Username: {$request->username} | Status: VALIDATION_ERROR | Error: " . $validator->errors()->first());
+            return response()->json(['status' => 'validation_error', 'message' => $validator->errors()->first()], 422);
         }
 
         try {
             DB::transaction(function () use ($request, $id) {
-
                 $user = User::findOrFail($id);
-
-                $data = $request->only([
-                    'name','username','email','role_id','position'
-                ]);
-
+                $data = $request->only(['name', 'username', 'email', 'role_id', 'position']);
                 if ($request->filled('password')) {
                     $data['password'] = Hash::make($request->password);
                 }
-
                 $user->update($data);
             });
 
-            return response()->json([
-                'status'  => 'success',
-                'message' => 'User berhasil diperbarui'
-            ]);
+            $this->activityLog('UBAH_USER', "User: {$this->actor()} | ID: {$id} | Username: {$request->username} | Email: {$request->email} | Role ID: {$request->role_id} | Status: SUCCESS");
+
+            return response()->json(['status' => 'success', 'message' => 'User berhasil diperbarui']);
 
         } catch (\Throwable $e) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Gagal memperbarui user'
-            ], 500);
+            $this->activityLog('UBAH_USER', "User: {$this->actor()} | ID: {$id} | Username: {$request->username} | Status: FAILED | Error: {$e->getMessage()} | File: {$e->getFile()}:{$e->getLine()}");
+            return response()->json(['status' => 'error', 'message' => 'Gagal memperbarui user'], 500);
         }
     }
 }

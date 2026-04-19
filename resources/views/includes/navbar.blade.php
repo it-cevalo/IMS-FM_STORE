@@ -40,6 +40,22 @@
                             </div>
                         </li>
 
+                        {{-- Tombol Panduan --}}
+                        <li class="nav-item mr-2" title="Panduan halaman ini">
+                            <button onclick="helpPanel.open()" style="
+                                background:#4e73df;
+                                border:none;
+                                border-radius:50%;
+                                width:32px;height:32px;
+                                color:#fff;
+                                font-weight:700;
+                                font-size:1rem;
+                                line-height:1;
+                                cursor:pointer;
+                                margin-top:19px;
+                            ">?</button>
+                        </li>
+
                         <img src="{{asset('assets/img/logo_customer.png')}}" width="70px" height="70px"/>
 
                         <!-- Nav Item - User Information -->

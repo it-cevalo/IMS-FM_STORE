@@ -7,9 +7,27 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Exports\Report\StockMovementExport;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Logs;
+use Auth;
 
 class ReportStockMovementController extends Controller
 {
+    private function activityLog(string $section, string $content): void
+    {
+        try {
+            (new Logs('Logs_ReportStockMovementController'))->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[ReportStockMovementController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     public function index()
     {
         return view('pages.report.stock_movement');
@@ -130,12 +148,24 @@ class ReportStockMovementController extends Controller
     {
         $startDate = $request->fd ?? now()->subDays(30)->toDateString();
         $endDate   = $request->td ?? now()->toDateString();
-        $category  = $request->movement_type;
+        $category  = $request->movement_type ?? 'SEMUA';
 
-        return Excel::download(
-            new StockMovementExport($startDate, $endDate, $category),
-            'stock_movement_'.date('Ymd_His').'.xlsx'
-        );
+        $this->activityLog('EXPORT_STOCK_MOVEMENT', "User: {$this->actor()} | Periode: {$startDate} s/d {$endDate} | Kategori: {$category} | Status: PROCESS");
+
+        try {
+            $result = Excel::download(
+                new StockMovementExport($startDate, $endDate, $request->movement_type),
+                'stock_movement_' . date('Ymd_His') . '.xlsx'
+            );
+
+            $this->activityLog('EXPORT_STOCK_MOVEMENT', "User: {$this->actor()} | Periode: {$startDate} s/d {$endDate} | Kategori: {$category} | Status: SUCCESS");
+
+            return $result;
+
+        } catch (\Throwable $e) {
+            $this->activityLog('EXPORT_STOCK_MOVEMENT', "User: {$this->actor()} | Periode: {$startDate} s/d {$endDate} | Status: FAILED | Error: {$e->getMessage()} | File: {$e->getFile()}:{$e->getLine()}");
+            return back()->with('error', 'Terjadi kesalahan saat export. Silakan coba lagi.');
+        }
     }
     
     // public function data(Request $request)

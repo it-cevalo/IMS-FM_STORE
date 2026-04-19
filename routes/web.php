@@ -26,6 +26,7 @@ use App\Http\Controllers\Master\ProductTypeController;
 use App\Http\Controllers\Master\SKUController;
 use App\Http\Controllers\Master\ProductController;
 use App\Http\Controllers\Master\BankController;
+use App\Http\Controllers\HelpController;
 
 /*
 |--------------------------------------------------------------------------
@@ -81,6 +82,8 @@ Route::middleware(['auth'])->group(function () {
     | DASHBOARD & USER MANAGEMENT
     |--------------------------------------------------------------------------
     */
+    Route::get('/help/{page}', [HelpController::class, 'show'])->name('help.show');
+
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/chart/fast-slow', [DashboardController::class, 'chartFastSlow'])->name('dashboard.chart.fastslow');
     Route::resource('roles', RoleController::class);

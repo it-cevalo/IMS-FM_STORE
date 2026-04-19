@@ -7,9 +7,27 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Exports\Report\StockAgingExport;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Logs;
+use Auth;
 
 class ReportStockAgingController extends Controller
 {
+    private function activityLog(string $section, string $content): void
+    {
+        try {
+            (new Logs('Logs_ReportStockAgingController'))->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[ReportStockAgingController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     public function index()
     {
         return view('pages.report.stock_aging');
@@ -85,9 +103,23 @@ class ReportStockAgingController extends Controller
 
     public function export(Request $request)
     {
-        return Excel::download(
-            new StockAgingExport($request->aging_bucket),
-            'stock_aging_'.date('Ymd_His').'.xlsx'
-        );
+        $bucket = $request->aging_bucket ?? 'SEMUA';
+
+        $this->activityLog('EXPORT_STOCK_AGING', "User: {$this->actor()} | Bucket: {$bucket} | Status: PROCESS");
+
+        try {
+            $result = Excel::download(
+                new StockAgingExport($request->aging_bucket),
+                'stock_aging_' . date('Ymd_His') . '.xlsx'
+            );
+
+            $this->activityLog('EXPORT_STOCK_AGING', "User: {$this->actor()} | Bucket: {$bucket} | Status: SUCCESS");
+
+            return $result;
+
+        } catch (\Throwable $e) {
+            $this->activityLog('EXPORT_STOCK_AGING', "User: {$this->actor()} | Bucket: {$bucket} | Status: FAILED | Error: {$e->getMessage()} | File: {$e->getFile()}:{$e->getLine()}");
+            return back()->with('error', 'Terjadi kesalahan saat export. Silakan coba lagi.');
+        }
     }
 }
