@@ -127,7 +127,6 @@ class ProductOutboundController extends Controller
         $this->outboundLog('CONFIRM_OUTBOUND', "User: {$this->actor()} | Warehouse: {$warehouseName} (ID:{$warehouseId}) | Jumlah item: {$itemCount} | Status: PROCESS");
 
         $request->validate([
-            'id_warehouse' => 'required|integer',
             'items'        => 'required|array|min:1'
         ]);
 
