@@ -119,8 +119,9 @@ class ProductOutboundController extends Controller
     public function confirm(Request $request)
     {
         $itemCount   = is_array($request->items) ? count($request->items) : 0;
-        $warehouseId = $request->id_warehouse;
-
+        
+        $warehouseId = !empty($request->id_warehouse) ? $request->id_warehouse : '1';
+        
         $warehouseName = DB::table('m_warehouses')->where('id', $warehouseId)->value('nama_wh') ?? "ID:{$warehouseId}";
 
         $this->outboundLog('CONFIRM_OUTBOUND', "User: {$this->actor()} | Warehouse: {$warehouseName} (ID:{$warehouseId}) | Jumlah item: {$itemCount} | Status: PROCESS");
