@@ -136,24 +136,24 @@ class TaxInvoiceController extends Controller
             'term'                       => 'required|regex:/(^([a-zA-Z0-9_\-\s]+)(\d+)?$)/u',
             'shipping_via'               => 'required'
         ],[
-            'id_po.required'                => 'Please Select PO',
-            'id_do.required'                => 'Please Select DO',
-            'status_faktur_pajak.required'  => 'Please Select Tax Invoice Status',
-            'status_inv.required'           => 'Please Select Invoice Status',
-            'tgl_inv.required'              => 'Please Select Date',
-            'no_inv.required'               => 'Please Fill Invoice Number',
-            'no_inv.unique'                 => 'This Number has been taken! Please Input with another Invoice Number',
-            'no_inv.regex'                  => 'Character input is not allowed! Please input without symbol ',
-            'no_seri_pajak.required'        => 'Please Fill Invoice Number',
-            'no_seri_pajak.unique'          => 'This Number has been taken! Please Input with another Invoice Number',
-            'no_seri_pajak.regex'           => 'Character input is not allowed! Please input without symbol ',
-            'reason_inv.required'           => 'Please Input Invoice Reason',
-            'reason_inv.regex'              => 'Character input is not allowed! Please input without symbol ',
-            'reason_faktur_pajak.required'  => 'Please Input Reason',
-            'reason_faktur_pajak.regex'     => 'Character input is not allowed! Please input without symbol ',
-            'term.required'                 => 'Please Input Term',
-            'term.regex'                    => 'Character input is not allowed! Please input without symbol ',
-            'shipping_via.required'         => 'Please Select Shipping Via'
+            'id_po.required'                => 'PO wajib dipilih',
+            'id_do.required'                => 'DO wajib dipilih',
+            'status_faktur_pajak.required'  => 'Status Faktur Pajak wajib dipilih',
+            'status_inv.required'           => 'Status Invoice wajib dipilih',
+            'tgl_inv.required'              => 'Tanggal wajib dipilih',
+            'no_inv.required'               => 'Nomor Invoice wajib diisi',
+            'no_inv.unique'                 => 'Nomor Invoice sudah digunakan, gunakan nomor lain',
+            'no_inv.regex'                  => 'Karakter simbol tidak diizinkan',
+            'no_seri_pajak.required'        => 'Nomor Seri Pajak wajib diisi',
+            'no_seri_pajak.unique'          => 'Nomor Seri Pajak sudah digunakan, gunakan nomor lain',
+            'no_seri_pajak.regex'           => 'Karakter simbol tidak diizinkan',
+            'reason_inv.required'           => 'Alasan Invoice wajib diisi',
+            'reason_inv.regex'              => 'Karakter simbol tidak diizinkan',
+            'reason_faktur_pajak.required'  => 'Alasan wajib diisi',
+            'reason_faktur_pajak.regex'     => 'Karakter simbol tidak diizinkan',
+            'term.required'                 => 'Term wajib diisi',
+            'term.regex'                    => 'Karakter simbol tidak diizinkan',
+            'shipping_via.required'         => 'Pengiriman Via wajib dipilih'
         ]);
         
         $do = Tdo::select(['code_cust'])->where('id',$request->id_do)->first();
@@ -214,14 +214,14 @@ class TaxInvoiceController extends Controller
             return redirect()
                 ->route('tax_invoice.index')
                 ->with([
-                    'success' => 'New Invoice has been created successfully'
+                    'success' => 'Invoice baru berhasil dibuat'
                 ]);
         } else {
             return redirect()
                 ->back()
                 ->withInput()
                 ->with([
-                    'error' => 'Some problem occurred, please try again'
+                    'error' => 'Terjadi kesalahan, silakan coba lagi'
                 ]);
         }
     }
@@ -307,7 +307,7 @@ class TaxInvoiceController extends Controller
             $validatedData = $request->validate([
                 'signed'=>'required'
             ],[
-                'signed.required'=>'Please Signed'
+                'signed.required'=>'Tanda tangan wajib diisi'
             ]);
 
             //Start E-Sign
@@ -346,12 +346,12 @@ class TaxInvoiceController extends Controller
                 'reason_inv'            => 'required',
                 'term'                  => 'required',
             ],[
-                'status_faktur_pajak.required' => 'Please Fill Attachment Status',
-                'reason_faktur_pajak.required' => 'Please Fill Reason Tax Invoice',
-                'status_inv.required'          => 'Please Fill Status Invoice',
-                'reason_inv.required'          => 'Please Fill Reason Invoice',
-                'shipping_via.required'        => 'Please Select Shipping Via',
-                'term.required'                => 'Please Fill Term',
+                'status_faktur_pajak.required' => 'Status Lampiran wajib diisi',
+                'reason_faktur_pajak.required' => 'Alasan Faktur Pajak wajib diisi',
+                'status_inv.required'          => 'Status Invoice wajib diisi',
+                'reason_inv.required'          => 'Alasan Invoice wajib diisi',
+                'shipping_via.required'        => 'Pengiriman Via wajib dipilih',
+                'term.required'                => 'Term wajib diisi',
             ]);
 
             $po = Tpo::select(['grand_total'])->where('id',$request->id_po)->first();
@@ -379,7 +379,7 @@ class TaxInvoiceController extends Controller
             'term'                  => $request->term
         ]);
 
-        return redirect('/tax_invoice')->with('success', 'Tax Invoice is successfully updated');
+        return redirect('/tax_invoice')->with('success', 'Tax Invoice berhasil diperbarui');
     }
 
     /**

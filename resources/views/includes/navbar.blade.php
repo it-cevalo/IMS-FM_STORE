@@ -1,90 +1,59 @@
                 <!-- Topbar -->
                 <nav class="navbar navbar-expand topbar mb-4 static-top shadow" style="background-color:#f5f6f7;">
 
-                    <!-- Sidebar Toggle (Topbar) -->
+                    <!-- Sidebar Toggle (mobile only) -->
                     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
                         <i class="fa fa-bars"></i>
                     </button>
 
-                    {{-- <!-- Topbar Search -->
-                    <div
-                        class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
-                        <div class="text-center text-gray-900">Welcome {{ Auth::user()->name }}</div>
-                        <div class="text-center text-gray-900" id="date-time"></div>
-                    </div> --}}
+                    <!-- Datetime — satu baris, kiri navbar -->
+                    <div class="d-none d-sm-flex align-items-center mr-auto ml-2" style="gap:6px;color:#555;font-size:.85rem;">
+                        <i class="fas fa-calendar-alt" style="color:#4e73df;"></i>
+                        <span id="nb-datetime" style="font-variant-numeric:tabular-nums;"></span>
+                    </div>
 
-                    <!-- Topbar Navbar -->
-                    <ul class="navbar-nav ml-auto">
+                    <!-- Kanan navbar -->
+                    <ul class="navbar-nav align-items-center">
 
-                        <!-- Nav Item - Search Dropdown (Visible Only XS) -->
-                        <li class="nav-item dropdown no-arrow d-sm-none">
-                            <a class="nav-link dropdown-toggle" href="#" id="searchDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-search fa-fw"></i>
-                            </a>
-                            <!-- Dropdown - Messages -->
-                            <div class="dropdown-menu dropdown-menu-right p-3 shadow animated--grow-in"
-                                aria-labelledby="searchDropdown">
-                                <form class="form-inline mr-auto w-100 navbar-search">
-                                    <div class="input-group">
-                                        <input type="text" class="form-control bg-light border-0 small"
-                                            placeholder="Search for..." aria-label="Search"
-                                            aria-describedby="basic-addon2">
-                                        <div class="input-group-append">
-                                            <button class="btn btn-primary" type="button">
-                                                <i class="fas fa-search fa-sm"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
+                        {{-- Tombol Panduan --}}
+                        <li class="nav-item mr-3" title="Panduan halaman ini">
+                            <button onclick="helpPanel.open()" style="
+                                background:#4e73df;
+                                border:none;
+                                border-radius:50%;
+                                width:32px;height:32px;
+                                color:#fff;
+                                font-weight:700;
+                                font-size:1rem;
+                                line-height:32px;
+                                cursor:pointer;
+                                display:flex;align-items:center;justify-content:center;
+                            " title="Panduan">?</button>
                         </li>
 
-                        <img src="{{asset('assets/img/logo_customer.png')}}" width="70px" height="70px"/>
-
-                        <!-- Nav Item - User Information -->
-                        <!-- <li class="nav-item dropdown no-arrow">
-                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">{{ Auth::user()->name }}</span>
-                            </a>
-                            Dropdown - User Information
-                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                                aria-labelledby="userDropdown">
-                                {{-- <a class="dropdown-item" href="#">
-                                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Profile
-                                </a>
-                                <a class="dropdown-item" href="#">
-                                    <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Settings
-                                </a>
-                                <a class="dropdown-item" href="#">
-                                    <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Activity Log
-                                </a> --}}
-                            </div>
-                        </li> -->
+                        <li class="nav-item">
+                            <img src="{{asset('assets/img/logo_customer.png')}}" width="60px" height="60px" style="display:block;"/>
+                        </li>
 
                     </ul>
 
-                </nav><br/>
+                </nav>
                 <!-- End of Topbar -->
                 <script>
-		        	// Function to format 1 in 01
-		        	// const zeroFill = n => {
-		        	// 	return ('0' + n).slice(-2);
-		        	// }
-                
-		        	// // Creates interval
-		        	// const interval = setInterval(() => {
-		        	// 	// Get current time
-		        	// 	const now = new Date();
-                    
-		        	// 	// Format date as in mm/dd/aaaa hh:ii:ss
-		        	// 	const dateTime = zeroFill((now.getMonth() + 1)) + '/' + zeroFill(now.getUTCDate()) + '/' + now.getFullYear() + ' ' + zeroFill(now.getHours()) + ':' + zeroFill(now.getMinutes()) + ':' + zeroFill(now.getSeconds());
-                    
-		        	// 	// Display the date and time on the screen using div#date-time
-		        	// 	document.getElementById('date-time').innerHTML = dateTime;
-		        	// }, 1000);
-		        </script>
+                    (function () {
+                        var HARI  = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+                        var BULAN = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+                        var el = document.getElementById('nb-datetime');
+                        function pad(n) { return ('0' + n).slice(-2); }
+                        function tick() {
+                            var now = new Date();
+                            el.textContent =
+                                HARI[now.getDay()] + ', ' +
+                                pad(now.getDate()) + ' ' + BULAN[now.getMonth()] + ' ' + now.getFullYear() +
+                                '  —  ' +
+                                pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+                        }
+                        tick();
+                        setInterval(tick, 1000);
+                    })();
+                </script>

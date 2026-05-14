@@ -5,10 +5,29 @@ namespace App\Http\Controllers\Transaction;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\TdoScanStaging;
+use App\Logs;
+use Auth;
 use DB;
 
 class TdoScanStagingController extends Controller
 {
+    private function stagingLog(string $section, string $content): void
+    {
+        try {
+            $log = new Logs('Logs_TdoScanStagingController');
+            $log->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[TdoScanStagingController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     public function index()
     {
         return view('pages.transaction.tdo_scan_staging.tdo_scan_staging_index');
@@ -58,10 +77,14 @@ class TdoScanStagingController extends Controller
     public function generateDoByDate(Request $request)
     {
         $tgl = $request->tgl;
+        $this->stagingLog('GENERATE_DO_BY_DATE', "User: {$this->actor()} | Tanggal: {$tgl} | Status: PROCESS");
+
         try {
             $no_do = $this->processGenerateDo($tgl);
+            $this->stagingLog('GENERATE_DO_BY_DATE', "User: {$this->actor()} | Tanggal: {$tgl} | No DO: {$no_do} | Status: SUCCESS");
             return redirect()->route('tdo_scan_staging.index')->with('success', 'Berhasil membuat DO ' . $no_do);
         } catch (\Exception $e) {
+            $this->stagingLog('GENERATE_DO_BY_DATE', "User: {$this->actor()} | Tanggal: {$tgl} | Status: FAILED | Error: {$e->getMessage()}");
             return redirect()->back()->with('error', 'Gagal memproses data: ' . $e->getMessage());
         }
     }
@@ -72,6 +95,9 @@ class TdoScanStagingController extends Controller
         if (empty($dates)) {
             return redirect()->back()->with('error', 'Pilih minimal satu tanggal.');
         }
+
+        $dateList = implode(', ', $dates);
+        $this->stagingLog('GENERATE_DO_BATCH', "User: {$this->actor()} | Tanggal: [{$dateList}] | Jumlah: " . count($dates) . " | Status: PROCESS");
 
         $success_count = 0;
         $errors = [];
@@ -86,10 +112,13 @@ class TdoScanStagingController extends Controller
         }
 
         if ($success_count > 0 && empty($errors)) {
+            $this->stagingLog('GENERATE_DO_BATCH', "User: {$this->actor()} | Berhasil: {$success_count} DO | Status: SUCCESS");
             return redirect()->route('tdo_scan_staging.index')->with('success', "Berhasil membuat $success_count DO.");
         } elseif ($success_count > 0) {
+            $this->stagingLog('GENERATE_DO_BATCH', "User: {$this->actor()} | Berhasil: {$success_count} DO | Error: " . implode('; ', $errors) . " | Status: PARTIAL");
             return redirect()->route('tdo_scan_staging.index')->with('success', "Berhasil membuat $success_count DO. Ada beberapa error: " . implode(', ', $errors));
         } else {
+            $this->stagingLog('GENERATE_DO_BATCH', "User: {$this->actor()} | Berhasil: 0 | Error: " . implode('; ', $errors) . " | Status: FAILED");
             return redirect()->back()->with('error', 'Gagal memproses data: ' . implode(', ', $errors));
         }
     }
@@ -99,6 +128,7 @@ class TdoScanStagingController extends Controller
         // Check if there are any OPEN records
         $count = TdoScanStaging::where('status', 'OPEN')->count();
         if ($count == 0) {
+            $this->stagingLog('DISPATCH_GENERATE_DO', "User: {$this->actor()} | Status: SKIPPED | Reason: Tidak ada data OPEN");
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak ada data OPEN untuk diproses.'
@@ -108,6 +138,7 @@ class TdoScanStagingController extends Controller
         // Check if already processing
         $processingCount = TdoScanStaging::where('status', 'PROCESSING')->count();
         if ($processingCount > 0) {
+            $this->stagingLog('DISPATCH_GENERATE_DO', "User: {$this->actor()} | Status: SKIPPED | Reason: Job sedang berjalan ({$processingCount} data PROCESSING)");
             return response()->json([
                 'success' => false,
                 'message' => 'Proses generate sedang berjalan di background.'
@@ -115,6 +146,7 @@ class TdoScanStagingController extends Controller
         }
 
         \App\Jobs\GenerateDoJob::dispatch(auth()->id() ?? 1);
+        $this->stagingLog('DISPATCH_GENERATE_DO', "User: {$this->actor()} | Data OPEN: {$count} | Status: DISPATCHED");
 
         return response()->json([
             'success' => true,

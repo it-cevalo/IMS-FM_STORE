@@ -11,6 +11,7 @@ use App\Models\Mproduct;
 use App\Models\MproductStock;
 use App\Models\MWarehouse;
 use Auth, DB;
+use App\Logs;
 use Yajra\DataTables\Facades\DataTables;
 use Barryvdh\DomPDF\Facade\Pdf;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -19,6 +20,22 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class StockOpnameController extends Controller
 {
+    private function activityLog(string $section, string $content): void
+    {
+        try {
+            (new Logs('Logs_StockOpnameController'))->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[StockOpnameController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -109,87 +126,79 @@ class StockOpnameController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
-    {        
-        $this->validate($request, [
-            'id_product'    => 'required',
-            'id_warehouse'  => 'required',
-            'qty_in'        => 'required',
-            'qty_out'       => 'required',
-            'qty_last'      => 'required',
-            'tgl_opname'    => 'required'
-        ],[
-            'id_product.required'   => 'Please Fill Product',
-            'id_warehouse.required' => 'Please Fill Warehouse',
-            'qty_in.required'       => 'Please Fill QTY in',
-            'qty_out.required'      => 'Please Fill QTY out',
-            'qty_last.required'     => 'Please Fill Last QTY',
-            'tgl_opname.required'   => 'Please Fill Opname Date'
-        ]);
-        
-        $stock_opname = TStockOpname::create([
-            'id_product'    => $request->id_product,
-            'id_warehouse'  => $request->id_warehouse,
-            'qty_in'        => $request->qty_in,
-            'qty_out'       => $request->qty_out,
-            'qty_last'      => $request->qty_last,
-            'tgl_opname'    => $request->tgl_opname
-        ]);
+    {
+        $product = Mproduct::select('kode_barang', 'nama_barang')->find($request->id_product);
+        $kode = $product->kode_barang ?? '-';
+        $nama = $product->nama_barang ?? '-';
 
-        $stock_opn      = TStockOpname::select('id')->latest()->first();
-        $id_stock_opn   = $stock_opn->id;
+        $this->activityLog('TAMBAH_OPNAME', "User: {$this->actor()} | Kode: {$kode} | Nama: {$nama} | Gudang ID: {$request->id_warehouse} | Qty Last: {$request->qty_last} | Status: PROCESS");
 
-        if($stock_opname){
-            $user = Auth::user()->id;
-            $date = date('Y-m-d');
-            $stock_opname_his = HStockOpname::create([
-                'id_stock_opname'   => $id_stock_opn,
-                'id_product'        => $request->id_product,
-                'id_warehouse'      => $request->id_warehouse,
-                'qty_in'            => $request->qty_in,
-                'qty_out'           => $request->qty_out,
-                'qty_last'          => $request->qty_last,
-                'tgl_opname'        => $request->tgl_opname,
-                'created_by'        => $user,
-                'created_at'        => $date
+        try {
+            $this->validate($request, [
+                'id_product'   => 'required',
+                'id_warehouse' => 'required',
+                'qty_in'       => 'required',
+                'qty_out'      => 'required',
+                'qty_last'     => 'required',
+                'tgl_opname'   => 'required',
+            ], [
+                'id_product.required'   => 'Produk wajib dipilih',
+                'id_warehouse.required' => 'Gudang wajib dipilih',
+                'qty_in.required'       => 'Qty In wajib diisi',
+                'qty_out.required'      => 'Qty Out wajib diisi',
+                'qty_last.required'     => 'Qty Last wajib diisi',
+                'tgl_opname.required'   => 'Tanggal opname wajib diisi',
             ]);
 
-            if($stock_opname_his){
-                $product_stock = MproductStock::create([
-                    'id_product'    => $request->id_product,
-                    'id_warehouse'  => $request->id_warehouse,
-                    'qty_last'      => $request->qty_last,
-                    'tgl_opname'    => $request->tgl_opname,
-                    'tgl_mutasi'    => '1970-01-01'
-                ]);
-                if($product_stock){
-                    return redirect()
-                    ->route('stock_opname.index')
-                    ->with([
-                        'success' => 'Stock Opname has succesfully been added'
-                    ]);
-                } else {         
-                    return redirect()
-                    ->back()
-                    ->withInput()
-                    ->with([
-                        'error' => 'Some problem occurred, please try again'
-                    ]);
-                }
-            } else {         
-                return redirect()
-                ->back()
-                ->withInput()
-                ->with([
-                    'error' => 'Some problem occurred, please try again'
-                ]);
-            }
-        } else {         
-            return redirect()
-            ->back()
-            ->withInput()
-            ->with([
-                'error' => 'Some problem occurred, please try again'
+            DB::beginTransaction();
+
+            $stock_opname = TStockOpname::create([
+                'id_product'   => $request->id_product,
+                'id_warehouse' => $request->id_warehouse,
+                'qty_in'       => $request->qty_in,
+                'qty_out'      => $request->qty_out,
+                'qty_last'     => $request->qty_last,
+                'tgl_opname'   => $request->tgl_opname,
             ]);
+
+            $id_stock_opn = TStockOpname::select('id')->latest()->first()->id;
+            $userId       = Auth::user()->id;
+            $date         = date('Y-m-d');
+
+            HStockOpname::create([
+                'id_stock_opname' => $id_stock_opn,
+                'id_product'      => $request->id_product,
+                'id_warehouse'    => $request->id_warehouse,
+                'qty_in'          => $request->qty_in,
+                'qty_out'         => $request->qty_out,
+                'qty_last'        => $request->qty_last,
+                'tgl_opname'      => $request->tgl_opname,
+                'created_by'      => $userId,
+                'created_at'      => $date,
+            ]);
+
+            MproductStock::create([
+                'id_product'   => $request->id_product,
+                'id_warehouse' => $request->id_warehouse,
+                'qty_last'     => $request->qty_last,
+                'tgl_opname'   => $request->tgl_opname,
+                'tgl_mutasi'   => '1970-01-01',
+            ]);
+
+            DB::commit();
+
+            $this->activityLog('TAMBAH_OPNAME', "User: {$this->actor()} | Kode: {$kode} | Nama: {$nama} | Gudang ID: {$request->id_warehouse} | Qty Last: {$request->qty_last} | Status: SUCCESS");
+
+            return redirect()->route('stock_opname.index')->with('success', 'Stock Opname berhasil ditambahkan');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->activityLog('TAMBAH_OPNAME', "User: {$this->actor()} | Kode: {$kode} | Nama: {$nama} | Status: VALIDATION_ERROR | Error: " . json_encode($e->errors()));
+            throw $e;
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            $this->activityLog('TAMBAH_OPNAME', "User: {$this->actor()} | Kode: {$kode} | Nama: {$nama} | Status: FAILED | Error: {$e->getMessage()} | File: {$e->getFile()}:{$e->getLine()}");
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem. Silakan coba lagi.');
         }
     }
 
@@ -227,99 +236,69 @@ class StockOpnameController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $validatedData = $request->validate([
-            'qty_in'        => 'required',
-            'qty_out'       => 'required',
-            'qty_last'      => 'required',
-            'tgl_opname'    => 'required'
-        ],[
-            'qty_in.required'       => 'Please Fill QTY in',
-            'qty_out.required'      => 'Please Fill QTY out',
-            'qty_last.required'     => 'Please Fill Last QTY',
-            'tgl_opname.required'   => 'Please Fill Opname Date'
-        ]);
+        $existing = TStockOpname::with('product')->find($id);
+        $kode = $existing->product->kode_barang ?? '-';
+        $nama = $existing->product->nama_barang ?? '-';
 
-        DB::beginTransaction();
-        try{
-            $stock_opname = TStockOpname::whereId($id)->update($validatedData);
-            if($stock_opname){      
-                $user = Auth::user()->id;
-                $date = date('Y-m-d');
-                $stock_opn      = TStockOpname::select('id')->whereId($id)->latest()->first();
-                $id_stock_opn   = $stock_opn->id;
+        $this->activityLog('UBAH_OPNAME', "User: {$this->actor()} | ID: {$id} | Kode: {$kode} | Nama: {$nama} | Qty Last: {$request->qty_last} | Status: PROCESS");
 
-                $stock_opname_his = HStockOpname::create([
-                    'id_stock_opname'  => $id_stock_opn,
-                    'id_product'    => $request->id_product,
-                    'id_warehouse'  => $request->id_warehouse,
-                    'qty_in'        => $request->qty_in,
-                    'qty_out'       => $request->qty_out,
-                    'qty_last'      => $request->qty_last,
-                    'tgl_opname'    => $request->tgl_opname,
-                    'created_by'    => $user,
-                    'created_at'    => $date
-                ]);
-                if($stock_opname_his){
-                    $product_stockk = MproductStock::where('id_product', $request->id_product)
-                    ->where('id_warehouse', $request->id_warehouse)
-                    ->first();                    
-                    
-                    if($product_stockk){
-                        $product_stock = $product_stockk->update([
-                            'qty_last'      => $request->qty_last,
-                            'tgl_opname'    => $request->tgl_opname,
-                            'tgl_mutasi'    => '1970-01-01'
-                        ]);
-                        if($product_stock)
-                        {
-                            // echo "asup";
-                            DB::commit();
-                            return redirect()
-                            ->route('stock_opname.index')
-                            ->with([
-                                'success' => 'Stock Opname has succesfully been update'
-                            ]);                        
-                        } else {                
-                            return redirect()
-                            ->back()
-                            ->withInput()
-                            ->with([
-                                'error' => 'Some problem occurred, please try again'
-                            ]);
-                        }
-                    } else {    
-                        return redirect()
-                        ->back()
-                        ->withInput()
-                        ->with([
-                            'error' => 'Failed Find Product, please try again'
-                        ]);
-                    }
-                } else {        
-                    return redirect()
-                    ->back()
-                    ->withInput()
-                    ->with([
-                        'error' => 'Failed Create History, please try again'
-                    ]);
-                }
-            } else {
-                return redirect()
-                ->back()
-                ->withInput()
-                ->with([
-                    'error' => 'Failed Update Stock Opname, please try again'
-                ]);
-            }
-        } catch (Exception $e) {
-            // echo "gagal";
-            DB::rollback();
-            return redirect()
-            ->back()
-            ->withInput()
-            ->with([
-                'error' => 'Some problem occurred, please try again'
+        try {
+            $validatedData = $request->validate([
+                'qty_in'     => 'required',
+                'qty_out'    => 'required',
+                'qty_last'   => 'required',
+                'tgl_opname' => 'required',
+            ], [
+                'qty_in.required'     => 'Qty In wajib diisi',
+                'qty_out.required'    => 'Qty Out wajib diisi',
+                'qty_last.required'   => 'Qty Last wajib diisi',
+                'tgl_opname.required' => 'Tanggal opname wajib diisi',
             ]);
+
+            DB::beginTransaction();
+
+            TStockOpname::whereId($id)->update($validatedData);
+
+            $userId       = Auth::user()->id;
+            $date         = date('Y-m-d');
+            $id_stock_opn = TStockOpname::select('id')->whereId($id)->latest()->first()->id;
+
+            HStockOpname::create([
+                'id_stock_opname' => $id_stock_opn,
+                'id_product'      => $request->id_product,
+                'id_warehouse'    => $request->id_warehouse,
+                'qty_in'          => $request->qty_in,
+                'qty_out'         => $request->qty_out,
+                'qty_last'        => $request->qty_last,
+                'tgl_opname'      => $request->tgl_opname,
+                'created_by'      => $userId,
+                'created_at'      => $date,
+            ]);
+
+            $productStock = MproductStock::where('id_product', $request->id_product)
+                ->where('id_warehouse', $request->id_warehouse)
+                ->firstOrFail();
+
+            $productStock->update([
+                'qty_last'    => $request->qty_last,
+                'tgl_opname'  => $request->tgl_opname,
+                'tgl_mutasi'  => '1970-01-01',
+            ]);
+
+            DB::commit();
+
+            $this->activityLog('UBAH_OPNAME', "User: {$this->actor()} | ID: {$id} | Kode: {$kode} | Nama: {$nama} | Qty Last: {$request->qty_last} | Status: SUCCESS");
+
+            return redirect()->route('stock_opname.index')->with('success', 'Stock Opname berhasil diperbarui');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->activityLog('UBAH_OPNAME', "User: {$this->actor()} | ID: {$id} | Kode: {$kode} | Nama: {$nama} | Status: VALIDATION_ERROR | Error: " . json_encode($e->errors()));
+            throw $e;
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            $this->activityLog('UBAH_OPNAME', "User: {$this->actor()} | ID: {$id} | Kode: {$kode} | Nama: {$nama} | Status: FAILED | Error: {$e->getMessage()} | File: {$e->getFile()}:{$e->getLine()}");
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem. Silakan coba lagi.');
         }
     }
     

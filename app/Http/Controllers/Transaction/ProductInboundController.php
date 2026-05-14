@@ -4,10 +4,28 @@ namespace App\Http\Controllers\Transaction;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Logs;
 use Auth, DB;
 
 class ProductInboundController extends Controller
 {
+    private function inboundLog(string $section, string $content): void
+    {
+        try {
+            $log = new Logs('Logs_ProductInboundController');
+            $log->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[ProductInboundController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     public function index()
     {
         return view('pages.transaction.product_inbound.product_inbound_index');
@@ -214,6 +232,13 @@ class ProductInboundController extends Controller
 
     public function confirm(Request $request)
     {
+        $itemCount    = is_array($request->items) ? count($request->items) : 0;
+        $warehouseId  = $request->id_warehouse;
+
+        $warehouseName = DB::table('m_warehouses')->where('id', $warehouseId)->value('nama_wh') ?? "ID:{$warehouseId}";
+
+        $this->inboundLog('CONFIRM_INBOUND', "User: {$this->actor()} | Warehouse: {$warehouseName} (ID:{$warehouseId}) | Jumlah item: {$itemCount} | Status: PROCESS");
+
         $request->validate([
             'id_warehouse' => 'required|integer',
             'items'        => 'required|array|min:1'
@@ -391,8 +416,29 @@ class ProductInboundController extends Controller
                 'sync_at' => now(),
                 'sync_by' => Auth::user()->id,
             ]);
-            
+
             DB::commit();
+
+            // Rangkum PO yang terdampak untuk log
+            $poIdsUnique   = array_unique($poIds);
+            $poNos         = DB::table('tpos')->whereIn('id', $poIdsUnique)->pluck('no_po')->implode(', ');
+            $totalQty      = $inbounds->sum('qty');
+            $skuList       = $inbounds->pluck('qr_code')->take(5)->implode(', ') . ($inbounds->count() > 5 ? '...' : '');
+
+            // Cek status akhir tiap PO
+            $poStatusSummary = [];
+            foreach ($poIdsUnique as $poId) {
+                $statusPo = DB::table('tpos')->where('id', $poId)->value('status_po');
+                $noPo     = DB::table('tpos')->where('id', $poId)->value('no_po');
+                $poStatusSummary[] = "{$noPo}=>" . ($statusPo == 3 ? 'COMPLETE' : 'PARTIAL');
+            }
+
+            $this->inboundLog('CONFIRM_INBOUND',
+                "User: {$this->actor()} | Warehouse: {$warehouseName} (ID:{$warehouseId}) | " .
+                "Total item: {$itemCount} | Total qty: {$totalQty} | " .
+                "PO terlibat: {$poNos} | Status PO: " . implode(', ', $poStatusSummary) . " | " .
+                "Status: SUCCESS"
+            );
 
             return response()->json([
                 'message' => 'Pemasukan Barang berhasil dikonfirmasi'
@@ -400,6 +446,10 @@ class ProductInboundController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $this->inboundLog('CONFIRM_INBOUND',
+                "User: {$this->actor()} | Warehouse ID: {$warehouseId} | Jumlah item: {$itemCount} | " .
+                "Status: FAILED | Error: {$e->getMessage()}"
+            );
             return response()->json([
                 'message' => $e->getMessage()
             ], 500);

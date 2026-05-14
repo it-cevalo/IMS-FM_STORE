@@ -1,6 +1,9 @@
 <!-- Bootstrap core JavaScript-->
 <script src="{{asset('assets/vendor/jquery/jquery.min.js')}}"></script>
 <script src="{{asset('assets/vendor/bootstrap/js/bootstrap.bundle.min.js')}}"></script>
+{{-- Simpan referensi jQuery yang sudah memiliki plugin Bootstrap (.modal, dll)
+     sebelum CDN jQuery di bawah menimpa window.$ --}}
+<script>window.__bsJQuery = window.jQuery;</script>
 
 <!-- Core plugin JavaScript-->
 <script src="{{asset('assets/vendor/jquery-easing/jquery.easing.min.js')}}"></script>

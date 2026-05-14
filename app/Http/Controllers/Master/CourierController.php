@@ -6,9 +6,27 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\MCourier;
 use Yajra\DataTables\Facades\DataTables;
+use App\Logs;
+use Auth;
 
 class CourierController extends Controller
 {
+    private function masterLog(string $section, string $content): void
+    {
+        try {
+            (new Logs('Logs_Master_CourierController'))->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[CourierController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     public function index()
     {
         return view('pages.master.kurir.kurir_index');
@@ -49,6 +67,8 @@ class CourierController extends Controller
 
     public function store(Request $request)
     {
+        $this->masterLog('TAMBAH_KURIR', "User: {$this->actor()} | Kode: {$request->code_courier} | Nama: {$request->nama_courier} | Status: PROCESS");
+
         try {
             $this->validate($request, [
                 'code_courier' => 'required|unique:m_couriers,code_courier',
@@ -67,23 +87,27 @@ class CourierController extends Controller
             ]);
 
             if ($courier) {
+                $this->masterLog('TAMBAH_KURIR', "User: {$this->actor()} | Kode: {$request->code_courier} | Nama: {$request->nama_courier} | Status: SUCCESS");
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Data kurir berhasil ditambahkan.'
                 ]);
             }
 
+            $this->masterLog('TAMBAH_KURIR', "User: {$this->actor()} | Kode: {$request->code_courier} | Status: FAILED | Error: Gagal menyimpan data kurir");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Gagal menyimpan data kurir.'
             ], 500);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('TAMBAH_KURIR', "User: {$this->actor()} | Kode: {$request->code_courier} | Status: VALIDATION_ERROR | Error: " . json_encode($e->errors()));
             return response()->json([
                 'status' => 'validation_error',
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('TAMBAH_KURIR', "User: {$this->actor()} | Kode: {$request->code_courier} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
@@ -100,6 +124,8 @@ class CourierController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->masterLog('UBAH_KURIR', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_courier} | Nama: {$request->nama_courier} | Status: PROCESS");
+
         try {
             $this->validate($request, [
                 'code_courier' => 'required',
@@ -116,23 +142,27 @@ class CourierController extends Controller
             ]);
 
             if ($updated) {
+                $this->masterLog('UBAH_KURIR', "User: {$this->actor()} | ID: {$id} | Kode: {$request->code_courier} | Nama: {$request->nama_courier} | Status: SUCCESS");
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Data kurir berhasil diperbarui.'
                 ]);
             }
 
+            $this->masterLog('UBAH_KURIR', "User: {$this->actor()} | ID: {$id} | Status: FAILED | Error: Gagal mengubah data kurir");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Gagal mengubah data kurir.'
             ], 500);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->masterLog('UBAH_KURIR', "User: {$this->actor()} | ID: {$id} | Status: VALIDATION_ERROR | Error: " . json_encode($e->errors()));
             return response()->json([
                 'status' => 'validation_error',
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            $this->masterLog('UBAH_KURIR', "User: {$this->actor()} | ID: {$id} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan pada sistem. Silahkan coba lagi.',
@@ -145,6 +175,7 @@ class CourierController extends Controller
     {
         try {
             $courier = MCourier::findOrFail($id);
+            $this->masterLog('HAPUS_KURIR', "User: {$this->actor()} | ID: {$id} | Kode: {$courier->code_courier} | Nama: {$courier->nama_courier} | Status: DELETED");
             $courier->delete();
 
             return response()->json([
@@ -152,6 +183,7 @@ class CourierController extends Controller
                 'message' => 'Data kurir berhasil dihapus.'
             ]);
         } catch (\Exception $e) {
+            $this->masterLog('HAPUS_KURIR', "User: {$this->actor()} | ID: {$id} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status' => 'error',
                 'message' => 'Gagal menghapus Data kurir. Silahkan coba lagi nanti.',

@@ -16,84 +16,535 @@ use Storage, Excel, DB, Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Yajra\DataTables\Facades\DataTables;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use App\Logs;
 
 use App\Jobs\GenerateQRJob;
 
 class PurchaseOrderController extends Controller
 {
+    private function poLog(string $section, string $content): void
+    {
+        try {
+            $log = new Logs('Logs_PurchaseOrderController');
+            $log->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[PurchaseOrderController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     public function generateAllQRBatch(Request $request, $id)
     {
         $po = Tpo::with('po_detail')->findOrFail($id);
         $totalQty = $po->po_detail->sum('qty');
-        
-        $limitPerBatch = 100; // 100 label per PDF
-        $batches = ceil($totalQty / $limitPerBatch);
-        
-        $details = $po->po_detail;
 
-        for ($i = 0; $i < $batches; $i++) {
+        $this->poLog('CETAK_QR_BATCH', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Total QR: {$totalQty} | Status: PROCESS");
+
+        if ($totalQty === 0) {
+            $this->poLog('CETAK_QR_BATCH', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status: FAILED | Error: PO tidak memiliki detail item");
+            return response()->json(['error' => 'PO tidak memiliki detail item'], 422);
+        }
+
+        /*
+        |----------------------------------------------------------------------
+        | PRE-FLIGHT: Cek apakah ada QR yang sudah dicetak tanpa approved reprint
+        | Logika sama persis dengan validateQR() tapi mencakup seluruh PO
+        |----------------------------------------------------------------------
+        */
+        // 1 query: seluruh QR di PO ini yang blocked (ada di tproduct_qr, tanpa approved reprint)
+        $blockedRaw = DB::table('tproduct_qr as qr')
+            ->leftJoin('tqr_reprint_request as rr', function ($j) {
+                $j->on('rr.id_po',       '=', 'qr.id_po')
+                  ->on('rr.id_po_detail', '=', 'qr.id_po_detail')
+                  ->on(DB::raw('`rr`.`sequence_no` COLLATE utf8mb4_unicode_ci'), '=', DB::raw('`qr`.`sequence_no` COLLATE utf8mb4_unicode_ci'))
+                  ->where(DB::raw('`rr`.`status` COLLATE utf8mb4_unicode_ci'), 'APPROVED')
+                  ->whereNull('rr.used_at');
+            })
+            ->where('qr.id_po', $id)
+            ->whereNull('rr.id')   // tidak punya approved reprint → blocked
+            ->select('qr.id_po_detail', 'qr.sequence_no')
+            ->get()
+            ->groupBy('id_po_detail');
+
+        $conflictsAll = [];
+        foreach ($po->po_detail as $detail) {
+            $detailBlocked = $blockedRaw->get($detail->id);
+            if (!$detailBlocked || $detailBlocked->isEmpty()) continue;
+
+            $blocked = $detailBlocked
+                ->pluck('sequence_no')
+                ->map(fn($s) => (int)$s)
+                ->sort()->values()->toArray();
+
+            $rangeText      = $this->compressSequenceRange($blocked);
+            $conflictsAll[] = [
+                'id_po_detail' => $detail->id,
+                'sku'          => $detail->part_number,
+                'product_name' => $detail->product_name,
+                'printed_range'=> $rangeText,
+                'sequence'     => $rangeText,
+            ];
+        }
+
+        if (!empty($conflictsAll)) {
+            $conflictSkus = implode(', ', array_column($conflictsAll, 'sku'));
+            $this->poLog('CETAK_QR_BATCH', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status: BLOCKED | SKU konflik: {$conflictSkus}");
+            return response()->json([
+                'code'      => 'QR_ALREADY_PRINTED',
+                'message'   => 'Terdapat QR yang sudah pernah dicetak. Ajukan reprint terlebih dahulu.',
+                'conflicts' => $conflictsAll,
+            ], 409);
+        }
+
+        $limitPerBatch = 100;
+        $totalBatches  = ceil($totalQty / $limitPerBatch);
+        $details       = $po->po_detail;
+        $batchList     = [];
+
+        for ($i = 0; $i < $totalBatches; $i++) {
             $batchStart = ($i * $limitPerBatch) + 1;
-            $batchEnd = min(($i + 1) * $limitPerBatch, $totalQty);
-            
-            // ==========================================
-            // HITUNG SUMMARY SKU & SEQUENCE
-            // ==========================================
+            $batchEnd   = min(($i + 1) * $limitPerBatch, $totalQty);
+
+            // Hitung summary SKU & sequence
             $summaryItems = [];
-            $itemCounter = 0;
-            
+            $itemCounter  = 0;
             foreach ($details as $d) {
-                // Rentang global untuk SKU ini
-                $skuStart = $itemCounter + 1;
-                $skuEnd = $itemCounter + $d->qty;
-                
-                // Cari overlap antara rentang batch dengan rentang SKU
+                $skuStart     = $itemCounter + 1;
+                $skuEnd       = $itemCounter + $d->qty;
                 $overlapStart = max($batchStart, $skuStart);
-                $overlapEnd = min($batchEnd, $skuEnd);
-                
+                $overlapEnd   = min($batchEnd, $skuEnd);
                 if ($overlapStart <= $overlapEnd) {
-                    // Konversi rentang global menjadi urutan lokal SKU
-                    $localStart = $overlapStart - $itemCounter;
-                    $localEnd = $overlapEnd - $itemCounter;
-                    
-                    $summaryItems[] = $d->part_number . " (" . 
-                        str_pad($localStart, 4, '0', STR_PAD_LEFT) . "-" . 
-                        str_pad($localEnd, 4, '0', STR_PAD_LEFT) . ")";
+                    $localStart     = $overlapStart - $itemCounter;
+                    $localEnd       = $overlapEnd - $itemCounter;
+                    $summaryItems[] = $d->part_number . ' (' .
+                        str_pad($localStart, 4, '0', STR_PAD_LEFT) . '-' .
+                        str_pad($localEnd, 4, '0', STR_PAD_LEFT) . ')';
                 }
                 $itemCounter += $d->qty;
             }
-            $skuSummary = implode(", ", $summaryItems);
 
-            // Simpan status ke database
             $batchId = DB::table('print_batches')->insertGetId([
-                'user_id' => auth()->id(),
-                'id_po' => $id,
-                'batch_name' => "Batch " . ($i + 1),
-                'content_summary' => $skuSummary,
-                'total_labels' => ($batchEnd - $batchStart) + 1,
-                'status' => 'Pending',
-                'created_at' => now(),
+                'user_id'         => auth()->id(),
+                'id_po'           => $id,
+                'batch_name'      => 'Batch ' . ($i + 1),
+                'content_summary' => implode(', ', $summaryItems),
+                'total_labels'    => ($batchEnd - $batchStart) + 1,
+                'batch_start'     => $batchStart,
+                'batch_end'       => $batchEnd,
+                'status'          => 'Pending',
+                'created_at'      => now(),
+                'updated_at'      => now(),
+            ]);
+
+            $batchList[] = [
+                'id'          => $batchId,
+                'batch_name'  => 'Batch ' . ($i + 1),
+                'total'       => ($batchEnd - $batchStart) + 1,
+                'batch_start' => $batchStart,
+                'batch_end'   => $batchEnd,
+            ];
+        }
+
+        $this->poLog('CETAK_QR_BATCH', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status: BATCH_CREATED | Jumlah batch: {$totalBatches} | Total QR: {$totalQty}");
+
+        return response()->json([
+            'batches'       => $batchList,
+            'total_batches' => $totalBatches,
+            'total_labels'  => $totalQty,
+        ]);
+    }
+
+    public function processBatch(Request $request, $id, $batchId)
+    {
+        $batchRecord = DB::table('print_batches')->where('id', $batchId)->first();
+
+        if (!$batchRecord || (int)$batchRecord->id_po !== (int)$id) {
+            return response()->json(['error' => 'Batch tidak ditemukan'], 404);
+        }
+
+        if ((int)$batchRecord->user_id !== auth()->id()) {
+            return response()->json(['error' => 'Tidak diizinkan'], 403);
+        }
+
+        $batchStart = (int) $batchRecord->batch_start;
+        $batchEnd   = (int) $batchRecord->batch_end;
+
+        $this->poLog('PROSES_BATCH', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Range: {$batchStart}-{$batchEnd} | Status: PROCESS");
+
+        // Tandai Processing secara atomik — cegah double-process
+        $locked = DB::table('print_batches')
+            ->where('id', $batchId)
+            ->where('status', 'Pending')
+            ->update(['status' => 'Processing', 'updated_at' => now()]);
+
+        if (!$locked) {
+            $existing = DB::table('print_batches')->where('id', $batchId)->first();
+            if ($existing && $existing->status === 'Ready') {
+                $this->poLog('PROSES_BATCH', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Status: ALREADY_READY");
+                return response()->json(['status' => 'ready', 'file_path' => $existing->file_path]);
+            }
+            $this->poLog('PROSES_BATCH', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Status: SKIPPED | Info: Batch sedang diproses atau sudah selesai");
+            return response()->json(['error' => 'Batch sedang diproses atau sudah selesai'], 409);
+        }
+
+        try {
+            $po       = Tpo::with('po_detail')->findOrFail($id);
+            $username = auth()->user()->username ?? auth()->user()->name ?? 'System';
+
+            DB::beginTransaction();
+            $qrList = $this->collectQRDataForBatch($po, $batchStart, $batchEnd, $username);
+            DB::commit();
+
+            if (empty($qrList)) {
+                throw new \Exception("Tidak ada data QR untuk rentang {$batchStart}-{$batchEnd}");
+            }
+
+            // Generate SVG
+            foreach ($qrList as &$q) {
+                $svg         = QrCode::format('svg')->size(220)->margin(0)->generate($q['qr_payload']);
+                $q['qr_svg'] = 'data:image/svg+xml;base64,' . base64_encode($svg);
+            }
+            unset($q);
+
+            // Generate PDF
+            $width  = 33 * 2.83465;
+            $height = 15 * 2.83465;
+            $pdf = Pdf::loadView('pages.transaction.purchase_order.purchase_order_qrcode', [
+                'po'     => $po,
+                'qrList' => $qrList,
+            ])->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled'      => false,
+                'defaultFont'          => 'DejaVu Sans',
+            ])->setPaper([0, 0, $width, $height], 'portrait');
+
+            $fileName = 'qr_po_' . $id . '_batch_' . $batchId . '.pdf';
+            Storage::put('public/temp_prints/' . $fileName, $pdf->output());
+
+            DB::table('print_batches')->where('id', $batchId)->update([
+                'status'     => 'Ready',
+                'file_path'  => $fileName,
                 'updated_at' => now(),
             ]);
 
-            $batchRecord = DB::table('print_batches')->where('id', $batchId)->first();
+            $totalQr = count($qrList);
+            $this->poLog('PROSES_BATCH', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Batch ID: {$batchId} | File: {$fileName} | Total QR: {$totalQr} | Status: READY");
 
-            // Kirim ke Antrian Laravel
-            GenerateQRJob::dispatch($batchRecord, $batchStart, $batchEnd, $id);
+            return response()->json(['status' => 'ready', 'file_path' => $fileName]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            DB::table('print_batches')->where('id', $batchId)->update([
+                'status'        => 'Failed',
+                'error_message' => $e->getMessage(),
+                'updated_at'    => now(),
+            ]);
+            $this->poLog('PROSES_BATCH', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Status: FAILED | Error: {$e->getMessage()}");
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    private function collectQRDataForBatch($po, $start, $end, $username)
+    {
+        $qrList             = [];
+        $currentGlobalIndex = 0;
+
+        foreach ($po->po_detail as $detail) {
+
+            $existingQRs = DB::table('tproduct_qr')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->orderBy('id', 'asc')
+                ->get();
+
+            // Pre-fetch approved reprints untuk detail ini — 1 query, cek in-memory
+            $approvedSeqs = DB::table('tqr_reprint_request')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->where('status', 'APPROVED')
+                ->whereNull('used_at')
+                ->pluck('sequence_no')
+                ->flip() // [sequence_no => index] untuk O(1) lookup
+                ->toArray();
+
+            $consumedSeqs = []; // dikumpulkan dulu, bulk update setelah loop
+
+            for ($i = 1; $i <= $detail->qty; $i++) {
+                $currentGlobalIndex++;
+
+                if ($currentGlobalIndex >= $start && $currentGlobalIndex <= $end) {
+
+                    if (isset($existingQRs[$i - 1])) {
+                        // QR sudah pernah dicetak
+                        $qr = $existingQRs[$i - 1];
+
+                        // SAFETY CHECK in-memory (bukan query ke DB)
+                        if (!isset($approvedSeqs[$qr->sequence_no])) {
+                            throw new \Exception(
+                                "QR SKU {$detail->part_number} sequence {$qr->sequence_no} " .
+                                "sudah pernah dicetak. Ajukan reprint request terlebih dahulu."
+                            );
+                        }
+
+                        $consumedSeqs[] = $qr->sequence_no;
+
+                        $qrList[] = [
+                            'sku'         => $qr->sku,
+                            'nama_barang' => $qr->nama_barang,
+                            'nomor_urut'  => $qr->sequence_no,
+                            'qr_payload'  => $qr->qr_code,
+                        ];
+                    } else {
+                        // QR baru — generate & simpan
+                        $sku     = $detail->part_number;
+                        $product = DB::table('mproduct')->where('sku', $sku)->first();
+                        if (!$product) {
+                            throw new \Exception("SKU {$sku} tidak ditemukan di master product");
+                        }
+
+                        $nextSeqInt = DB::table('tproduct_qr')
+                            ->where('sku', $sku)
+                            ->max(DB::raw('CAST(sequence_no AS UNSIGNED)')) + 1;
+
+                        $seqStr  = str_pad($nextSeqInt, 4, '0', STR_PAD_LEFT);
+                        $qrValue = $po->no_po . '|' . $sku . '|' . $seqStr;
+
+                        DB::table('tproduct_qr')->insert([
+                            'id_po'        => $po->id,
+                            'id_po_detail' => $detail->id,
+                            'id_product'   => $product->id,
+                            'sku'          => $sku,
+                            'qr_code'      => $qrValue,
+                            'sequence_no'  => $seqStr,
+                            'nama_barang'  => $detail->product_name,
+                            'status'       => 'NEW',
+                            'used_for'     => 'IN',
+                            'printed_at'   => now(),
+                            'printed_by'   => $username,
+                        ]);
+
+                        $qrList[] = [
+                            'sku'         => $sku,
+                            'nama_barang' => $detail->product_name,
+                            'nomor_urut'  => $seqStr,
+                            'qr_payload'  => $qrValue,
+                        ];
+                    }
+                }
+
+                if ($currentGlobalIndex > $end) break 2;
+            }
+
+            // Bulk consume approval — 1 query per detail, bukan per item
+            if (!empty($consumedSeqs)) {
+                DB::table('tqr_reprint_request')
+                    ->where('id_po', $po->id)
+                    ->where('id_po_detail', $detail->id)
+                    ->whereIn('sequence_no', $consumedSeqs)
+                    ->where('status', 'APPROVED')
+                    ->whereNull('used_at')
+                    ->update(['used_at' => now()]);
+            }
         }
 
-        return redirect()->route('purchase_order.print_status', ['id' => $id])
-            ->with('success', "Permintaan cetak sedang diproses dalam $batches batch.");
+        return $qrList;
     }
 
     public function printStatus(Request $request, $id)
     {
+        // Batch regular: milik user ini saja
+        // Batch reprint: semua (approver berbeda dengan requester asli)
         $batches = DB::table('print_batches')
             ->where('id_po', $id)
-            ->where('user_id', auth()->id())
-            ->orderBy('created_at', 'desc')
+            ->where(function ($q) {
+                $q->where('user_id', auth()->id())
+                  ->orWhere('batch_type', 'reprint');
+            })
+            ->orderBy('created_at', 'asc')
             ->get();
 
-        return view('pages.transaction.purchase_order.print_status', compact('batches', 'id'));
+        $po = Tpo::findOrFail($id);
+
+        return view('pages.transaction.purchase_order.print_status', compact('batches', 'id', 'po'));
+    }
+
+    public function validateBatchView(Request $request, $id, $batchId)
+    {
+        $batch = DB::table('print_batches')->where('id', $batchId)->first();
+
+        abort_if(!$batch || (int)$batch->id_po !== (int)$id, 404);
+        abort_if((int)$batch->user_id !== auth()->id(), 403);
+
+        $reason = trim($request->input('reason', ''));
+
+        // ── Pertama kali dilihat → tandai Printed, izinkan ──
+        if ($batch->status === 'Ready') {
+            DB::table('print_batches')
+                ->where('id', $batchId)
+                ->update(['status' => 'Printed', 'updated_at' => now()]);
+
+            $reasonInfo = $reason ? " | Alasan: {$reason}" : '';
+            $this->poLog('CETAK_QR', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Status: PRINTED | Info: Pertama kali dicetak{$reasonInfo}");
+
+            return response()->json(['allowed' => true]);
+        }
+
+        // ── Sudah pernah dilihat/dicetak → wajib reprint approval ──
+        if ($batch->status === 'Printed') {
+            $po        = Tpo::with('po_detail')->findOrFail($id);
+            $conflicts = $this->findBatchConflictsFromSummary($po, $batch->content_summary);
+
+            if (empty($conflicts)) {
+                // Semua item punya approved reprint → konsumsi dan izinkan
+                $this->consumeBatchReprintApprovals($po, $batch->content_summary);
+                $reasonInfo = $reason ? " | Alasan: {$reason}" : '';
+                $this->poLog('CETAK_QR', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Batch ID: {$batchId} | Status: REPRINT_ALLOWED | Info: Semua sequence sudah di-approve{$reasonInfo}");
+                return response()->json(['allowed' => true]);
+            }
+
+            $conflictSkus = implode(', ', array_column($conflicts, 'sku'));
+            $this->poLog('CETAK_QR', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Batch ID: {$batchId} | Status: BLOCKED_REPRINT | SKU konflik: {$conflictSkus}");
+
+            return response()->json([
+                'code'      => 'QR_ALREADY_PRINTED',
+                'message'   => 'Batch ini sudah pernah dicetak. Ajukan reprint terlebih dahulu.',
+                'conflicts' => $conflicts,
+            ], 409);
+        }
+
+        $this->poLog('CETAK_QR', "User: {$this->actor()} | PO ID: {$id} | Batch ID: {$batchId} | Status: INVALID | Info: Status batch tidak valid ({$batch->status})");
+
+        return response()->json(['allowed' => false, 'error' => 'Status batch tidak valid.'], 400);
+    }
+
+    private function findBatchConflictsFromSummary($po, $contentSummary)
+    {
+        $conflicts = [];
+        if (!$contentSummary) return $conflicts;
+
+        foreach (explode(',', $contentSummary) as $part) {
+            $part = trim($part);
+            if (!preg_match('/^(.+?)\s*\((\d+)-(\d+)\)$/', $part, $m)) continue;
+
+            $sku       = trim($m[1]);
+            $localFrom = (int)$m[2];
+            $localTo   = (int)$m[3];
+
+            $detail = $po->po_detail->first(fn($d) => $d->part_number === $sku);
+            if (!$detail) continue;
+
+            // Query 1: ambil sequence_no dari slice posisi lokal ini
+            $seqNos = DB::table('tproduct_qr')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->orderBy('id', 'asc')
+                ->skip($localFrom - 1)
+                ->take($localTo - $localFrom + 1)
+                ->pluck('sequence_no')
+                ->toArray();
+
+            if (empty($seqNos)) continue;
+
+            // Query 2: sequence mana yang punya approved reprint
+            $approvedSeqs = DB::table('tqr_reprint_request')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->whereIn('sequence_no', $seqNos)
+                ->where('status', 'APPROVED')
+                ->whereNull('used_at')
+                ->pluck('sequence_no')
+                ->toArray();
+
+            // Blocked = ada di batch tapi tidak punya approved reprint
+            $blocked = array_values(array_diff($seqNos, $approvedSeqs));
+
+            if (!empty($blocked)) {
+                $blocked = array_map('intval', $blocked);
+                sort($blocked);
+                $rangeText   = $this->compressSequenceRange($blocked);
+                $conflicts[] = [
+                    'id_po_detail' => $detail->id,
+                    'sku'          => $sku,
+                    'product_name' => $detail->product_name,
+                    'printed_range'=> $rangeText,
+                    'sequence'     => $rangeText,
+                ];
+            }
+        }
+
+        return $conflicts;
+    }
+
+    private function consumeBatchReprintApprovals($po, $contentSummary)
+    {
+        if (!$contentSummary) return;
+
+        foreach (explode(',', $contentSummary) as $part) {
+            $part = trim($part);
+            if (!preg_match('/^(.+?)\s*\((\d+)-(\d+)\)$/', $part, $m)) continue;
+
+            $sku       = trim($m[1]);
+            $localFrom = (int)$m[2];
+            $localTo   = (int)$m[3];
+
+            $detail = $po->po_detail->first(fn($d) => $d->part_number === $sku);
+            if (!$detail) continue;
+
+            // Query 1: ambil sequence_no yang masuk batch ini
+            $seqNos = DB::table('tproduct_qr')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->orderBy('id', 'asc')
+                ->skip($localFrom - 1)
+                ->take($localTo - $localFrom + 1)
+                ->pluck('sequence_no')
+                ->toArray();
+
+            if (empty($seqNos)) continue;
+
+            // Query 2: bulk consume — 1 UPDATE untuk semua sequence sekaligus
+            DB::table('tqr_reprint_request')
+                ->where('id_po', $po->id)
+                ->where('id_po_detail', $detail->id)
+                ->whereIn('sequence_no', $seqNos)
+                ->where('status', 'APPROVED')
+                ->whereNull('used_at')
+                ->update(['used_at' => now()]);
+        }
+    }
+
+    public function showBatch($batchId)
+    {
+        $batch = DB::table('print_batches')->where('id', $batchId)->first();
+
+        abort_if(!$batch, 404);
+        abort_if($batch->user_id !== auth()->id(), 403);
+
+        $po = Tpo::findOrFail($batch->id_po);
+
+        // Parse content_summary menjadi array item untuk ditampilkan di tabel
+        $items = [];
+        if ($batch->content_summary) {
+            foreach (explode(',', $batch->content_summary) as $part) {
+                $part = trim($part);
+                if (preg_match('/^(.+?)\s*\((\d+)-(\d+)\)$/', $part, $m)) {
+                    $items[] = [
+                        'sku'      => trim($m[1]),
+                        'dari'     => $m[2],
+                        'sampai'   => $m[3],
+                        'jumlah'   => (int)$m[3] - (int)$m[2] + 1,
+                    ];
+                }
+            }
+        }
+
+        return view('print.batch-detail', compact('batch', 'po', 'items'));
     }
 
    /**
@@ -321,6 +772,8 @@ class PurchaseOrderController extends Controller
     
     public function store(Request $request)
     {
+        $this->poLog('BUAT_PO', "User: {$this->actor()} | No PO: {$request->no_po} | Supplier ID: {$request->id_supplier} | Tipe: {$request->po_type} | Tgl: {$request->tgl_po} | Status: PROCESS");
+
         try {
             $this->validate($request, [
                 'id_supplier' => 'required',
@@ -414,6 +867,8 @@ class PurchaseOrderController extends Controller
 
             DB::commit();
 
+            $this->poLog('BUAT_PO', "User: {$this->actor()} | No PO: {$finalNoPo} | Supplier: {$supplier->nama_spl} | Tipe: {$request->po_type} | PO ID: {$purchase_order->id} | Status: SUCCESS");
+
             return response()->json([
                 'status'  => 'success',
                 'message' => 'PO berhasil dibuat'
@@ -421,6 +876,7 @@ class PurchaseOrderController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $this->poLog('BUAT_PO', "User: {$this->actor()} | No PO: {$request->no_po} | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'status'  => 'error',
                 'message' => $e->getMessage()
@@ -507,61 +963,73 @@ class PurchaseOrderController extends Controller
     public function approve(Request $request, $id)
     {
         if (!Permission::approve('MENU-0301')) {
+            $this->poLog('APPROVE_PO', "User: {$this->actor()} | PO ID: {$id} | Status: FORBIDDEN | Error: Tidak punya hak konfirmasi");
             abort(403, 'Anda tidak punya hak konfirmasi');
         }
-        
+
         $approve_by = Auth::user()->id;
-        // dd($approve_by);
-        
+
         $approve = TPo::find($id);
-        
+
         if (!$approve) {
-            return response()->json(['error' => 'purchase order not found']);
+            $this->poLog('APPROVE_PO', "User: {$this->actor()} | PO ID: {$id} | Status: FAILED | Error: Purchase Order tidak ditemukan");
+            return response()->json(['error' => 'Purchase Order tidak ditemukan']);
         }
+
+        $this->poLog('APPROVE_PO', "User: {$this->actor()} | PO: {$approve->no_po} (ID:{$id}) | Status: PROCESS");
 
         try {
             $approve->approve_by = $approve_by;
             $approve->approve_date = date('Y-m-d');
             $approve->flag_approve = "Y";
-            
+
             $updated = $approve->save();
-            
+
             if ($updated) {
+                $this->poLog('APPROVE_PO', "User: {$this->actor()} | PO: {$approve->no_po} (ID:{$id}) | Status: APPROVED");
                 return response()->json(['success' => true]);
             } else {
-                return response()->json(['error' => 'approval failed']);
+                $this->poLog('APPROVE_PO', "User: {$this->actor()} | PO: {$approve->no_po} (ID:{$id}) | Status: FAILED | Error: save() returned false");
+                return response()->json(['error' => 'Persetujuan gagal']);
             }
         } catch (\Exception $e) {
-            return response()->json(['error' => 'approval failed: ' . $e->getMessage()]);
+            $this->poLog('APPROVE_PO', "User: {$this->actor()} | PO: {$approve->no_po} (ID:{$id}) | Status: FAILED | Error: {$e->getMessage()}");
+            return response()->json(['error' => 'Persetujuan gagal: ' . $e->getMessage()]);
         }
     }
     
     public function confirm(Request $request, $id)
     {
-        
         if (!Permission::approve('MENU-0301')) {
+            $this->poLog('CONFIRM_PO', "User: {$this->actor()} | PO ID: {$id} | Status: FORBIDDEN | Error: Tidak punya hak konfirmasi");
             abort(403, 'Anda tidak punya hak konfirmasi');
         }
-        
+
         $confirm = Tpo::find($id);
-    
+
         if (!$confirm) {
+            $this->poLog('CONFIRM_PO', "User: {$this->actor()} | PO ID: {$id} | Status: FAILED | Error: PO tidak ditemukan");
             return response()->json([
                 'success' => false,
                 'error' => 'PO tidak ditemukan'
             ]);
         }
-    
+
+        $this->poLog('CONFIRM_PO', "User: {$this->actor()} | PO: {$confirm->no_po} (ID:{$id}) | Status: PROCESS");
+
         try {
             $confirm->confirm_by   = Auth::user()->id;
             $confirm->confirm_date = date('Y-m-d');
             $confirm->status_po = '4';
             $confirm->save();
-    
+
+            $this->poLog('CONFIRM_PO', "User: {$this->actor()} | PO: {$confirm->no_po} (ID:{$id}) | Status: CONFIRMED | Status PO: 4");
+
             return response()->json([
                 'success' => true
             ]);
         } catch (\Exception $e) {
+            $this->poLog('CONFIRM_PO', "User: {$this->actor()} | PO: {$confirm->no_po} (ID:{$id}) | Status: FAILED | Error: {$e->getMessage()}");
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage()
@@ -573,16 +1041,19 @@ class PurchaseOrderController extends Controller
     {
         $po = Tpo::findOrFail($id);
         $status = $po->status_po;
-    
+
+        $this->poLog('UPDATE_PO', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status PO saat ini: {$status} | Status: PROCESS");
+
         // ===============================
         // STATUS 3 = PARTIAL (LOCK TOTAL)
         // ===============================
         if ($status == 3) {
+            $this->poLog('UPDATE_PO', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status: BLOCKED | Info: PO sudah PARTIAL tidak bisa diedit");
             return redirect()
                 ->back()
                 ->with('error','PO sudah PARTIAL, tidak bisa diedit');
         }
-    
+
         DB::beginTransaction();
         try {
     
@@ -667,14 +1138,17 @@ class PurchaseOrderController extends Controller
             ]);
     
             DB::commit();
-    
+
+            $this->poLog('UPDATE_PO', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status PO: {$status} | Status: UPDATED");
+
             return redirect()
                 ->route('purchase_order.index')
                 ->with('success','PO berhasil diperbarui');
-    
+
         } catch (\Exception $e) {
             DB::rollBack();
-    
+            $this->poLog('UPDATE_PO', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status: FAILED | Error: {$e->getMessage()}");
+
             return redirect()
                 ->back()
                 ->with('error', $e->getMessage());
@@ -697,23 +1171,26 @@ class PurchaseOrderController extends Controller
     public function delete($id)
     {
         if (!Permission::can('MENU-0301','reject')) {
-            return response()->json(['message'=>'Unauthorized'],403);
+            $this->poLog('REJECT_PO', "User: {$this->actor()} | PO ID: {$id} | Status: FORBIDDEN | Error: Tidak punya hak reject");
+            return response()->json(['message'=>'Tidak diizinkan'],403);
         }
-        
+
         $po = Tpo::findOrFail($id);
 
         // safety check (backend tetap wajib)
         if (in_array($po->status_po, [2, 3])) {
+            $this->poLog('REJECT_PO', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status PO saat ini: {$po->status_po} | Status: BLOCKED | Info: PO tidak bisa dibatalkan");
             return response()->json([
                 'success' => false,
                 'message' => 'PO tidak bisa dibatalkan'
             ], 422);
         }
 
-        // contoh: status_po = 9 artinya CANCEL
         $po->status_po  = 5;
-        $po->reason_po  = 'Canceled by user'; // opsional
+        $po->reason_po  = 'Canceled by user';
         $po->save();
+
+        $this->poLog('REJECT_PO', "User: {$this->actor()} | PO: {$po->no_po} (ID:{$id}) | Status: CANCELED");
 
         return response()->json([
             'success' => true,
@@ -1926,12 +2403,11 @@ class PurchaseOrderController extends Controller
         |--------------------------------------------------------------------------
         */
         foreach ($qrList as &$q) {
-
             $svg = QrCode::format('svg')
                 ->size(220)
                 ->margin(0)
                 ->generate($q['qr_payload']);
-        
+
             $q['qr_svg'] = 'data:image/svg+xml;base64,' . base64_encode($svg);
         }
         unset($q);
@@ -2210,24 +2686,27 @@ class PurchaseOrderController extends Controller
     public function approveReprint(Request $request)
     {
         if (!Permission::approve('MENU-0301')) {
+            $this->poLog('APPROVE_REPRINT', "User: {$this->actor()} | Status: FORBIDDEN | Error: Tidak punya hak approve reprint");
             abort(403);
-        }    
-        
+        }
+
         $reqIds = $request->ids ?? [];
-    
+
         if (empty($reqIds)) {
+            $this->poLog('APPROVE_REPRINT', "User: {$this->actor()} | Status: FAILED | Error: IDs kosong");
             return response()->json(['success' => false]);
         }
-    
+
         // Ambil semua request yang di-approve
         $requests = DB::table('tqr_reprint_request')
             ->whereIn('id', $reqIds)
             ->get();
-    
+
         if ($requests->isEmpty()) {
+            $this->poLog('APPROVE_REPRINT', "User: {$this->actor()} | IDs: " . implode(',', $reqIds) . " | Status: FAILED | Error: Data tidak ditemukan");
             return response()->json(['success' => false]);
         }
-    
+
         // Approve semua
         DB::table('tqr_reprint_request')
             ->whereIn('id', $reqIds)
@@ -2236,46 +2715,226 @@ class PurchaseOrderController extends Controller
                 'approved_by'  => Auth::user()->username,
                 'approved_at'  => now()
             ]);
-    
+
+        $poId    = $requests->first()->id_po;
+        $seqList = $requests->pluck('sequence_no')->implode(', ');
+        $this->poLog('APPROVE_REPRINT', "User: {$this->actor()} | PO ID: {$poId} | Request IDs: " . implode(',', $reqIds) . " | Sequences: {$seqList} | Status: APPROVED");
+
         /**
          * =========================================
-         * BUILD PRINT URL (MULTI SEQUENCE)
+         * BUAT BATCH RECORD — ringan & cepat
+         * PDF akan di-generate on-demand saat user
+         * membuka preview (tidak pakai job/queue)
          * =========================================
          */
-    
-        $first = $requests->first();
-    
-        // Ambil sequence unik (0001,0002,0010 → 1,2,10)
-        $seqList = $requests
-            ->pluck('sequence_no')
-            ->map(fn ($s) => (int) $s)
-            ->unique()
-            ->sort()
-            ->implode(',');
-    
-        $printUrl = url(
-            "/po/{$first->id_po}/qr/pdf"
-            . "?detail={$first->id_po_detail}"
-            . "&seq={$seqList}"
-        );
-    
+        $batchId = DB::table('print_batches')->insertGetId([
+            'user_id'             => Auth::id(),
+            'id_po'               => $poId,
+            'batch_name'          => 'Cetak Ulang ' . now()->format('d/m/Y H:i'),
+            'content_summary'     => 'Reprint: ' . count($reqIds) . ' QR Code',
+            'total_labels'        => count($reqIds),
+            'batch_type'          => 'reprint',
+            'reprint_request_ids' => json_encode(array_map('intval', $reqIds)),
+            'status'              => 'Pending',
+            'created_at'          => now(),
+            'updated_at'          => now(),
+        ]);
+
+        $this->poLog('APPROVE_REPRINT', "User: {$this->actor()} | PO ID: {$poId} | Batch ID: {$batchId} | Status: BATCH_CREATED");
+
         return response()->json([
-            'success'   => true,
-            'printUrl' => $printUrl
+            'success'      => true,
+            'batch_id'     => $batchId,
+            'po_id'        => $poId,
+            'message'      => 'Persetujuan berhasil.',
+            'redirect_url' => route('purchase_order.print_status', $poId),
+        ]);
+    }
+
+    public function reprintBatchPreview($batchId)
+    {
+        if (!Permission::approve('MENU-0301') && !Permission::print('MENU-0301')) {
+            abort(403);
+        }
+
+        $batch = DB::table('print_batches')
+            ->where('id', $batchId)
+            ->where('batch_type', 'reprint')
+            ->first();
+
+        abort_if(!$batch, 404, 'Batch tidak ditemukan');
+
+        // Sudah pernah dicetak — tolak, wajib ajukan cetak ulang baru
+        if ($batch->status === 'Printed') {
+            abort(403, 'Batch cetak ulang ini sudah pernah dicetak. Ajukan permintaan cetak ulang baru melalui batch asli.');
+        }
+
+        // PDF sudah di-generate tapi belum dicetak — langsung stream
+        if ($batch->status === 'Ready') {
+            return $this->streamReprintPDF($batch, $batchId);
+        }
+
+        // Sedang diproses oleh request lain — coba lagi sebentar
+        if ($batch->status === 'Processing') {
+            abort(503, 'PDF sedang dibuat, muat ulang halaman beberapa saat lagi.');
+        }
+
+        // Status Pending/Failed → generate PDF on-demand (di sini, bukan di job)
+        // Failed diizinkan retry: lock atomik agar tidak double-generate
+        $locked = DB::table('print_batches')
+            ->where('id', $batchId)
+            ->whereIn('status', ['Pending', 'Failed'])
+            ->update(['status' => 'Processing', 'error_message' => null, 'updated_at' => now()]);
+
+        if (!$locked) {
+            // Race condition — request lain sudah mengambil lock
+            $batch = DB::table('print_batches')->where('id', $batchId)->first();
+            if (in_array($batch->status, ['Ready', 'Printed'])) {
+                return $this->streamReprintPDF($batch, $batchId);
+            }
+            abort(503, 'PDF sedang dibuat oleh proses lain.');
+        }
+
+        try {
+            set_time_limit(600);
+            ini_set('memory_limit', '512M');
+
+            $requestIds = json_decode($batch->reprint_request_ids ?? '[]', true);
+
+            if (empty($requestIds)) {
+                throw new \Exception('Tidak ada request reprint untuk batch ini');
+            }
+
+            // Ambil QR data via join reprint_request → tproduct_qr
+            $rows = DB::table('tqr_reprint_request as r')
+                ->join('tproduct_qr as qr', function ($j) {
+                    $j->on('qr.id_po',       '=', 'r.id_po')
+                      ->on('qr.id_po_detail', '=', 'r.id_po_detail')
+                      ->on(
+                          DB::raw('`qr`.`sequence_no` COLLATE utf8mb4_unicode_ci'),
+                          '=',
+                          DB::raw('`r`.`sequence_no` COLLATE utf8mb4_unicode_ci')
+                      );
+                })
+                ->whereIn('r.id', $requestIds)
+                ->where('r.status', 'APPROVED')
+                ->whereNull('r.used_at')
+                ->select('r.id as request_id', 'qr.sku', 'qr.nama_barang', 'qr.sequence_no', 'qr.qr_code as qr_payload')
+                ->get();
+
+            if ($rows->isEmpty()) {
+                throw new \Exception('Tidak ada QR yang siap diproses');
+            }
+
+            // Generate PNG dalam chunk 50 untuk hindari memory spike
+            // Pakai PNG bukan SVG — dompdf tidak reliable render SVG di <img> tag
+            $qrList = [];
+            foreach (array_chunk($rows->all(), 50) as $chunk) {
+                foreach ($chunk as $row) {
+                    $svg = QrCode::format('svg')->size(220)->margin(0)->generate($row->qr_payload);
+                    $qrList[] = [
+                        'sku'         => $row->sku,
+                        'nama_barang' => $row->nama_barang,
+                        'nomor_urut'  => $row->sequence_no,
+                        'qr_payload'  => $row->qr_payload,
+                        'qr_svg'      => 'data:image/svg+xml;base64,' . base64_encode($svg),
+                    ];
+                }
+                gc_collect_cycles();
+            }
+
+            $po     = \App\Models\Tpo::findOrFail($batch->id_po);
+            $width  = 33 * 2.83465;
+            $height = 15 * 2.83465;
+
+            $pdf = Pdf::loadView('pages.transaction.purchase_order.purchase_order_qrcode', [
+                'po'     => $po,
+                'qrList' => $qrList,
+            ])->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled'      => false,
+                'defaultFont'          => 'DejaVu Sans',
+            ])->setPaper([0, 0, $width, $height], 'portrait');
+
+            $fileName = 'qr_reprint_po_' . $batch->id_po . '_batch_' . $batchId . '.pdf';
+            Storage::put('public/temp_prints/' . $fileName, $pdf->output());
+
+            // Konsumsi approval setelah PDF berhasil dibuat
+            DB::table('tqr_reprint_request')
+                ->whereIn('id', $requestIds)
+                ->where('status', 'APPROVED')
+                ->whereNull('used_at')
+                ->update(['used_at' => now()]);
+
+            DB::table('print_batches')->where('id', $batchId)->update([
+                'status'     => 'Printed',
+                'file_path'  => $fileName,
+                'updated_at' => now(),
+            ]);
+
+            $totalQr = count($qrList);
+            $this->poLog('REPRINT_PREVIEW', "User: {$this->actor()} | Batch ID: {$batchId} | File: {$fileName} | Total QR: {$totalQr} | Status: PRINTED");
+
+            $path = storage_path('app/public/temp_prints/' . $fileName);
+            return response()->file($path, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="cetak_ulang_' . $batchId . '.pdf"',
+                'X-Frame-Options'     => 'SAMEORIGIN',
+                'Cache-Control'       => 'no-store',
+            ]);
+
+        } catch (\Exception $e) {
+            DB::table('print_batches')->where('id', $batchId)->update([
+                'status'        => 'Failed',
+                'error_message' => $e->getMessage(),
+                'updated_at'    => now(),
+            ]);
+            $this->poLog('REPRINT_PREVIEW', "User: {$this->actor()} | Batch ID: {$batchId} | Status: FAILED | Error: {$e->getMessage()}");
+            abort(500, 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    private function streamReprintPDF($batch, $batchId): \Symfony\Component\HttpFoundation\Response
+    {
+        $path = storage_path('app/public/temp_prints/' . $batch->file_path);
+        abort_if(!file_exists($path), 404, 'File PDF tidak ditemukan');
+
+        if ($batch->status === 'Ready') {
+            DB::table('print_batches')->where('id', $batchId)->update([
+                'status'     => 'Printed',
+                'updated_at' => now(),
+            ]);
+        }
+
+        return response()->file($path, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="cetak_ulang_' . $batchId . '.pdf"',
+            'X-Frame-Options'     => 'SAMEORIGIN',
+            'Cache-Control'       => 'no-store',
         ]);
     }
     
     public function rejectReprint(Request $request)
     {
         if (!Permission::reject('MENU-0301')) {
+            $this->poLog('REJECT_REPRINT', "User: {$this->actor()} | Status: FORBIDDEN | Error: Tidak punya hak reject reprint");
             abort(403);
         }
-        
+
         $reqIds = $request->ids ?? [];
-        DB::table('tqr_reprint_request')
-            ->whereIn('id', $reqIds)
-            ->update(['status' => 'REJECTED', 'approved_by' => Auth::user()->username, 'approved_at' => now()]);
-    
+
+        if (!empty($reqIds)) {
+            $requests = DB::table('tqr_reprint_request')->whereIn('id', $reqIds)->get();
+            $poId     = $requests->isNotEmpty() ? $requests->first()->id_po : '-';
+            $seqList  = $requests->isNotEmpty() ? $requests->pluck('sequence_no')->implode(', ') : '-';
+
+            DB::table('tqr_reprint_request')
+                ->whereIn('id', $reqIds)
+                ->update(['status' => 'REJECTED', 'approved_by' => Auth::user()->username, 'approved_at' => now()]);
+
+            $this->poLog('REJECT_REPRINT', "User: {$this->actor()} | PO ID: {$poId} | Request IDs: " . implode(',', $reqIds) . " | Sequences: {$seqList} | Status: REJECTED");
+        }
+
         return response()->json(['success' => true]);
     }
     
@@ -2373,10 +3032,14 @@ class PurchaseOrderController extends Controller
     
     public function requestReprint(Request $r)
     {
+        $itemCount = is_array($r->items) ? count($r->items) : 0;
+        $this->poLog('REQUEST_REPRINT', "User: {$this->actor()} | PO ID: {$r->id_po} | Jumlah item: {$itemCount} | Alasan: {$r->reason} | Status: PROCESS");
+
         if (!is_array($r->items) || empty($r->items)) {
+            $this->poLog('REQUEST_REPRINT', "User: {$this->actor()} | PO ID: {$r->id_po} | Status: FAILED | Error: Data reprint tidak valid");
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid reprint payload'
+                'message' => 'Data reprint tidak valid'
             ], 422);
         }
 
@@ -2391,6 +3054,7 @@ class PurchaseOrderController extends Controller
             ->exists();
 
         if ($existsPending) {
+            $this->poLog('REQUEST_REPRINT', "User: {$this->actor()} | PO ID: {$r->id_po} | Status: BLOCKED | Info: Masih ada pengajuan PENDING");
             return response()->json([
                 'success' => false,
                 'code'    => 'REPRINT_PENDING',
@@ -2475,6 +3139,9 @@ class PurchaseOrderController extends Controller
 
             DB::commit();
 
+            $seqSummary = implode(', ', array_column($rowsToInsert, 'sequence_no'));
+            $this->poLog('REQUEST_REPRINT', "User: {$this->actor()} | PO ID: {$r->id_po} | Sequences: {$seqSummary} | Jumlah: " . count($rowsToInsert) . " | Status: PENDING");
+
             return response()->json([
                 'success' => true,
                 'message' => 'Pengajuan cetak ulang berhasil dikirim dan menunggu persetujuan.'
@@ -2483,6 +3150,8 @@ class PurchaseOrderController extends Controller
         } catch (\Exception $e) {
 
             DB::rollBack();
+
+            $this->poLog('REQUEST_REPRINT', "User: {$this->actor()} | PO ID: {$r->id_po} | Status: FAILED | Error: {$e->getMessage()}");
 
             return response()->json([
                 'success' => false,

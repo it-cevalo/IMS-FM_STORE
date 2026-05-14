@@ -74,12 +74,12 @@ class SendInvoiceController extends Controller
             'no_resi'                    => 'required|unique:tinv_send,no_resi|regex:/(^([a-zA-Z0-9_\-\s]+)(\d+)?$)/u',
 			'bukti_tanda_terima'         => 'required|mimes:jpg,jpeg,png'
 		],[
-            'id_inv_rcp.required'           => 'Please Select Receipt Invoice',
-            'no_resi.required'              => 'Please Fill Resi Number',
-            'no_resi.unique'                => 'This Number has been taken! Please Input with another Resi Number',
-            'no_resi.regex'                 => 'Character input is not allowed! Please input without symbol ',
-            'bukti_tanda_terima.required'   => 'Please Upload Image',
-            'bukti_tanda_terima.mimes'      => 'File Must JPG,JPEG,PNG'
+            'id_inv_rcp.required'           => 'Receipt Invoice wajib dipilih',
+            'no_resi.required'              => 'Nomor Resi wajib diisi',
+            'no_resi.unique'                => 'Nomor Resi sudah digunakan, gunakan nomor lain',
+            'no_resi.regex'                 => 'Karakter simbol tidak diizinkan',
+            'bukti_tanda_terima.required'   => 'Bukti tanda terima wajib diunggah',
+            'bukti_tanda_terima.mimes'      => 'File harus berformat JPG, JPEG, atau PNG'
         ]);
  
         //start file
@@ -132,14 +132,14 @@ class SendInvoiceController extends Controller
             return redirect()
                 ->route('send_invoice.index')
                 ->with([
-                    'success' => 'New Send Invoice has been created successfully'
+                    'success' => 'Send Invoice baru berhasil dibuat'
                 ]);
         } else {
             return redirect()
                 ->back()
                 ->withInput()
                 ->with([
-                    'error' => 'Some problem occurred, please try again'
+                    'error' => 'Terjadi kesalahan, silakan coba lagi'
                 ]);
         }
     }

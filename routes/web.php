@@ -26,6 +26,7 @@ use App\Http\Controllers\Master\ProductTypeController;
 use App\Http\Controllers\Master\SKUController;
 use App\Http\Controllers\Master\ProductController;
 use App\Http\Controllers\Master\BankController;
+use App\Http\Controllers\HelpController;
 
 /*
 |--------------------------------------------------------------------------
@@ -81,6 +82,8 @@ Route::middleware(['auth'])->group(function () {
     | DASHBOARD & USER MANAGEMENT
     |--------------------------------------------------------------------------
     */
+    Route::get('/help/{page}', [HelpController::class, 'show'])->name('help.show');
+
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/chart/fast-slow', [DashboardController::class, 'chartFastSlow'])->name('dashboard.chart.fastslow');
     Route::resource('roles', RoleController::class);
@@ -185,7 +188,10 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/purchase_order/{id}/print-status', [PurchaseOrderController::class, 'printStatus'])->name('purchase_order.print_status');
-    Route::get('/purchase_order/{id}/generate-batch', [PurchaseOrderController::class, 'generateAllQRBatch'])->name('purchase_order.generate_batch');
+    Route::post('/purchase_order/{id}/generate-batch', [PurchaseOrderController::class, 'generateAllQRBatch'])->name('purchase_order.generate_batch');
+    Route::post('/purchase_order/{id}/qr/batch/{batchId}/process', [PurchaseOrderController::class, 'processBatch'])->name('purchase_order.process_batch');
+    Route::post('/purchase_order/{id}/qr/batch/{batchId}/validate-view', [PurchaseOrderController::class, 'validateBatchView'])->name('purchase_order.validate_batch_view');
+    Route::get('/print-batch/{batchId}', [PurchaseOrderController::class, 'showBatch'])->name('print.batch');
     Route::get('/purchase_order/data', [PurchaseOrderController::class, 'getData'])->name('purchase_order.data');
     Route::get('/bin-po/data', [PurchaseOrderController::class, 'binData'])->name('purchase_order.bin.data');
     Route::get('/bin-po', [PurchaseOrderController::class, 'bin'])->name('purchase_order.bin');
@@ -208,6 +214,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/qr/reprint/list', [PurchaseOrderController::class, 'listReprint'])->name('reprint.list');
     Route::post('/qr/reprint/approve', [PurchaseOrderController::class, 'approveReprint'])->name('reprint.approve');
     Route::post('/qr/reprint/reject', [PurchaseOrderController::class, 'rejectReprint'])->name('reprint.reject');
+    Route::get('/reprint/batch/{batchId}/preview', [PurchaseOrderController::class, 'reprintBatchPreview'])->name('reprint.batch.preview');
     Route::get('/po/{id}/qr/validate', [PurchaseOrderController::class, 'validateQR']);
 
     

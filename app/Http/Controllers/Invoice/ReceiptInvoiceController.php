@@ -94,10 +94,10 @@ class ReceiptInvoiceController extends Controller
             'no_tti'                     => 'required|unique:tinv_rcp,no_tti',
             'code_courier'               => 'required'
         ],[
-            'id_inv.required'               => 'Please Select Tax Invoice',
-            'no_tti.required'               => 'Please Fill Receipt Invoice Number',
-            'no_tti.unique'                 => 'This Number has been taken! Please Input with another Receipt Invoice Number',
-            'code_courier.required'         => 'Please Select Courier'
+            'id_inv.required'               => 'Tax Invoice wajib dipilih',
+            'no_tti.required'               => 'Nomor Receipt Invoice wajib diisi',
+            'no_tti.unique'                 => 'Nomor Receipt Invoice sudah digunakan, gunakan nomor lain',
+            'code_courier.required'         => 'Kurir wajib dipilih'
         ]);
         
         $inv = Tinv::select(['no_inv','code_cust','tgl_inv','no_seri_pajak','grand_total','term','shipping_via'])->where('id',$request->id_inv)->first();
@@ -161,14 +161,14 @@ class ReceiptInvoiceController extends Controller
             return redirect()
                 ->route('receipt_invoice.index')
                 ->with([
-                    'success' => 'New Receipt Invoice has been created successfully'
+                    'success' => 'Receipt Invoice baru berhasil dibuat'
                 ]);
         } else {
             return redirect()
                 ->back()
                 ->withInput()
                 ->with([
-                    'error' => 'Some problem occurred, please try again'
+                    'error' => 'Terjadi kesalahan, silakan coba lagi'
                 ]);
         }
     }
@@ -213,7 +213,7 @@ class ReceiptInvoiceController extends Controller
         $validatedData = $request->validate([
             'code_courier'   => 'required',
         ],[
-            'code_courier.required' => 'Please Select Courier',
+            'code_courier.required' => 'Kurir wajib dipilih',
         ]);
 
         Tinv_rcp::whereId($id)->update($validatedData);
@@ -238,7 +238,7 @@ class ReceiptInvoiceController extends Controller
             'shipping_via'          => $shipping_via 
         ]);
 
-        return redirect('/receipt_invoice')->with('success', 'Receipt Invoice is successfully updated');
+        return redirect('/receipt_invoice')->with('success', 'Receipt Invoice berhasil diperbarui');
     }
 
     /**

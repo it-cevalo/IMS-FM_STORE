@@ -6,10 +6,28 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Role;
 use App\Models\Menu;
+use App\Logs;
+use Auth;
 use DB;
 
 class RoleController extends Controller
 {
+    private function activityLog(string $section, string $content): void
+    {
+        try {
+            (new Logs('Logs_RoleController'))->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[RoleController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     public function __construct()
     {
         $this->middleware('auth');
@@ -98,47 +116,54 @@ class RoleController extends Controller
     //     ]);
     // }
     public function store(Request $request)
-{
-    DB::transaction(function () use ($request) {
+    {
+        $namaRole = $request->name ?? '-';
+        $this->activityLog('TAMBAH_ROLE', "User: {$this->actor()} | Nama Role: {$namaRole} | Status: PROCESS");
 
-        $role = Role::create([
-            'name' => $request->name,
-            'guard_name' => 'web'
-        ]);
+        try {
+            DB::transaction(function () use ($request) {
+                $role = Role::create([
+                    'name'       => $request->name,
+                    'guard_name' => 'web',
+                ]);
 
-        foreach ($request->permissions ?? [] as $menuId => $p) {
+                foreach ($request->permissions ?? [] as $menuId => $p) {
+                    DB::table('role_menus')->insert([
+                        'role_id'     => $role->id,
+                        'menu_id'     => $menuId,
+                        'is_enabled'  => isset($p['enabled']) && $p['enabled'] == 1 ? 1 : 0,
+                        'can_view'    => isset($p['view'])    ? 1 : 0,
+                        'can_create'  => isset($p['create'])  ? 1 : 0,
+                        'can_update'  => isset($p['update'])  ? 1 : 0,
+                        'can_delete'  => isset($p['delete'])  ? 1 : 0,
+                        'can_approve' => isset($p['approve']) ? 1 : 0,
+                        'can_reject'  => isset($p['reject'])  ? 1 : 0,
+                        'can_print'   => isset($p['print'])   ? 1 : 0,
+                        'created_at'  => now(),
+                        'updated_at'  => now(),
+                    ]);
+                }
 
-            DB::table('role_menus')->insert([
-                'role_id'    => $role->id,
-                'menu_id'    => $menuId,
-                'is_enabled' => isset($p['enabled']) && $p['enabled'] == 1 ? 1 : 0,
+                foreach ($request->apps ?? [] as $appCode) {
+                    DB::table('role_apps')->insert([
+                        'role_id'    => $role->id,
+                        'app_code'   => $appCode,
+                        'is_enabled' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            });
 
-                'can_view'   => isset($p['view']) ? 1 : 0,
-                'can_create'=> isset($p['create']) ? 1 : 0,
-                'can_update'=> isset($p['update']) ? 1 : 0,
-                'can_delete'=> isset($p['delete']) ? 1 : 0,
-                'can_approve'=> isset($p['approve']) ? 1 : 0,
-                'can_reject'=> isset($p['reject']) ? 1 : 0,
-                'can_print' => isset($p['print']) ? 1 : 0,
+            $this->activityLog('TAMBAH_ROLE', "User: {$this->actor()} | Nama Role: {$namaRole} | Jumlah Menu: " . count($request->permissions ?? []) . " | Status: SUCCESS");
 
-                'created_at'=> now(),
-                'updated_at'=> now(),
-            ]);
+            return response()->json(['status' => 'success', 'message' => 'Role berhasil dibuat']);
+
+        } catch (\Throwable $e) {
+            $this->activityLog('TAMBAH_ROLE', "User: {$this->actor()} | Nama Role: {$namaRole} | Status: FAILED | Error: {$e->getMessage()} | File: {$e->getFile()}:{$e->getLine()}");
+            return response()->json(['status' => 'error', 'message' => 'Terjadi kesalahan sistem. Silakan coba lagi.'], 500);
         }
-
-        foreach ($request->apps ?? [] as $appCode) {
-            DB::table('role_apps')->insert([
-                'role_id'    => $role->id,
-                'app_code'   => $appCode,
-                'is_enabled' => 1,
-                'created_at'=> now(),
-                'updated_at'=> now(),
-            ]);
-        }
-    });
-
-    return response()->json(['status'=>'success']);
-}
+    }
 
 
     /* ================= EDIT ================= */
@@ -171,60 +196,59 @@ class RoleController extends Controller
     /* ================= UPDATE ================= */
     public function update(Request $request, $id)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required'
-        ]);
+        $role     = Role::find($id);
+        $namaRole = $role->name ?? '-';
+        $this->activityLog('UBAH_ROLE', "User: {$this->actor()} | ID: {$id} | Nama Role: {$namaRole} | Status: PROCESS");
+
+        $validator = Validator::make($request->all(), ['name' => 'required']);
 
         if ($validator->fails()) {
-            return response()->json([
-                'status'  => 'validation_error',
-                'message' => $validator->errors()->first()
-            ], 422);
+            $this->activityLog('UBAH_ROLE', "User: {$this->actor()} | ID: {$id} | Nama Role: {$namaRole} | Status: VALIDATION_ERROR | Error: " . $validator->errors()->first());
+            return response()->json(['status' => 'validation_error', 'message' => $validator->errors()->first()], 422);
         }
 
-        DB::transaction(function () use ($request, $id) {
+        try {
+            DB::transaction(function () use ($request, $id) {
+                Role::where('id', $id)->update(['name' => $request->name]);
 
-            Role::where('id',$id)->update([
-                'name' => $request->name
-            ]);
+                DB::table('role_menus')->where('role_id', $id)->delete();
+                DB::table('role_apps')->where('role_id', $id)->delete();
 
-            DB::table('role_menus')->where('role_id',$id)->delete();
-            DB::table('role_apps')->where('role_id',$id)->delete();
+                foreach ($request->permissions ?? [] as $menuId => $actions) {
+                    DB::table('role_menus')->insert([
+                        'role_id'     => $id,
+                        'menu_id'     => $menuId,
+                        'is_enabled'  => 1,
+                        'can_view'    => isset($actions['view'])    ? 1 : 0,
+                        'can_create'  => isset($actions['create'])  ? 1 : 0,
+                        'can_update'  => isset($actions['update'])  ? 1 : 0,
+                        'can_delete'  => isset($actions['delete'])  ? 1 : 0,
+                        'can_approve' => isset($actions['approve']) ? 1 : 0,
+                        'can_reject'  => isset($actions['reject'])  ? 1 : 0,
+                        'can_print'   => isset($actions['print'])   ? 1 : 0,
+                        'created_at'  => now(),
+                        'updated_at'  => now(),
+                    ]);
+                }
 
-            foreach ($request->permissions ?? [] as $menuId => $actions) {
+                foreach ($request->apps ?? [] as $appCode) {
+                    DB::table('role_apps')->insert([
+                        'role_id'    => $id,
+                        'app_code'   => $appCode,
+                        'is_enabled' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            });
 
-                DB::table('role_menus')->insert([
-                    'role_id'     => $id,
-                    'menu_id'     => $menuId,
-                    'is_enabled'  => 1,
+            $this->activityLog('UBAH_ROLE', "User: {$this->actor()} | ID: {$id} | Nama Role: {$request->name} | Jumlah Menu: " . count($request->permissions ?? []) . " | Status: SUCCESS");
 
-                    'can_view'    => isset($actions['view']) ? 1 : 0,
-                    'can_create'  => isset($actions['create']) ? 1 : 0,
-                    'can_update'  => isset($actions['update']) ? 1 : 0,
-                    'can_delete'  => isset($actions['delete']) ? 1 : 0,
-                    'can_approve' => isset($actions['approve']) ? 1 : 0,
-                    'can_reject'  => isset($actions['reject']) ? 1 : 0,
-                    'can_print'   => isset($actions['print']) ? 1 : 0,
+            return response()->json(['status' => 'success', 'message' => 'Role berhasil diperbarui']);
 
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
-                ]);
-            }
-
-            foreach ($request->apps ?? [] as $appCode) {
-                DB::table('role_apps')->insert([
-                    'role_id'    => $id,
-                    'app_code'   => $appCode,
-                    'is_enabled' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-        });
-
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Role berhasil diperbarui'
-        ]);
+        } catch (\Throwable $e) {
+            $this->activityLog('UBAH_ROLE', "User: {$this->actor()} | ID: {$id} | Nama Role: {$namaRole} | Status: FAILED | Error: {$e->getMessage()} | File: {$e->getFile()}:{$e->getLine()}");
+            return response()->json(['status' => 'error', 'message' => 'Terjadi kesalahan sistem. Silakan coba lagi.'], 500);
+        }
     }
 }

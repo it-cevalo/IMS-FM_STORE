@@ -4,10 +4,28 @@ namespace App\Http\Controllers\Transaction;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Logs;
 use Auth, DB;
 
 class ProductOutboundController extends Controller
 {
+    private function outboundLog(string $section, string $content): void
+    {
+        try {
+            $log = new Logs('Logs_ProductOutboundController');
+            $log->write($section, $content);
+        } catch (\Throwable $e) {
+            \Log::error('[ProductOutboundController] Gagal menulis log: ' . $e->getMessage());
+        }
+    }
+
+    private function actor(): string
+    {
+        $user = Auth::user();
+        if (!$user) return 'Guest';
+        return $user->username ?? $user->name ?? "ID:{$user->id}";
+    }
+
     public function index()
     {
         return view('pages.transaction.product_outbound.product_outbound_index');
@@ -100,19 +118,25 @@ class ProductOutboundController extends Controller
     
     public function confirm(Request $request)
     {
+        $itemCount   = is_array($request->items) ? count($request->items) : 0;
+        
+        $warehouseId = !empty($request->id_warehouse) ? $request->id_warehouse : '1';
+        
+        $warehouseName = DB::table('m_warehouses')->where('id', $warehouseId)->value('nama_wh') ?? "ID:{$warehouseId}";
+
+        $this->outboundLog('CONFIRM_OUTBOUND', "User: {$this->actor()} | Warehouse: {$warehouseName} (ID:{$warehouseId}) | Jumlah item: {$itemCount} | Status: PROCESS");
+
         $request->validate([
-            'items' => 'required|array|min:1'
+            'items'        => 'required|array|min:1'
         ]);
-    
+
         DB::beginTransaction();
         try {
-    
-            $warehouseId = 1;
-    
+
             $outbounds = DB::table('tproduct_outbound')
                 ->whereIn('id', $request->items)
                 ->get();
-    
+
             if ($outbounds->isEmpty()) {
                 throw new \Exception('Data outbound tidak ditemukan');
             }
@@ -216,16 +240,39 @@ class ProductOutboundController extends Controller
             }
     
             DB::commit();
-    
+
+            // Rangkum DO yang terdampak untuk log
+            $doIdsUnique = $outbounds->pluck('id_do')->unique()->values();
+            $doNos       = DB::table('tdos')->whereIn('id', $doIdsUnique)->pluck('no_do')->implode(', ');
+            $totalQty    = $outbounds->sum('qty');
+
+            $doStatusSummary = [];
+            foreach ($doIdsUnique as $doId) {
+                $statusDo = DB::table('tdos')->where('id', $doId)->value('status_do');
+                $noDo     = DB::table('tdos')->where('id', $doId)->value('no_do');
+                $doStatusSummary[] = "{$noDo}=>" . ($statusDo == 3 ? 'COMPLETE' : 'PARTIAL');
+            }
+
+            $this->outboundLog('CONFIRM_OUTBOUND',
+                "User: {$this->actor()} | Warehouse: {$warehouseName} (ID:{$warehouseId}) | " .
+                "Total item: {$itemCount} | Total qty: {$totalQty} | " .
+                "DO terlibat: {$doNos} | Status DO: " . implode(', ', $doStatusSummary) . " | " .
+                "Status: SUCCESS"
+            );
+
             return response()->json([
                 'message' => 'Pengiriman Barang berhasil dikonfirmasi'
             ]);
-    
+
         } catch (\Exception $e) {
             DB::rollBack();
+            $this->outboundLog('CONFIRM_OUTBOUND',
+                "User: {$this->actor()} | Warehouse: {$warehouseName} (ID:{$warehouseId}) | Jumlah item: {$itemCount} | " .
+                "Status: FAILED | Error: {$e->getMessage()}"
+            );
             return response()->json([
                 'message' => $e->getMessage()
             ], 500);
         }
-    }    
+    }
 }

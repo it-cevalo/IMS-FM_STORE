@@ -68,11 +68,9 @@
                 <button type="button" class="btn btn-primary" id="btnPrintQR">
                     <i class="fas fa-print"></i> Cetak QR (Manual)
                 </button>
-                <a href="{{ route('purchase_order.generate_batch', $purchase_order->id) }}" 
-                   class="btn btn-info" 
-                   onclick="return confirm('Sistem akan memecah cetakan menjadi beberapa batch (100 label per file) untuk menjaga performa. Lanjutkan?')">
-                    <i class="fas fa-layer-group"></i> Cetak Semua (Batch Antrian)
-                </a>
+                <button type="button" class="btn btn-info" id="btnCetakSemua">
+                    <i class="fas fa-layer-group"></i> Cetak Semua (Batch)
+                </button>
                 <a href="{{ route('purchase_order.print_status', $purchase_order->id) }}" class="btn btn-secondary">
                     <i class="fas fa-list"></i> Status Antrian
                 </a>
@@ -784,7 +782,102 @@
             seqWrapper.addClass('d-none');
             seqInput.val('');
         }
-    
+
+        // ===================== Cetak Semua (Batch) =====================
+        $("#btnCetakSemua").on("click", function () {
+
+            Swal.fire({
+                title: 'Cetak Semua QR',
+                html: 'Sistem akan membagi label menjadi batch <b>100 label per file</b>.<br>' +
+                      'PDF di-generate saat kamu klik <b>Generate & Cetak</b> di halaman berikutnya.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Lanjutkan',
+                cancelButtonText: 'Batal',
+            }).then(async function (result) {
+
+                if (!result.isConfirmed) return;
+
+                // 1. Buat batch records (validasi + insert), tanpa generate PDF
+                Swal.fire({
+                    title: 'Menyiapkan Antrian...',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                try {
+                    await $.ajax({
+                        url: '{{ route("purchase_order.generate_batch", $purchase_order->id) }}',
+                        method: 'POST',
+                        data: { _token: '{{ csrf_token() }}' },
+                    });
+                } catch (xhr) {
+                    Swal.close();
+
+                    // ── QR sudah pernah dicetak → tawari reprint request ──
+                    if (xhr.status === 409 && xhr.responseJSON?.code === 'QR_ALREADY_PRINTED') {
+
+                        const conflicts = xhr.responseJSON.conflicts || [];
+                        let list = conflicts.map(c =>
+                            `• <b>${c.product_name}</b> (${c.sku}) → <b>${c.printed_range}</b>`
+                        ).join('<br>');
+
+                        Swal.fire({
+                            title: 'Cetak Semua Diblokir',
+                            html: `
+                                <div style="text-align:left;font-size:14px;line-height:1.6">
+                                    <p><b>QR berikut sudah pernah dicetak.</b><br>
+                                    Ajukan <b>cetak ulang</b> untuk melanjutkan.</p>
+                                    <hr>
+                                    ${list}
+                                </div>
+                            `,
+                            icon: 'warning',
+                            input: 'textarea',
+                            inputPlaceholder: 'Alasan cetak ulang (wajib)',
+                            showCancelButton: true,
+                            confirmButtonText: 'Ajukan Cetak Ulang',
+                            cancelButtonText: 'Batal',
+                            preConfirm: (reason) => {
+                                if (!reason || !reason.trim()) {
+                                    Swal.showValidationMessage('Alasan wajib diisi');
+                                    return false;
+                                }
+                                return reason;
+                            }
+                        }).then(r => {
+                            if (!r.isConfirmed) return;
+
+                            $.post('/qr/reprint/request', {
+                                id_po  : {{ $purchase_order->id }},
+                                reason : r.value,
+                                _token : '{{ csrf_token() }}',
+                                items  : conflicts
+                            })
+                            .done(resp => {
+                                Swal.fire('Berhasil', resp.message || 'Pengajuan cetak ulang berhasil dikirim.', 'success');
+                            })
+                            .fail(xhr2 => {
+                                const msg = xhr2.responseJSON?.code === 'REPRINT_PENDING'
+                                    ? xhr2.responseJSON.message
+                                    : (xhr2.responseJSON?.message || 'Gagal mengajukan cetak ulang.');
+                                Swal.fire('Gagal', msg, 'error');
+                            });
+                        });
+
+                        return;
+                    }
+
+                    Swal.fire('Gagal', xhr.responseJSON?.error || 'Gagal membuat antrian batch', 'error');
+                    return;
+                }
+
+                // 2. Langsung ke halaman status — PDF di-generate saat user klik tombol
+                window.location.href = '{{ route("purchase_order.print_status", $purchase_order->id) }}';
+            });
+        });
+
     });
-</script> 
+</script>
 @endsection
