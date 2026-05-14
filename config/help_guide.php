@@ -429,12 +429,12 @@ return [
     // ═══════════════════════════════════════════════════════════════════════
 
     'tdo_scan_staging.index' => [
-        'title' => 'Scan Out — Generate DO dari Staging',
+        'title' => 'Hasil Scan Out — Generate DO dari Staging',
         'steps' => [
             'Centang satu atau beberapa tanggal yang ingin diproses.',
             'Klik <strong>Generate DO</strong> (satu tanggal) atau <strong>Generate DO Batch</strong> (beberapa tanggal).',
             'Proses berjalan di background — halaman tidak perlu ditunggu.',
-            'DO yang dihasilkan otomatis muncul di menu <strong>Delivery Order</strong>.',
+            'DO yang dihasilkan otomatis muncul di menu <strong>Stock Out</strong>.',
         ],
         'tips' => [
             'Jika status tetap PROCESSING lama, hubungi tim IT untuk cek queue worker.',
@@ -443,7 +443,7 @@ return [
     ],
 
     'tdo_scan_staging.detail' => [
-        'title' => 'Scan Out — Detail Staging per Tanggal',
+        'title' => 'Hasil Scan Out — Detail Staging per Tanggal',
         'steps' => [
             'Halaman ini menampilkan daftar barang scan keluar pada tanggal tertentu.',
             'Periksa daftar barang sebelum di-generate menjadi DO.',
@@ -452,7 +452,7 @@ return [
     ],
 
     'tdo_scan_staging.detail_all' => [
-        'title' => 'Scan Out — Semua Detail Staging',
+        'title' => 'Hasil Scan Out — Semua Detail Staging',
         'steps' => [
             'Halaman ini menampilkan seluruh data scan keluar yang belum diproses.',
             'Gunakan untuk memantau data staging secara keseluruhan.',
@@ -465,9 +465,9 @@ return [
     // ═══════════════════════════════════════════════════════════════════════
 
     'delivery_order.index' => [
-        'title' => 'Delivery Order — Daftar DO',
+        'title' => 'Stock Out — Daftar DO',
         'steps' => [
-            'DO bisa berasal dari Generate Staging atau dibuat manual.',
+            'DO bisa berasal dari <strong>Hasil Scan Out</strong> (generate) atau dibuat manual.',
             'Klik <strong>Approve</strong> pada DO untuk mengonfirmasi — stok langsung berkurang.',
             'Gunakan <strong>Saring</strong> untuk mencari DO berdasarkan pelanggan atau tanggal.',
         ],
@@ -478,7 +478,7 @@ return [
     ],
 
     'delivery_order.create' => [
-        'title' => 'Delivery Order — Buat DO Manual',
+        'title' => 'Stock Out — Buat DO Manual',
         'steps' => [
             'Pilih <strong>Pelanggan / Toko</strong> tujuan.',
             'Tambahkan barang: klik <strong>Tambah Item</strong>, pilih barang, isi jumlah.',
@@ -491,7 +491,7 @@ return [
     ],
 
     'delivery_order.edit' => [
-        'title' => 'Delivery Order — Edit DO',
+        'title' => 'Stock Out — Edit DO',
         'steps' => [
             'DO hanya bisa diedit selama belum di-approve.',
             'Ubah pelanggan, barang, atau jumlah sesuai kebutuhan.',
@@ -500,7 +500,7 @@ return [
     ],
 
     'delivery_order.show' => [
-        'title' => 'Delivery Order — Detail DO',
+        'title' => 'Stock Out — Detail DO',
         'steps' => [
             'Halaman ini menampilkan detail barang dan status DO.',
             'Klik <strong>Approve</strong> untuk mengonfirmasi jika belum.',
@@ -509,7 +509,7 @@ return [
     ],
 
     'delivery_order.history' => [
-        'title' => 'Delivery Order — Riwayat DO',
+        'title' => 'Stock Out — Riwayat DO',
         'steps' => [
             'Halaman ini menampilkan riwayat perubahan status DO.',
             'Gunakan untuk audit atau melacak kapan DO diubah.',
@@ -517,7 +517,7 @@ return [
     ],
 
     'delivery_order.bin' => [
-        'title' => 'Delivery Order — Arsip DO',
+        'title' => 'Stock Out — Arsip DO',
         'steps' => [
             'Halaman ini menampilkan DO yang sudah dihapus (diarsipkan).',
             'Klik <strong>Pulihkan</strong> untuk mengembalikan DO ke daftar aktif.',
@@ -566,7 +566,7 @@ return [
     // ═══════════════════════════════════════════════════════════════════════
 
     'product_outbound.index' => [
-        'title' => 'Scan Keluar — Daftar Outbound',
+        'title' => 'Scan Out — Daftar Outbound',
         'steps' => [
             'Halaman ini menampilkan data hasil scan keluar dari WMS yang sudah diproses.',
             'Klik tanggal untuk melihat detail barang yang keluar.',
@@ -575,7 +575,7 @@ return [
     ],
 
     'product_outbound.detail' => [
-        'title' => 'Scan Keluar — Detail Outbound',
+        'title' => 'Scan Out — Detail Outbound',
         'steps' => [
             'Halaman ini menampilkan detail barang scan keluar pada tanggal tertentu.',
             'Gunakan untuk verifikasi barang yang sudah keluar dari gudang.',
@@ -959,7 +959,7 @@ return [
     ],
 
     'roles.index' => [
-        'title' => 'Role — Daftar Hak Akses',
+        'title' => 'Hak Akses — Daftar Role',
         'steps' => [
             'Klik nama role untuk mengedit izin akses menu.',
             'Setiap role bisa diset izin: Lihat, Tambah, Edit, Hapus, Approve, Cetak.',
@@ -971,7 +971,7 @@ return [
     ],
 
     'roles.create' => [
-        'title' => 'Role — Buat Role Baru',
+        'title' => 'Hak Akses — Buat Role Baru',
         'steps' => [
             'Isi nama role (contoh: Admin Gudang, Supervisor, Finance).',
             'Centang izin yang diperlukan per menu.',
@@ -980,7 +980,7 @@ return [
     ],
 
     'roles.edit' => [
-        'title' => 'Role — Edit Hak Akses',
+        'title' => 'Hak Akses — Edit Role',
         'steps' => [
             'Centang atau hapus centang izin untuk setiap menu.',
             'Izin tersedia: <strong>Lihat, Tambah, Edit, Hapus, Approve, Cetak</strong>.',

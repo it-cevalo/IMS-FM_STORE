@@ -92,4 +92,8 @@
         <button class="rounded-circle border-0" id="sidebarToggle"></button>
     </div>
 
+    <div class="text-center py-2" style="font-size:0.7rem;color:rgba(255,255,255,0.5);letter-spacing:0.05em;">
+        IMS {{ config('app.version') }}
+    </div>
+
 </ul>
