@@ -1,55 +1,73 @@
 @extends('layouts.admin')
 
-@section('content')                    
-<!-- DataTales Example -->
-<div class="card shadow mb-4">
-    <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary"><a href="{{route('stock_opname.index')}}">Stock Opname</a></h6>
+@section('content')
+
+{{-- ===== BANNER INSTRUKSI ===== --}}
+<div class="alert border-left-primary bg-white shadow-sm mb-4 py-3" style="border-left: 4px solid #4e73df;">
+    <div class="d-flex align-items-center">
+        <i class="fas fa-clipboard-list fa-2x text-primary mr-3"></i>
+        <div>
+            <strong class="d-block" style="font-size:1rem;">Stock Opname — Pencatatan Stok Fisik</strong>
+            <span class="text-muted" style="font-size:.85rem;">
+                Hitung barang di gudang secara fisik &rarr; klik <strong>+ Catat Stok Baru</strong> &rarr; isi jumlah &rarr; simpan.
+                Untuk memperbarui catatan yang sudah ada, klik ikon <i class="fa fa-edit text-warning"></i> pada tabel.
+            </span>
+        </div>
     </div>
-    <div class="card-header py-3">
-        <button type="button" class="btn btn-primary btn-flat btn-sm" data-toggle="modal" data-target="#exampleModal">
-            <i class="fa fa-filter"></i> Filter
-        </button>
-        @if(in_array(Auth::user()->username, ['sa', 'Frangga', 'Mia']))
-        <button type="button"
-            class="btn btn-info btn-flat btn-sm"
-            data-toggle="modal"
-            data-target="#modalPrintQRAwal">
-            <i class="fa fa-qrcode"></i> Cetak QR Awal (Batch)
-        </button>
-        @endif
-        <button type="button"
-            id="btnExportExcel"
-            class="btn btn-success btn-flat btn-sm">
-            <i class="fa fa-file-excel"></i> Export Excel
-        </button>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap" style="gap:.5rem;">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-boxes mr-1"></i> Daftar Catatan Stok Opname
+        </h6>
+        <div class="d-flex flex-wrap" style="gap:.4rem;">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#exampleModal">
+                <i class="fa fa-filter"></i> Filter
+            </button>
+            @if(in_array(Auth::user()->username, ['sa', 'Frangga', 'Mia']))
+            <button type="button" class="btn btn-outline-info btn-sm" data-toggle="modal" data-target="#modalPrintQRAwal">
+                <i class="fa fa-qrcode"></i> Cetak QR Awal
+            </button>
+            @endif
+            <button type="button" id="btnExportExcel" class="btn btn-outline-success btn-sm">
+                <i class="fa fa-file-excel"></i> Export Excel
+            </button>
+        </div>
     </div>
     <div class="card-body">
         @if(\Session::has('fail'))
-            <div class="alert alert-danger">
+            <div class="alert alert-danger alert-dismissible">
                 <span>{{\Session::get('fail')}}</span>
+                <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+            </div>
+        @endif
+        @if(\Session::has('success'))
+            <div class="alert alert-success alert-dismissible">
+                <span>{{\Session::get('success')}}</span>
+                <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
             </div>
         @endif
         <div class="table-responsive">
-            <table class="table table-bordered" id="stockOpnameTable" width="100%" cellspacing="0">
-                <thead>
+            <table class="table table-bordered table-hover" id="stockOpnameTable" width="100%" cellspacing="0">
+                <thead class="thead-light">
                     <tr>
-                        <th colspan="2" class="text-center">Gudang</th>
-                        <th colspan="2" class="text-center">Barang</th>
-                        <th rowspan="2" class="text-center align-middle">QTY Terakhir</th>
-                        <th rowspan="2" class="text-center align-middle">Tanggal Opname</th>
-                        <!-- <th rowspan="2" class="text-center align-middle">Aksi</th> -->
+                        <th colspan="2" class="text-center bg-light">Gudang</th>
+                        <th colspan="2" class="text-center bg-light">Barang</th>
+                        <th rowspan="2" class="text-center align-middle bg-light">Stok Fisik<br><small class="font-weight-normal text-muted">(qty terakhir)</small></th>
+                        <th rowspan="2" class="text-center align-middle bg-light">Dicatat</th>
+                        <th rowspan="2" class="text-center align-middle bg-light">Aksi</th>
                     </tr>
                     <tr>
-                        <th class="text-center">Kode</th>
-                        <th class="text-center">Nama</th>
-                        <th class="text-center">SKU</th>
-                        <th class="text-center">Nama</th>
+                        <th class="text-center bg-light">Kode</th>
+                        <th class="text-center bg-light">Nama Gudang</th>
+                        <th class="text-center bg-light">SKU</th>
+                        <th class="text-center bg-light">Nama Barang</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
             </table>
-        </div>                    
+        </div>
     </div>
 </div>
 <!-- Start Modal Filter -->
@@ -184,6 +202,7 @@
             language: {
                 url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json"
             },
+            order: [[5, 'desc']],
             columns: [
                 { data: 'warehouse_code', name: 'warehouse.code_wh' },
                 { data: 'warehouse_name', name: 'warehouse.nama_wh' },
@@ -202,7 +221,14 @@
                         return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
                     }
                 },
-                // { data: 'action', name: 'action', orderable: false, searchable: false }
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    render: function (data, type, row) {
+                        return '<a href="{{ url('/stock_opname') }}/' + row.id + '/edit" class="btn btn-warning btn-sm" title="Edit Stock Opname"><i class="fa fa-edit"></i></a>';
+                    }
+                }
             ]
         });
     }

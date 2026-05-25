@@ -1,212 +1,153 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="card shadow mb-4">
-    <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Stock Opname Tambah</h6>
-    </div>
-    <div class="card-body">
-        @if(\Session::has('error'))
-        <div class="alert alert-danger">
-            <span>{{ \Session::get('error') }}</span>
-            <button type="button" class="close" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
+
+{{-- ===== PANDUAN LANGKAH ===== --}}
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="background:#f0f4ff;">
+            <div class="card-body py-3">
+                <p class="mb-2 font-weight-bold text-primary"><i class="fas fa-info-circle mr-1"></i> Cara mengisi form ini:</p>
+                <div class="d-flex flex-wrap" style="gap:.6rem;">
+                    <span class="badge badge-primary px-3 py-2" style="font-size:.8rem;">1. Pilih Gudang</span>
+                    <i class="fas fa-arrow-right align-self-center text-muted"></i>
+                    <span class="badge badge-primary px-3 py-2" style="font-size:.8rem;">2. Pilih Barang</span>
+                    <i class="fas fa-arrow-right align-self-center text-muted"></i>
+                    <span class="badge badge-primary px-3 py-2" style="font-size:.8rem;">3. Isi jumlah stok fisik</span>
+                    <i class="fas fa-arrow-right align-self-center text-muted"></i>
+                    <span class="badge badge-success px-3 py-2" style="font-size:.8rem;">4. Simpan</span>
+                </div>
+            </div>
         </div>
-        @elseif(\Session::has('success'))
-        <div class="alert alert-success">
-            <span>{{ \Session::get('success') }}</span>
-            <button type="button" class="close" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-        @endif
-        <form action="{{route('stock_opname.store')}}" method="POST">
-            @csrf
-            <div class="mb-3">
-                <label for="exampleFormControlInput1">Gudang</label>
-                <select class="form-control select2" id="search-type" name="id_warehouse"
-                    value="{{old('id_warehouse')}}" required>
-                    <option value="">....</option>
-                    @foreach($warehouse as $p)
-                    <option value="{{$p->id}}">{{$p->code_wh}} {{$p->nama_wh}}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="validation"></div>
-            @error('id_warehouse')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
-            <div class="mb-3">
-                <label for="exampleFormControlInput1">Barang</label>
-                <select class="form-control select2" id="search-type" name="id_product" value="{{old('id_product')}}"
-                    required>
-                    <option value="">....</option>
-                    @foreach($product as $p)
-                    <option value="{{$p->id}}">{{$p->SKU}} {{$p->nama_barang}}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="validation"></div>
-            @error('id_product')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
-            <div class="mb-3">
-                <label for="exampleFormControlInput1">QTY Masuk</label>
-                <input class="form-control" id="exampleFormControlInput1" name="qty_in" type="number" min="0"
-                    placeholder="Masukkan QTY Masuk">
-            </div>
-            <div class="validation"></div>
-            @error('qty_in')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
-            <div class="mb-3">
-                <label for="exampleFormControlInput1">QTY Keluar</label>
-                <input class="form-control" id="exampleFormControlInput1" name="qty_out" type="number" min="0"
-                    placeholder="Masukkan QTY Keluar">
-            </div>
-            <div class="validation"></div>
-            @error('qty_out')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
-            <div class="mb-3">
-                <label for="exampleFormControlInput1">QTY Terakhir</label>
-                <input class="form-control" id="exampleFormControlInput1" name="qty_last" type="number" min="0"
-                    placeholder="Masukkan QTY Terakhir">
-            </div>
-            <div class="validation"></div>
-            @error('qty_last')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
-            <div class="mb-3">
-                <label for="exampleFormControlInput1">Tanggal</label>
-                <input class="form-control" id="exampleFormControlInput1" name="tgl_opname" type="date" required>
-            </div>
-            <div class="validation"></div>
-            @error('tgl_opname')
-            <div class="alert alert-danger">{{ $message }}</div>
-            @enderror
-            <button type="submit" class="btn btn-primary">Simpan</button>
-            <a href="{{route('stock_opname.index')}}" class="btn btn-dark">Kembali</a>
-        </form>
     </div>
 </div>
 
-{{-- @push('scripts') --}}
-<!-- <script type="text/javascript">
-    $(document).ready(function() {
-        $('.select2').select2();
-    });
-</script> -->
-{{-- @endpush --}}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-plus-circle mr-1"></i> Catat Stok Opname Baru
+                </h6>
+            </div>
+            <div class="card-body">
 
+                @if(\Session::has('error'))
+                <div class="alert alert-danger alert-dismissible">
+                    <span>{{ \Session::get('error') }}</span>
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
+                @endif
 
-<!-- Start Embbed JS  -->
-<!-- <script src="//code.jquery.com/jquery-1.11.1.min.js"></script> -->
-<!-- End Embbed JS  -->
+                <form action="{{ route('stock_opname.store') }}" method="POST">
+                    @csrf
 
-<!-- Start JS  -->
-<!-- <script type="text/javascript">
-        $(document).ready(function () {
-            var counter = 0;
-            /*
-                update_amounts();
-                $(document).on('change','#price',function(){
-                    update_amounts();
-                });
+                    {{-- STEP 1 & 2: Lokasi & Barang --}}
+                    <div class="card border mb-4">
+                        <div class="card-header bg-light py-2">
+                            <small class="font-weight-bold text-uppercase text-muted">
+                                <i class="fas fa-map-marker-alt mr-1"></i> Langkah 1 — Pilih Lokasi & Barang
+                            </small>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="font-weight-bold">Gudang <span class="text-danger">*</span></label>
+                                <select class="form-control" name="id_warehouse" required>
+                                    <option value="">-- Pilih gudang tempat barang disimpan --</option>
+                                    @foreach($warehouse as $p)
+                                    <option value="{{ $p->id }}" {{ old('id_warehouse') == $p->id ? 'selected' : '' }}>
+                                        {{ $p->code_wh }} — {{ $p->nama_wh }}
+                                    </option>
+                                    @endforeach
+                                </select>
+                                @error('id_warehouse')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
 
-                $(document).on('change','#qty',function(){
-                    update_amounts();
-                }); 
+                            <div class="mb-0">
+                                <label class="font-weight-bold">Barang <span class="text-danger">*</span></label>
+                                <select class="form-control" name="id_product" required>
+                                    <option value="">-- Pilih barang yang dihitung --</option>
+                                    @foreach($product as $p)
+                                    <option value="{{ $p->id }}" {{ old('id_product') == $p->id ? 'selected' : '' }}>
+                                        {{ $p->sku }} — {{ $p->nama_barang }}
+                                    </option>
+                                    @endforeach
+                                </select>
+                                @error('id_product')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
 
-                $("#addrow").on("click", function () {
-                    var newRow = $("<tr>");
-                    var cols = "";
+                    {{-- STEP 3: Jumlah Stok --}}
+                    <div class="card border mb-4">
+                        <div class="card-header bg-light py-2">
+                            <small class="font-weight-bold text-uppercase text-muted">
+                                <i class="fas fa-calculator mr-1"></i> Langkah 2 — Isi Jumlah Stok Fisik
+                            </small>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-4 mb-3">
+                                    <label class="font-weight-bold">Qty Masuk <span class="text-danger">*</span></label>
+                                    <input class="form-control" name="qty_in" type="number" min="0"
+                                        value="{{ old('qty_in', 0) }}" required>
+                                    <small class="text-muted">Jumlah barang yang masuk saat ini</small>
+                                    @error('qty_in')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="col-sm-4 mb-3">
+                                    <label class="font-weight-bold">Qty Keluar <span class="text-danger">*</span></label>
+                                    <input class="form-control" name="qty_out" type="number" min="0"
+                                        value="{{ old('qty_out', 0) }}" required>
+                                    <small class="text-muted">Jumlah barang yang keluar saat ini</small>
+                                    @error('qty_out')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="col-sm-4 mb-3">
+                                    <label class="font-weight-bold text-primary">
+                                        Qty Fisik Akhir <span class="text-danger">*</span>
+                                    </label>
+                                    <input class="form-control border-primary font-weight-bold" name="qty_last"
+                                        type="number" min="0" value="{{ old('qty_last') }}" required
+                                        placeholder="Hasil hitung fisik">
+                                    <small class="text-muted">
+                                        <i class="fas fa-star text-warning" style="font-size:.7rem;"></i>
+                                        Jumlah total barang yang ada secara fisik sekarang
+                                    </small>
+                                    @error('qty_last')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
 
-                    cols += '<td><input type="text" class="form-control" name="part_number[]' + counter + '"/></td>';
-                    cols += '<td><input type="text" class="form-control" name="product_name[]' + counter + '"/></td>';
-                    cols += '<td><input type="number" min="0" id="qty" class="form-control" name="qty[]' + counter + '"/></td>';
-                    cols += '<td><input type="number" min="0" id="price" class="form-control" name="price[]' + counter + '"/></td>';
-                    cols += '<td><input type="number" min="0" id="total_price" class="form-control" disabled name="total_price[]' + counter + '"/></td>';
+                            <div class="mb-0">
+                                <label class="font-weight-bold">Tanggal Opname <span class="text-danger">*</span></label>
+                                <input class="form-control" name="tgl_opname" type="date"
+                                    value="{{ old('tgl_opname', date('Y-m-d')) }}" required>
+                                @error('tgl_opname')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
 
-                    // cols += '<td><input type="button" class="ibtnDel btn btn-md btn-danger "  value="Delete"></td>';
-                    cols += '<td style="border:none;"><a class="ibtnDel btn btn-primary btn-flat btn-sm"><i class="fa fa-minus"></i></a></td>';
-                    newRow.append(cols);
-                    $("table.table-bordered").append(newRow);
-                    counter++;
-                });
-            */
-
-            $('#addrow').click(function(e){
-                e.preventDefault(); 
-                $('#append_akun').append(
-                    `<tr class="row-akun">
-                        <td><input type="text" autocomplete="off" class="form-control unit text-right " name="unit[]"></td>
-                        <td><input type="number" autocomplete="off" class="form-control qty text-right " name="qty[]"></td>
-                        <td><input type="number" autocomplete="off" class="form-control price text-right " name="price[]"></td>
-                        <td><input id="myInput" type="number" autocomplete="off" name="total_price[]" value="" class="form-control text-right data-nilai" readonly=""></td>
-                        <td style="border:none;"><a  class="btn-remove btn btn-danger btn-flat btn-sm"><i class="fa fa-minus" title="Delete"></a></td>
-                    </tr>`
-                );
-            });
-            $('#append_akun').on('change','.price', function() {
-                row = $(this).parent().parent();
-                count(row);
-            });
-
-            $('#append_akun').on('change','.qty', function() {
-                row = $(this).parent().parent();
-                count(row);
-            });      
-
-            $('#append_akun').on('click','.btn-remove', function(e) {
-                e.preventDefault();
-                $(this).parent().parent().remove();
-                sum();
-            });
-        });
-
-        function count(row)
-        {
-            price = row.find('.price').val();
-            qty = row.find('.qty').val();
-
-            amount = price * qty;
-            // grand_total = amount*11/100;
-
-            row.find('.data-nilai').val(amount);
-
-            sum();
-        }
-
-        function sum()
-        {
-            let sum = 0;
-
-            $('.data-nilai').each(function() {
-                sum = sum+Number($(this).val());
-            });
-
-            ppn = sum*11/100;
-            gt = ppn+sum;
-            $('#grand_total').val(gt);
-            $('#ppn').val(ppn);
-            $("#hidden_jumlah").val(gt);
-        }
-
-        // function update_amounts(){
-        //     var sum = 0.0;
-        //     $('table.table-bordered').each(function() {
-        //         var qty = $(this).find('#qty').val();
-        //         var price = $(this).find('#price').val();
-        //         var amount = (qty*price)
-        //         //alert(amount);
-        //         sum+= amount;
-        //         $(this).find('#total_price').val(amount); 
-        //     });
-        //     // $('.total').val(sum);
-        //     //just update the total to sum  
-        // }
-    </script> -->
-<!-- End JS  -->
+                    <div class="d-flex" style="gap:.5rem;">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save mr-1"></i> Simpan Catatan
+                        </button>
+                        <a href="{{ route('stock_opname.index') }}" class="btn btn-outline-secondary">
+                            Batal
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

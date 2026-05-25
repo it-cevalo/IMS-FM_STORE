@@ -97,6 +97,32 @@ class UserController extends Controller
         return view('pages.users.users_edit', compact('user','roles'));
     }
 
+    public function resetPassword($id)
+    {
+        $actor = Auth::user();
+        $actorRole = strtolower($actor->role->name ?? '');
+
+        if ($actorRole !== 'admin') {
+            return response()->json(['status' => 'error', 'message' => 'Akses ditolak. Hanya Admin yang dapat mereset password.'], 403);
+        }
+
+        $target = User::findOrFail($id);
+
+        $this->activityLog('RESET_PASSWORD', "Admin: {$this->actor()} | Target: {$target->username} | ID: {$id} | Status: PROCESS");
+
+        try {
+            $target->update(['password' => Hash::make('C3v4l0123!')]);
+
+            $this->activityLog('RESET_PASSWORD', "Admin: {$this->actor()} | Target: {$target->username} | ID: {$id} | Status: SUCCESS");
+
+            return response()->json(['status' => 'success', 'message' => "Password {$target->username} berhasil direset ke default."]);
+
+        } catch (\Throwable $e) {
+            $this->activityLog('RESET_PASSWORD', "Admin: {$this->actor()} | Target: {$target->username} | ID: {$id} | Status: FAILED | Error: {$e->getMessage()}");
+            return response()->json(['status' => 'error', 'message' => 'Gagal mereset password.'], 500);
+        }
+    }
+
     public function update(Request $request, $id)
     {
         $this->activityLog('UBAH_USER', "User: {$this->actor()} | ID: {$id} | Username: {$request->username} | Status: PROCESS");

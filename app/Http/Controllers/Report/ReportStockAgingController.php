@@ -72,6 +72,8 @@ class ReportStockAgingController extends Controller
             $query->having('aging_bucket', $bucket);
         }
 
+        $query->orderByRaw('MIN(i.received_at) DESC');
+
         return datatables()
             ->of($query)
             ->filter(function ($q) use ($request) {
@@ -109,7 +111,7 @@ class ReportStockAgingController extends Controller
 
         try {
             $result = Excel::download(
-                new StockAgingExport($request->aging_bucket),
+                new StockAgingExport($request->aging_bucket, Auth::user()->name),
                 'stock_aging_' . date('Ymd_His') . '.xlsx'
             );
 

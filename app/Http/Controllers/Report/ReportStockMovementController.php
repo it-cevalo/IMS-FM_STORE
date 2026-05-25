@@ -120,6 +120,8 @@ class ReportStockMovementController extends Controller
             $query->having('movement_category', $category);
         }
     
+        $query->orderByRaw('COALESCE(o.last_out_date, i.last_in_date) DESC');
+
         return datatables()
             ->of($query)
             ->addIndexColumn()
@@ -154,7 +156,7 @@ class ReportStockMovementController extends Controller
 
         try {
             $result = Excel::download(
-                new StockMovementExport($startDate, $endDate, $request->movement_type),
+                new StockMovementExport($startDate, $endDate, $request->movement_type, Auth::user()->name),
                 'stock_movement_' . date('Ymd_His') . '.xlsx'
             );
 

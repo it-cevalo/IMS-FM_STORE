@@ -63,38 +63,13 @@ class StockOpnameController extends Controller
             $query->orderBy('t_stock_opname.created_at', 'desc');
 
             return DataTables::of($query)
-                ->addIndexColumn()
+                ->addColumn('opname_id', fn($row) => $row->getKey())
                 ->addColumn('warehouse_code', fn($row) => $row->warehouse->code_wh ?? '-')
                 ->addColumn('warehouse_name', fn($row) => $row->warehouse->nama_wh ?? '-')
                 ->addColumn('product_code', fn($row) => $row->product->sku ?? '-')
                 ->addColumn('product_name', fn($row) => $row->product->nama_barang ?? '-')
                 ->addColumn('qty_last', fn($row) => $row->qty_last)
                 ->addColumn('tgl_opname', fn($row) => $row->tgl_opname)
-                // ->addColumn('action', function($row) {
-                    // $edit = route('stock_opname.edit', $row->id);
-                    // return '
-                    //     <a href="'.$edit.'" class="btn btn-warning btn-sm"><i class="fa fa-edit"></i></a>
-                    // ';
-                    // punya permission edit
-                    // if (Permission::can('MENU-0200', 'update')) {
-                    //     return '
-                    //         <a href="'.route('stock_opname.edit', $row->id).'"
-                    //         class="btn btn-warning btn-sm"
-                    //         title="Edit Stock Opname">
-                    //             <i class="fa fa-edit"></i>
-                    //         </a>
-                    //     ';
-                    // }
-
-                    // TIDAK punya permission → tombol dummy (secondary)
-                    // return '
-                    //     <button class="btn btn-secondary btn-sm" disabled
-                    //             title="Anda tidak punya akses edit">
-                    //         <i class="fa fa-edit"></i>
-                    //     </button>
-                    // ';
-                // })
-                // ->rawColumns(['action'])
                 ->make(true);
         }
 
@@ -114,9 +89,7 @@ class StockOpnameController extends Controller
      */
     public function create()
     {
-        $warehouse  = MWarehouse::get();
-        $product    = Mproduct::get();
-        return view('pages.stock.stock_opname.stock_opname_create', compact('warehouse','product'));
+        abort(403, 'Penambahan stock opname tidak diizinkan.');
     }
 
     /**
@@ -127,6 +100,7 @@ class StockOpnameController extends Controller
      */
     public function store(Request $request)
     {
+        abort(403, 'Penambahan stock opname tidak diizinkan.');
         $product = Mproduct::select('kode_barang', 'nama_barang')->find($request->id_product);
         $kode = $product->kode_barang ?? '-';
         $nama = $product->nama_barang ?? '-';
@@ -221,10 +195,16 @@ class StockOpnameController extends Controller
      */
     public function edit($id)
     {
-        $stock_opname       = TStockOpname::findOrFail($id);
-        $warehouse          = MWarehouse::get();
-        $product            = Mproduct::get();
-        return view('pages.stock.stock_opname.stock_opname_edit', compact('stock_opname','warehouse','product'));
+        $stock_opname = TStockOpname::with('product')->findOrFail($id);
+        $warehouse    = MWarehouse::get();
+        $product      = Mproduct::get();
+
+        $sku      = $stock_opname->product->sku ?? null;
+        $qrCount  = $sku
+            ? DB::table('tproduct_qr')->where('sku', $sku)->where('status', '!=', 'OUT')->count()
+            : 0;
+
+        return view('pages.stock.stock_opname.stock_opname_edit', compact('stock_opname', 'warehouse', 'product', 'qrCount'));
     }
 
     /**
@@ -314,6 +294,66 @@ class StockOpnameController extends Controller
         //
     }
     
+    public function qrHistory(Request $request)
+    {
+        $sku = $request->sku;
+        if (!$sku) {
+            return response()->json(['error' => 'SKU tidak ditemukan'], 422);
+        }
+
+        $rows = DB::table('tproduct_qr as q')
+            // inbound utama (PO / SALDO_AWAL)
+            ->leftJoin(
+                DB::raw('(SELECT qr_code, received_at, id_po, inbound_source, sync_at FROM tproduct_inbound WHERE inbound_source != "RETUR_CUST" OR inbound_source IS NULL) as i'),
+                DB::raw('i.qr_code COLLATE utf8mb4_unicode_ci'), '=', DB::raw('q.qr_code COLLATE utf8mb4_unicode_ci')
+            )
+            // PO header
+            ->leftJoin('tpos as po', 'po.id', '=', 'i.id_po')
+            // inbound retur dari customer
+            ->leftJoin(
+                DB::raw('(SELECT qr_code, received_at, id_po, sync_at FROM tproduct_inbound WHERE inbound_source = "RETUR_CUST") as rc'),
+                DB::raw('rc.qr_code COLLATE utf8mb4_unicode_ci'), '=', DB::raw('q.qr_code COLLATE utf8mb4_unicode_ci')
+            )
+            // outbound
+            ->leftJoin(
+                DB::raw('tproduct_outbound as o'),
+                DB::raw('o.qr_code COLLATE utf8mb4_unicode_ci'), '=', DB::raw('q.qr_code COLLATE utf8mb4_unicode_ci')
+            )
+            // DO header
+            ->leftJoin('tdos as d', 'd.id', '=', 'o.id_do')
+            // supplier dari PO
+            ->leftJoin('m_suppliers as po_spl', 'po_spl.id', '=', 'po.id_supplier')
+            // supplier dari DO (untuk retur ke supplier)
+            ->leftJoin('m_suppliers as do_spl', 'do_spl.id', '=', 'd.id_supplier')
+            ->where(DB::raw('q.sku COLLATE utf8mb4_unicode_ci'), $sku)
+            ->select([
+                'q.qr_code',
+                'q.sequence_no',
+                'q.status',
+                // inbound
+                'i.received_at',
+                'i.inbound_source',
+                'po.no_po',
+                'po.tgl_po',
+                'po.nama_spl as po_supplier_name',
+                // retur dari customer
+                'rc.received_at as retur_cust_at',
+                // outbound
+                'o.out_at',
+                'd.no_do',
+                'd.tgl_do',
+                'd.do_source',
+                'd.nama_cust',
+                // retur ke supplier (DO dengan prefix RT-DO)
+                'do_spl.nama_spl as do_supplier_name',
+                'd.approve_date as do_approve_date',
+            ])
+            ->orderByRaw('CAST(q.sequence_no AS UNSIGNED)')
+            ->get();
+
+        return response()->json($rows);
+    }
+
     public function printQRAwalByProductRange(Request $request)
     {
         $request->validate([
@@ -465,7 +505,7 @@ class StockOpnameController extends Controller
     public function exportExcel()
     {
         return Excel::download(
-            new StockOpnameExport(),
+            new StockOpnameExport(Auth::user()->name),
             'stock_opname_' . date('Ymd_His') . '.xlsx'
         );
     }

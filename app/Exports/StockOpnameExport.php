@@ -6,12 +6,24 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithCustomStartCell;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
 
 class StockOpnameExport implements
     FromCollection,
     WithHeadings,
-    WithMapping
+    WithMapping,
+    WithCustomStartCell,
+    WithEvents
 {
+    protected string $printedBy;
+
+    public function __construct(string $printedBy = '')
+    {
+        $this->printedBy = $printedBy;
+    }
+
     public function collection()
     {
         return DB::table('t_stock_opname as so')
@@ -52,6 +64,27 @@ class StockOpnameExport implements
             'Nama Barang',
             'Qty Terakhir',
             'Tanggal Opname',
+        ];
+    }
+
+    public function startCell(): string
+    {
+        return 'A1';
+    }
+
+    public function registerEvents(): array
+    {
+        $version   = config('app.version');
+        $printDate = now()->format('d/m/Y H:i');
+        $printedBy = $this->printedBy;
+        return [
+            AfterSheet::class => function (AfterSheet $event) use ($version, $printDate, $printedBy) {
+                $sheet   = $event->sheet->getDelegate();
+                $metaRow = $sheet->getHighestRow() + 2;
+                $sheet->setCellValue('A' . $metaRow, 'Dicetak: ' . $printDate . '   |   Oleh: ' . $printedBy . '   |   Versi: ' . $version);
+                $sheet->getStyle('A' . $metaRow)->getFont()->setSize(9);
+                $sheet->getStyle('A' . $metaRow)->getFont()->getColor()->setARGB('FF888888');
+            },
         ];
     }
 }
