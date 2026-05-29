@@ -41,10 +41,17 @@ class StockOpnameController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+    private function isOwner(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->role && strtolower($user->role->name) === 'owner';
+    }
+
     public function index()
     {
-        $products = Mproduct::all();
-        return view('pages.stock.stock_opname.stock_opname_index', compact('products'));
+        $products  = Mproduct::all();
+        $canEdit   = $this->isOwner();
+        return view('pages.stock.stock_opname.stock_opname_index', compact('products', 'canEdit'));
     }
     
     public function getData(Request $request)
@@ -195,6 +202,10 @@ class StockOpnameController extends Controller
      */
     public function edit($id)
     {
+        if (!$this->isOwner()) {
+            abort(403, 'Akses ditolak. Hanya Owner yang dapat mengedit Stock Opname.');
+        }
+
         $stock_opname = TStockOpname::with('product')->findOrFail($id);
         $warehouse    = MWarehouse::get();
         $product      = Mproduct::get();
@@ -216,6 +227,10 @@ class StockOpnameController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if (!$this->isOwner()) {
+            abort(403, 'Akses ditolak. Hanya Owner yang dapat mengedit Stock Opname.');
+        }
+
         $existing = TStockOpname::with('product')->find($id);
         $kode = $existing->product->kode_barang ?? '-';
         $nama = $existing->product->nama_barang ?? '-';
@@ -255,15 +270,17 @@ class StockOpnameController extends Controller
                 'created_at'      => $date,
             ]);
 
-            $productStock = MproductStock::where('id_product', $request->id_product)
-                ->where('id_warehouse', $request->id_warehouse)
-                ->firstOrFail();
-
-            $productStock->update([
-                'qty_last'    => $request->qty_last,
-                'tgl_opname'  => $request->tgl_opname,
-                'tgl_mutasi'  => '1970-01-01',
-            ]);
+            MproductStock::updateOrCreate(
+                [
+                    'id_product'   => $request->id_product,
+                    'id_warehouse' => $request->id_warehouse,
+                ],
+                [
+                    'qty_last'   => $request->qty_last,
+                    'tgl_opname' => $request->tgl_opname,
+                    'tgl_mutasi' => '1970-01-01',
+                ]
+            );
 
             DB::commit();
 

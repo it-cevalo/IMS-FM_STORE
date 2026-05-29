@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\Mproduct;
 use App\Models\MproductType;
 use App\Models\MproductUnit;
+use App\Models\MWarehouse;
+use App\Models\MproductStock;
 use Yajra\DataTables\Facades\DataTables;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -130,6 +132,14 @@ class ProductController extends Controller
             ]);
 
             if ($product) {
+                $warehouses = MWarehouse::all();
+                foreach ($warehouses as $warehouse) {
+                    MproductStock::firstOrCreate(
+                        ['id_product' => $product->id, 'id_warehouse' => $warehouse->id],
+                        ['qty_last' => 0, 'tgl_opname' => now()->toDateString(), 'tgl_mutasi' => '1970-01-01']
+                    );
+                }
+
                 $this->masterLog('TAMBAH_PRODUK', "User: {$this->actor()} | SKU: {$request->sku} | Nama: {$request->nama_barang} | Status: SUCCESS");
                 return response()->json([
                     'status' => 'success',
@@ -250,11 +260,12 @@ class ProductController extends Controller
             $rows = $sheet->toArray();
     
             DB::beginTransaction();
-    
+
             $total       = 0;
             $inserted    = 0;
             $duplicated  = 0;
-    
+            $warehouses  = MWarehouse::all();
+
             foreach ($rows as $index => $row) {
                 if ($index === 0) continue; // skip header
                 $total++;
@@ -314,7 +325,7 @@ class ProductController extends Controller
                 // =========================
                 // INSERT PRODUCT
                 // =========================
-                Mproduct::create([
+                $newProduct = Mproduct::create([
                     'sku'           => $SKU,
                     'nama_barang'   => $nama,
                     'id_type'       => $typeId,
@@ -322,7 +333,14 @@ class ProductController extends Controller
                     'flag_active'   => in_array($flagActive, ['Y', 'N']) ? $flagActive : 'Y',
                     'stock_minimum' => $stockMin,
                 ]);
-    
+
+                foreach ($warehouses as $warehouse) {
+                    MproductStock::firstOrCreate(
+                        ['id_product' => $newProduct->id, 'id_warehouse' => $warehouse->id],
+                        ['qty_last' => 0, 'tgl_opname' => now()->toDateString(), 'tgl_mutasi' => '1970-01-01']
+                    );
+                }
+
                 $inserted++;
             }
     

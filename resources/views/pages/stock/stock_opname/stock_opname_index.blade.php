@@ -226,7 +226,11 @@
                     orderable: false,
                     searchable: false,
                     render: function (data, type, row) {
+                        @if($canEdit)
                         return '<a href="{{ url('/stock_opname') }}/' + row.id + '/edit" class="btn btn-warning btn-sm" title="Edit Stock Opname"><i class="fa fa-edit"></i></a>';
+                        @else
+                        return '<span class="text-muted">-</span>';
+                        @endif
                     }
                 }
             ]
