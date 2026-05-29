@@ -589,33 +589,30 @@ return [
     'stock_opname.index' => [
         'title' => 'Stok Opname — Daftar Opname',
         'steps' => [
-            'Klik <strong>Tambah</strong> untuk memulai penyesuaian stok baru.',
-            'Klik nomor opname untuk melihat detail atau riwayat.',
-            'Gunakan fitur ini jika ada selisih antara stok sistem dan fisik di gudang.',
+            'Cari baris barang yang ingin diperbarui stoknya.',
+            'Klik ikon <strong>Edit (pensil kuning)</strong> di kolom Aksi.',
+            'Isi jumlah fisik yang dihitung di gudang, lalu klik <strong>Simpan Perubahan</strong>.',
         ],
         'tips' => [
+            'Penambahan catatan baru tidak bisa dilakukan dari sini — hanya edit yang tersedia.',
             'Pastikan Scan In sudah dikonfirmasi dengan gudang yang benar sebelum opname.',
         ],
     ],
 
-    'stock_opname.create' => [
-        'title' => 'Stok Opname — Tambah Opname',
+    'stock_opname.edit' => [
+        'title' => 'Stok Opname — Edit Stok Fisik',
         'steps' => [
-            'Pilih <strong>Gudang</strong> yang akan diopname.',
-            'Pilih <strong>Barang</strong> yang akan dihitung.',
-            'Masukkan jumlah fisik aktual yang ada di gudang.',
-            'Klik <strong>Simpan</strong> — stok di sistem langsung disesuaikan.',
+            'Cek panel <strong>Perbandingan Stok</strong> di atas: lihat angka <strong>Stok Sistem</strong>, <strong>QR Aktif</strong>, dan <strong>Selisih</strong>.',
+            'Jika ada selisih, baca <strong>Riwayat Alur Barang</strong> di sebelah kanan untuk cari tahu kemana barang pergi (masuk via PO, keluar via DO, atau retur).',
+            'Hitung fisik barang di gudang.',
+            'Isi hasil hitung di kolom <strong>Qty Fisik Akhir</strong> (kiri) — hint di bawah kolom menunjukkan selisih dengan QR aktif secara real-time.',
+            'Klik <strong>Simpan Perubahan</strong>.',
         ],
         'tips' => [
-            'Hitung fisik barang dengan teliti sebelum mengisi jumlah.',
-        ],
-    ],
-
-    'stock_opname.edit' => [
-        'title' => 'Stok Opname — Edit Opname',
-        'steps' => [
-            'Ubah jumlah fisik jika ada kesalahan input.',
-            'Klik <strong>Simpan</strong> — stok sistem akan diperbarui.',
+            'Selisih <strong>hijau</strong> = stok sistem cocok dengan QR aktif. <strong>Kuning</strong> = lebih di sistem. <strong>Merah</strong> = lebih di QR (ada QR aktif yang tidak tercatat di sistem).',
+            'Edit stok opname <strong>tidak mengubah data QR</strong> sama sekali — QR hanya bergerak saat transaksi inbound/outbound nyata terjadi.',
+            'Riwayat QR tampil otomatis di kanan saat halaman dibuka. Gunakan kolom pencarian untuk filter berdasarkan no PO, no DO, atau nama customer.',
+            'Gunakan per-halaman (10/25/50) di bawah riwayat untuk mengatur jumlah QR yang ditampilkan.',
         ],
     ],
 
@@ -892,6 +889,21 @@ return [
     // LAPORAN
     // ═══════════════════════════════════════════════════════════════════════
 
+    'stock_report.index' => [
+        'title' => 'Laporan — Stock Balance',
+        'steps' => [
+            'Laporan otomatis menampilkan data <strong>bulan berjalan</strong> saat halaman dibuka.',
+            'Klik <strong>Filter &amp; Export</strong> untuk memilih rentang tanggal yang berbeda.',
+            'Di modal filter, pilih <strong>Tampilkan Data</strong> lalu klik <strong>Proses</strong> untuk refresh tabel.',
+            'Pilih <strong>Export Excel</strong> di modal filter untuk mengunduh laporan ke file Excel.',
+        ],
+        'tips' => [
+            '<strong>Last Stock</strong> = saldo stok sebelum periode yang dipilih. <strong>Remain</strong> = Last Stock + Stock In + Return − Stock Out.',
+            'Baris total di bawah tabel menjumlahkan seluruh data (semua halaman), bukan hanya halaman yang sedang tampil.',
+            'Gunakan kolom pencarian di atas tabel untuk mencari barang tertentu berdasarkan SKU atau nama.',
+        ],
+    ],
+
     'stock_movement.index' => [
         'title' => 'Laporan — Pergerakan Stok',
         'steps' => [
@@ -988,6 +1000,39 @@ return [
         ],
         'tips' => [
             'Perubahan role berlaku langsung untuk semua pengguna yang memakai role ini.',
+        ],
+    ],
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PROFIL — GANTI PASSWORD
+    // ═══════════════════════════════════════════════════════════════════════
+
+    'profile.change-password' => [
+        'title' => 'Ganti Password',
+        'steps' => [
+            'Isi <strong>Password Lama</strong> — password yang sedang kamu pakai saat ini.',
+            'Isi <strong>Password Baru</strong> — perhatikan checklist syarat di bawah kolom, semua harus <span style="color:#1cc88a">hijau</span> sebelum simpan.',
+            'Isi <strong>Konfirmasi Password Baru</strong> — ketik ulang password baru yang sama persis.',
+            'Klik <strong>Simpan Password</strong>.',
+        ],
+        'tips' => [
+            'Password harus minimal <strong>8 karakter</strong> dan mengandung: huruf kapital (A–Z), huruf kecil (a–z), angka (0–9), dan simbol (contoh: @$!#%).',
+            'Fitur ini hanya tersedia untuk akun dengan role <strong>Owner</strong> atau <strong>Admin</strong>.',
+            'Setelah berhasil, kamu tidak perlu login ulang.',
+        ],
+    ],
+
+    'users.index' => [
+        'title' => 'Pengguna — Daftar Akun',
+        'steps' => [
+            'Klik <strong>Tambah</strong> untuk membuat akun baru.',
+            'Klik ikon <strong>Edit (pensil)</strong> untuk mengubah data pengguna.',
+            'Klik ikon <strong>Kunci</strong> untuk mereset password pengguna ke default — hanya tersedia untuk Admin.',
+            'Klik ikon <strong>Hapus (merah)</strong> untuk menghapus akun.',
+        ],
+        'tips' => [
+            'Reset password akan mengubah password menjadi <code>C3v4l0123!</code> — infokan ke pengguna agar segera diganti.',
+            'Fitur reset password hanya bisa dilakukan oleh akun dengan role <strong>Admin</strong>.',
         ],
     ],
 

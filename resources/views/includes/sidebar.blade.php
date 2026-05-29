@@ -76,6 +76,18 @@
 
     <hr class="sidebar-divider d-none d-md-block">
 
+    {{-- ================= GANTI PASSWORD (OWNER ONLY) ================= --}}
+    @if(Auth::check() && Auth::user()->role && in_array(strtolower(Auth::user()->role->name), ['owner', 'admin']))
+    <li class="nav-item">
+        <a class="nav-link" href="{{ route('profile.change-password') }}">
+            <i class="fas fa-fw fa-lock"></i>
+            <span>Ganti Password</span>
+        </a>
+    </li>
+    @endif
+
+    <hr class="sidebar-divider d-none d-md-block">
+
     {{-- ================= LOGOUT ================= --}}
     <li class="nav-item">
         <form id="logout-form" action="{{ route('logout') }}" method="POST">

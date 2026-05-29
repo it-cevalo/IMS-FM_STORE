@@ -43,12 +43,21 @@
                                             <td>{{$f->name}}</td>
                                             <td>{{ $f->role->name ?? '-' }}</td>
                                             <td>
-                                                <form action="{{route('users.destroy',$f->id)}}" method="POST" class="formDelete">
+                                                <form action="{{route('users.destroy',$f->id)}}" method="POST" class="formDelete d-inline">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <a href="{{route('users.edit',$f->id)}}" class="btn btn-warning btn-flat btn-sm"><i class="fa fa-edit"></i></a> 
+                                                    <a href="{{route('users.edit',$f->id)}}" class="btn btn-warning btn-flat btn-sm"><i class="fa fa-edit"></i></a>
                                                     <button type="submit" class="btn btn-flat btn-danger btn-sm"><i class="fa fa-trash"></i></button>
                                                 </form>
+                                                @if(Auth::check() && strtolower(Auth::user()->role->name ?? '') === 'admin')
+                                                <button type="button"
+                                                    class="btn btn-secondary btn-flat btn-sm btn-reset-pwd"
+                                                    data-id="{{ $f->id }}"
+                                                    data-username="{{ $f->username }}"
+                                                    title="Reset password ke default">
+                                                    <i class="fa fa-key"></i>
+                                                </button>
+                                                @endif
                                             </td>
                                         </tr>
                                         @endforeach
@@ -57,4 +66,42 @@
                             </div>
                         </div>
                     </div>
+                    <script>
+                    $(document).on('click', '.btn-reset-pwd', function () {
+                        var id       = $(this).data('id');
+                        var username = $(this).data('username');
+
+                        Swal.fire({
+                            title: 'Reset Password?',
+                            html: 'Password <strong>' + username + '</strong> akan direset ke default.<br><small class="text-muted">Password default: <code>C3v4l0123!</code></small>',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#e74a3b',
+                            cancelButtonColor: '#858796',
+                            confirmButtonText: 'Ya, Reset',
+                            cancelButtonText: 'Batal',
+                        }).then(function (result) {
+                            if (!result.isConfirmed) return;
+
+                            Swal.fire({
+                                title: 'Mereset...',
+                                allowOutsideClick: false,
+                                didOpen: () => Swal.showLoading()
+                            });
+
+                            $.ajax({
+                                url: '/users/' + id + '/reset-password',
+                                method: 'POST',
+                                data: { _token: '{{ csrf_token() }}' },
+                                success: function (res) {
+                                    Swal.fire({ icon: 'success', title: 'Berhasil', text: res.message });
+                                },
+                                error: function (xhr) {
+                                    var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan.';
+                                    Swal.fire({ icon: 'error', title: 'Gagal', text: msg });
+                                }
+                            });
+                        });
+                    });
+                    </script>
                     @endsection

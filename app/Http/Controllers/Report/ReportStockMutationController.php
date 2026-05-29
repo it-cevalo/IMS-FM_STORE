@@ -30,8 +30,9 @@ class ReportStockMutationController extends Controller
         )
         ->join('m_warehouses', 'stock_mutation.id_warehouse', '=', 'm_warehouses.id')
         ->join('mproduct', 'stock_mutation.id_product', '=', 'mproduct.id')
+        ->orderByDesc('stock_mutation.tgl_mutasi')
         ->paginate(5);
-        
+
         return view('pages.report.report_stock_mutation',compact('stock_mutation'))->with('i', (request()->input('page', 1) - 1) * 5);
     }
 
@@ -55,8 +56,9 @@ class ReportStockMutationController extends Controller
             ->join('m_warehouses', 'stock_mutation.id_warehouse', '=', 'm_warehouses.id')
             ->join('mproduct', 'stock_mutation.id_product', '=', 'mproduct.id')
             ->whereBetween('stock_mutation.tgl_mutasi',[$from_date,$to_date])
-            ->paginate(5);            
-            
+            ->orderByDesc('stock_mutation.tgl_mutasi')
+            ->paginate(5);
+
             return view('pages.report.report_stock_mutation',compact('stock_mutation'))->with('i', (request()->input('page', 1) - 1) * 5);
         } else if ($request->opt == 'export'){
             $stock_mutation = StockMutation::select(
@@ -74,6 +76,7 @@ class ReportStockMutationController extends Controller
             ->join('m_warehouses', 'stock_mutation.id_warehouse', '=', 'm_warehouses.id')
             ->join('mproduct', 'stock_mutation.id_product', '=', 'mproduct.id')
             ->whereBetween('stock_mutation.tgl_mutasi',[$from_date,$to_date])
+            ->orderByDesc('stock_mutation.tgl_mutasi')
             ->paginate(5);            
 
             $pdf = PDF::loadview('pages.report.report_stock_mutation_pdf',['stock_mutation'=>$stock_mutation])->setPaper('A4', 'landscape');

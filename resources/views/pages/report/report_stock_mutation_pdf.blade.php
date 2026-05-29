@@ -110,6 +110,8 @@
             </div>
         </div>
     </div>
+
+<div style="text-align:right;font-size:9px;color:#888;margin-top:12px;padding-top:4px;border-top:1px solid #ccc;">Dicetak: {{ date('d/m/Y H:i') }} &nbsp;|&nbsp; Oleh: {{ Auth::user()->name }} &nbsp;|&nbsp; {{ config('app.version') }}</div>
 </body>
 
 </html>

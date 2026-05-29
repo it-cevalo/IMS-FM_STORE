@@ -59,6 +59,7 @@ use App\Http\Controllers\Invoice\SendInvoiceController;
 */
 use App\Http\Controllers\Report\ReportStockMovementController;
 use App\Http\Controllers\Report\ReportStockAgingController;
+use App\Http\Controllers\Report\ReportStockController;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,6 +67,7 @@ use App\Http\Controllers\Report\ReportStockAgingController;
 |--------------------------------------------------------------------------
 */
 use App\Http\Controllers\Stock\StockOpnameController;
+use App\Http\Controllers\ProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -88,6 +90,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/chart/fast-slow', [DashboardController::class, 'chartFastSlow'])->name('dashboard.chart.fastslow');
     Route::resource('roles', RoleController::class);
     Route::resource('users', UserController::class);
+    Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
+
+    /*
+    |--------------------------------------------------------------------------
+    | PROFILE
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/profile/change-password', [ProfileController::class, 'showChangePassword'])->name('profile.change-password');
+    Route::post('/profile/change-password', [ProfileController::class, 'updatePassword'])->name('profile.update-password');
 
     /*
     |--------------------------------------------------------------------------
@@ -163,6 +174,7 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/stock_opname/data', [StockOpnameController::class, 'getData'])->name('stock_opname.data');
+    Route::get('/stock_opname/qr-history', [StockOpnameController::class, 'qrHistory'])->name('stock_opname.qr_history');
     Route::get('stock_opname/{stock_opname}/history', [StockOpnameController::class, 'history'])->name('stock_opname.history');
     Route::resource('stock_opname', StockOpnameController::class);
     Route::get('/stock-opname/print-qr-awal-range',[StockOpnameController::class, 'printQRAwalByProductRange'])->name('stock_opname.print_qr_awal_range');
@@ -348,5 +360,14 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('stock-aging/export', [ReportStockAgingController::class, 'export'])
             ->name('stock_aging.export');
+
+        Route::get('stock', [ReportStockController::class, 'index'])
+            ->name('stock_report.index');
+
+        Route::get('stock/data', [ReportStockController::class, 'data'])
+            ->name('stock_report.data');
+
+        Route::get('stock/export', [ReportStockController::class, 'export'])
+            ->name('stock_report.export');
     });
 });
