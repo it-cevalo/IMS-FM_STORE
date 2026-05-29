@@ -255,15 +255,17 @@ class StockOpnameController extends Controller
                 'created_at'      => $date,
             ]);
 
-            $productStock = MproductStock::where('id_product', $request->id_product)
-                ->where('id_warehouse', $request->id_warehouse)
-                ->firstOrFail();
-
-            $productStock->update([
-                'qty_last'    => $request->qty_last,
-                'tgl_opname'  => $request->tgl_opname,
-                'tgl_mutasi'  => '1970-01-01',
-            ]);
+            MproductStock::updateOrCreate(
+                [
+                    'id_product'   => $request->id_product,
+                    'id_warehouse' => $request->id_warehouse,
+                ],
+                [
+                    'qty_last'   => $request->qty_last,
+                    'tgl_opname' => $request->tgl_opname,
+                    'tgl_mutasi' => '1970-01-01',
+                ]
+            );
 
             DB::commit();
 
