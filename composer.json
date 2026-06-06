@@ -17,6 +17,7 @@
         "maatwebsite/excel": "^3.1",
         "phpoffice/phpspreadsheet": "^1.24",
         "realrashid/sweet-alert": "^5.1",
+        "sentry/sentry-laravel": "^4.25",
         "simplesoftwareio/simple-qrcode": "^4.2",
         "spatie/laravel-permission": "^5.5",
         "yajra/laravel-datatables-oracle": "^9.21"
