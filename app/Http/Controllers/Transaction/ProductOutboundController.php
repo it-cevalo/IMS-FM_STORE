@@ -90,6 +90,9 @@ class ProductOutboundController extends Controller
                     a.qty,
                     a.sync_at,
                     a.sync_by,
+                    a.rejected_at,
+                    a.rejected_by,
+                    a.reject_reason,
                     dd.qty AS qty_do,
                     ROW_NUMBER() OVER (
                         PARTITION BY a.id_do, a.sku
@@ -98,22 +101,85 @@ class ProductOutboundController extends Controller
                 FROM tproduct_outbound a
                 JOIN tdos d ON a.id_do = d.id
                 JOIN mproduct p ON a.id_product = p.id
-                JOIN tdo_detail dd 
+                JOIN tdo_detail dd
                     ON dd.id_do = d.id
                    AND dd.sku = a.sku
                 WHERE DATE(a.out_at) = ?
+                  AND a.rejected_at IS NULL
             ) x
             WHERE x.rn <= x.qty_do
             ORDER BY x.no_do, x.out_at
         ", [$tgl]);
-        
-        // GROUP BY DO
-        $rows = collect($rows)->groupBy('id_do');
+
+        // Detect duplicate QR codes within the same DO (mark 2nd+ occurrence)
+        $rows = collect($rows);
+        $seenQRsByDo = [];
+        foreach ($rows as $item) {
+            $key = $item->id_do . '_' . $item->qr_code;
+            if (isset($seenQRsByDo[$key])) {
+                $item->is_duplicate_qr = true;
+            } else {
+                $seenQRsByDo[$key] = true;
+                $item->is_duplicate_qr = false;
+            }
+        }
+
+        // Rejected items for display reference (shown separately in view)
+        $rejectedRows = DB::select("
+            SELECT
+                a.id,
+                a.id_do,
+                d.no_do,
+                a.qr_code,
+                p.sku AS SKU,
+                p.nama_barang,
+                a.out_at,
+                a.rejected_at,
+                a.reject_reason,
+                u.username AS rejected_by_name
+            FROM tproduct_outbound a
+            JOIN tdos d ON a.id_do = d.id
+            JOIN mproduct p ON a.id_product = p.id
+            LEFT JOIN users u ON u.id = a.rejected_by
+            WHERE DATE(a.out_at) = ?
+              AND a.rejected_at IS NOT NULL
+            ORDER BY a.rejected_at DESC
+        ", [$tgl]);
+
+        $rows = $rows->groupBy('id_do');
+        $rejectedRows = collect($rejectedRows);
 
         return view(
             'pages.transaction.product_outbound.product_outbound_detail',
-            compact('tgl', 'rows', 'warehouses')
+            compact('tgl', 'rows', 'warehouses', 'rejectedRows')
         );
+    }
+
+    public function reject(Request $request)
+    {
+        $request->validate([
+            'items'         => 'required|array|min:1',
+            'reject_reason' => 'required|string|min:3|max:500',
+        ]);
+
+        $updated = DB::table('tproduct_outbound')
+            ->whereIn('id', $request->items)
+            ->whereNull('sync_at')
+            ->whereNull('rejected_at')
+            ->update([
+                'rejected_at'   => now(),
+                'rejected_by'   => Auth::user()->id,
+                'reject_reason' => trim($request->reject_reason),
+            ]);
+
+        $this->outboundLog('REJECT_OUTBOUND',
+            "User: {$this->actor()} | Item IDs: " . implode(',', $request->items) .
+            " | Jumlah: {$updated} | Alasan: {$request->reject_reason}"
+        );
+
+        return response()->json([
+            'message' => "{$updated} item berhasil ditolak"
+        ]);
     }
     
     public function confirm(Request $request)

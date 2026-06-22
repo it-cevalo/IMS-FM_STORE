@@ -251,6 +251,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/product_outbound/{id}/edit', [ProductOutboundController::class, 'edit'])->name('product_outbound.edit');    
     Route::get('/product_outbound/detail/{tgl}', [ProductOutboundController::class, 'detailByDate'])->name('product_outbound.detail');
     Route::post('/product_outbound/confirm', [ProductOutboundController::class, 'confirm'])->name('product_outbound.confirm');
+    Route::post('/product_outbound/reject', [ProductOutboundController::class, 'reject'])->name('product_outbound.reject');
 
     /*
     |--------------------------------------------------------------------------

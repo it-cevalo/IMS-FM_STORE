@@ -192,7 +192,7 @@ class TdoScanStagingController extends Controller
                 'do_source' => 'REGULAR',
                 'flag_approve' => 'Y',
                 'reason_do' => 'GENERATED FROM SCAN STAGING DATE ' . $tgl,
-                'created_at' => $tgl,
+                'created_at' => now(),
                 'created_by' => auth()->id() ?? 1,
             ]);
 
@@ -206,7 +206,7 @@ class TdoScanStagingController extends Controller
                     'sku' => $sku,
                     'qty' => $skuItems->count(),
                     'seq' => 1,
-                    'created_at' => $tgl,
+                    'created_at' => now(),
                     'created_by' => auth()->id() ?? 1,
                 ]);
 
@@ -220,7 +220,7 @@ class TdoScanStagingController extends Controller
                         'qr_code' => $item->qr_code,
                         'qty' => 1,
                         'out_at' => $tgl,
-                        'created_at' => $tgl,
+                        'created_at' => now(),
                         'outbound_source' => 'REGULAR',
                         'created_by' => auth()->id() ?? 1,
                     ]);
