@@ -158,6 +158,7 @@ class ProductInboundController extends Controller
         $rows = DB::table('tproduct_inbound as a')
             ->leftJoin('tpos as po', 'a.id_po', '=', 'po.id')
             ->join('mproduct as p', 'a.id_product', '=', 'p.id')
+            ->leftJoin('users as u', 'u.id', '=', 'a.created_by')
             ->whereDate('a.received_at', $tgl)
             // ❌ EXCLUDE SALDO_AWAL
             ->where('a.inbound_source', '!=', 'SALDO_AWAL')
@@ -171,7 +172,8 @@ class ProductInboundController extends Controller
                 'p.sku as SKU',
                 'p.nama_barang',
                 'a.received_at',
-                'a.qty'
+                'a.qty',
+                'u.username as created_by_name'
             )
             ->orderByRaw("
                 CASE 

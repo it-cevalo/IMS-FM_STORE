@@ -94,6 +94,7 @@ class ProductOutboundController extends Controller
                     a.rejected_by,
                     a.reject_reason,
                     dd.qty AS qty_do,
+                    u.username AS created_by_name,
                     ROW_NUMBER() OVER (
                         PARTITION BY a.id_do, a.sku
                         ORDER BY a.out_at ASC
@@ -104,6 +105,7 @@ class ProductOutboundController extends Controller
                 JOIN tdo_detail dd
                     ON dd.id_do = d.id
                    AND dd.sku = a.sku
+                LEFT JOIN users u ON u.id = a.created_by
                 WHERE DATE(a.out_at) = ?
                   AND a.rejected_at IS NULL
             ) x

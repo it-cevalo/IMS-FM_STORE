@@ -115,6 +115,7 @@
                                 - {{ $item->nama_barang }}
                                 - {{ $item->qr_code }}<br>
                                 Diterima: {{ $item->received_at }}
+                                &bull; Oleh: <strong>{{ $item->created_by_name ?? '-' }}</strong>
 
                                 @if($item->inbound_source === 'RETUR_CUST')
                                     <span class="badge badge-warning ml-2">

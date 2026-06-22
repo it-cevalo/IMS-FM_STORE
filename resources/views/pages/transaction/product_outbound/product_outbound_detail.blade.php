@@ -159,6 +159,7 @@
                                 <div class="small text-muted">
                                     <code class="{{ $item->is_duplicate_qr ? 'text-warning font-weight-bold' : '' }}">{{ $item->qr_code }}</code>
                                     &bull; Keluar: {{ $item->out_at }}
+                                    &bull; Oleh: <strong>{{ $item->created_by_name ?? '-' }}</strong>
                                     @if($item->sync_at)
                                         <span class="badge badge-secondary ml-1">Disinkron {{ $item->sync_by }}</span>
                                     @endif
