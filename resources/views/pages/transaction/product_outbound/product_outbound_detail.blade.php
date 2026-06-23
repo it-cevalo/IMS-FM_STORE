@@ -394,8 +394,10 @@ $('#btnRejectSubmit').on('click', function () {
 });
 
 /** Reset pendingRejectIds saat modal ditutup */
-window.__bsJQuery('#rejectModal').on('hidden.bs.modal', function () {
-    pendingRejectIds = [];
+$(function () {
+    window.__bsJQuery('#rejectModal').on('hidden.bs.modal', function () {
+        pendingRejectIds = [];
+    });
 });
 
 /** TOMBOL KONFIRMASI — blokir jika ada duplikat masih terceklis */
