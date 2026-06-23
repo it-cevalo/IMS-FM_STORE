@@ -315,7 +315,7 @@ function openRejectModal(ids, autoDupSelected) {
     $('#rejectItemList').html(listHtml);
 
     $('#rejectReason').val('');
-    $('#rejectModal').modal('show');
+    window.__bsJQuery('#rejectModal').modal('show');
 }
 
 /** CHECK DO → CHECK semua ITEM di dalamnya */
@@ -376,7 +376,7 @@ $('#btnRejectSubmit').on('click', function () {
         return;
     }
 
-    $('#rejectModal').modal('hide');
+    window.__bsJQuery('#rejectModal').modal('hide');
 
     Swal.fire({ title: 'Memproses...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
@@ -394,7 +394,7 @@ $('#btnRejectSubmit').on('click', function () {
 });
 
 /** Reset pendingRejectIds saat modal ditutup */
-$('#rejectModal').on('hidden.bs.modal', function () {
+window.__bsJQuery('#rejectModal').on('hidden.bs.modal', function () {
     pendingRejectIds = [];
 });
 
