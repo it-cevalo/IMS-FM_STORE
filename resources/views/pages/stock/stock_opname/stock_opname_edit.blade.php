@@ -45,7 +45,7 @@
         <div class="d-flex align-items-center flex-wrap mt-2 text-muted" style="gap:.9rem;font-size:.75rem;">
             <span>
                 <i class="fas fa-user-plus mr-1"></i>
-                Dicatat oleh <strong>{{ $stock_opname->creator->username ?? '-' }}</strong>
+                Dicatat oleh <strong>{{ $stock_opname->creator->username ?? 'SYSTEM' }}</strong>
                 @if($stock_opname->created_at)
                     pada {{ $stock_opname->created_at->format('d/m/Y H:i') }}
                 @endif
@@ -53,11 +53,9 @@
             <span>
                 <i class="fas fa-user-edit mr-1"></i>
                 Terakhir diubah oleh
-                @if($stock_opname->updated_by)
-                    <strong>{{ $stock_opname->updater->username ?? '-' }}</strong>
-                    @if($stock_opname->updated_at)
-                        pada {{ $stock_opname->updated_at->format('d/m/Y H:i') }}
-                    @endif
+                @if($stock_opname->updated_at)
+                    <strong>{{ $stock_opname->updater->username ?? 'SYSTEM' }}</strong>
+                    pada {{ $stock_opname->updated_at->format('d/m/Y H:i') }}
                 @else
                     <strong>-</strong>
                 @endif

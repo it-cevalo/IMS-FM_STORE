@@ -205,8 +205,14 @@
     }
 
     function renderPelaku(waktu, username) {
+        // username kosong = record ditulis sistem WMS, bukan user aplikasi
+        var nama   = (username && String(username).trim() !== '') ? String(username) : 'SYSTEM';
+        var pelaku = nama === 'SYSTEM'
+            ? '<span class="badge badge-secondary">SYSTEM</span>'
+            : '<strong>' + escapeHtml(nama) + '</strong>';
+
         return formatWaktu(waktu) +
-            '<br><small class="text-muted">Oleh: <strong>' + escapeHtml(username || '-') + '</strong></small>';
+            '<br><small class="text-muted">Oleh: ' + pelaku + '</small>';
     }
 
     function loadStockOpnameData(params = {}) {
@@ -239,8 +245,9 @@
                     data: 'updated_at',
                     name: 'updated_at',
                     render: function (data, type, row) {
-                        // updated_by baru terisi sejak fitur audit — record lama tampil '-'
-                        if (!row.updated_by) return '<span class="text-muted">-</span>';
+                        // patokan tampil = updated_at, bukan updated_by.
+                        // updated_by null (perubahan dari WMS) tetap harus tampil waktunya.
+                        if (!data) return '<span class="text-muted">-</span>';
                         return renderPelaku(data, row.updated_by_name);
                     }
                 },

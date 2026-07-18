@@ -77,8 +77,9 @@ class StockOpnameController extends Controller
                 ->addColumn('product_name', fn($row) => $row->product->nama_barang ?? '-')
                 ->addColumn('qty_last', fn($row) => $row->qty_last)
                 ->addColumn('tgl_opname', fn($row) => $row->tgl_opname)
-                ->addColumn('created_by_name', fn($row) => $row->creator->username ?? '-')
-                ->addColumn('updated_by_name', fn($row) => $row->updater->username ?? '-')
+                // created_by/updated_by NULL = perubahan dari sistem WMS, bukan user aplikasi
+                ->addColumn('created_by_name', fn($row) => $row->creator->username ?? 'SYSTEM')
+                ->addColumn('updated_by_name', fn($row) => $row->updater->username ?? 'SYSTEM')
                 ->make(true);
         }
 
