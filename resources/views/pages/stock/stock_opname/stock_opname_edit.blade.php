@@ -42,6 +42,27 @@
                 {{ $stock_opname->product->sku ?? '-' }} — {{ $stock_opname->product->nama_barang ?? '-' }}
             </span>
         </div>
+        <div class="d-flex align-items-center flex-wrap mt-2 text-muted" style="gap:.9rem;font-size:.75rem;">
+            <span>
+                <i class="fas fa-user-plus mr-1"></i>
+                Dicatat oleh <strong>{{ $stock_opname->creator->username ?? '-' }}</strong>
+                @if($stock_opname->created_at)
+                    pada {{ $stock_opname->created_at->format('d/m/Y H:i') }}
+                @endif
+            </span>
+            <span>
+                <i class="fas fa-user-edit mr-1"></i>
+                Terakhir diubah oleh
+                @if($stock_opname->updated_by)
+                    <strong>{{ $stock_opname->updater->username ?? '-' }}</strong>
+                    @if($stock_opname->updated_at)
+                        pada {{ $stock_opname->updated_at->format('d/m/Y H:i') }}
+                    @endif
+                @else
+                    <strong>-</strong>
+                @endif
+            </span>
+        </div>
     </div>
 </div>
 

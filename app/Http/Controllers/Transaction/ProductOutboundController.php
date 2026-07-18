@@ -248,6 +248,7 @@ class ProductOutboundController extends Controller
                         'qty_out'    => ($stock->qty_out ?? 0) + $qtyOut,
                         'qty_last'   => $stock->qty_last - $qtyOut,
                         'updated_at' => now(),
+                        'updated_by' => Auth::user()->id,
                     ]);
             }
     

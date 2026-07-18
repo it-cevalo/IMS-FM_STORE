@@ -56,6 +56,7 @@
                         <th colspan="2" class="text-center bg-light">Barang</th>
                         <th rowspan="2" class="text-center align-middle bg-light">Stok Fisik<br><small class="font-weight-normal text-muted">(qty terakhir)</small></th>
                         <th rowspan="2" class="text-center align-middle bg-light">Dicatat</th>
+                        <th rowspan="2" class="text-center align-middle bg-light">Terakhir Diubah</th>
                         <th rowspan="2" class="text-center align-middle bg-light">Aksi</th>
                     </tr>
                     <tr>
@@ -190,6 +191,24 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/2.1.2/sweetalert.min.js"></script>
 <script type="text/javascript">
+    function formatWaktu(data) {
+        if (!data) return '-';
+
+        const d = new Date(data);
+        const pad = n => n.toString().padStart(2, '0');
+
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function escapeHtml(text) {
+        return $('<div>').text(text == null ? '' : text).html();
+    }
+
+    function renderPelaku(waktu, username) {
+        return formatWaktu(waktu) +
+            '<br><small class="text-muted">Oleh: <strong>' + escapeHtml(username || '-') + '</strong></small>';
+    }
+
     function loadStockOpnameData(params = {}) {
         $('#stockOpnameTable').DataTable({
             processing: true,
@@ -212,13 +231,17 @@
                 {
                     data: 'created_at',
                     name: 'created_at',
-                    render: function (data) {
-                        if (!data) return '-';
-
-                        const d = new Date(data);
-                        const pad = n => n.toString().padStart(2, '0');
-
-                        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                    render: function (data, type, row) {
+                        return renderPelaku(data, row.created_by_name);
+                    }
+                },
+                {
+                    data: 'updated_at',
+                    name: 'updated_at',
+                    render: function (data, type, row) {
+                        // updated_by baru terisi sejak fitur audit — record lama tampil '-'
+                        if (!row.updated_by) return '<span class="text-muted">-</span>';
+                        return renderPelaku(data, row.updated_by_name);
                     }
                 },
                 {

@@ -187,8 +187,9 @@ class DeliveryOrderTransferController extends Controller
                                 
                                 if ($sopn) {
                                     $stock_opm = $sopn->update([
-                                        'qty_out'   => $request->qty[$key],
-                                        'qty_last'  => $qty_last_opn - $request->qty[$key],
+                                        'qty_out'    => $request->qty[$key],
+                                        'qty_last'   => $qty_last_opn - $request->qty[$key],
+                                        'updated_by' => Auth::user()->id,
                                     ]);
 
                                     
@@ -253,8 +254,9 @@ class DeliveryOrderTransferController extends Controller
                                 
                                 if ($sopnt) {
                                     $stock_opmt = $sopnt->update([
-                                        'qty_out'   => 0,
-                                        'qty_last'  => $qty_last_opn + $request->qty[$key],
+                                        'qty_out'    => 0,
+                                        'qty_last'   => $qty_last_opn + $request->qty[$key],
+                                        'updated_by' => Auth::user()->id,
                                     ]);
                                     
                                     if($stock_opmt){
