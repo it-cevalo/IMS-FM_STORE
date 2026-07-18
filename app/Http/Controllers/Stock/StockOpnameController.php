@@ -57,7 +57,7 @@ class StockOpnameController extends Controller
     public function getData(Request $request)
     {
         if ($request->ajax()) {
-            $query = TStockOpname::with(['warehouse', 'product'])->orderBy('t_stock_opname.created_at', 'desc');
+            $query = TStockOpname::with(['warehouse', 'product', 'creator', 'updater'])->orderBy('t_stock_opname.created_at', 'desc');
 
             if ($request->product_id) {
                 $query->where('id_product', $request->product_id);
@@ -77,6 +77,8 @@ class StockOpnameController extends Controller
                 ->addColumn('product_name', fn($row) => $row->product->nama_barang ?? '-')
                 ->addColumn('qty_last', fn($row) => $row->qty_last)
                 ->addColumn('tgl_opname', fn($row) => $row->tgl_opname)
+                ->addColumn('created_by_name', fn($row) => $row->creator->username ?? '-')
+                ->addColumn('updated_by_name', fn($row) => $row->updater->username ?? '-')
                 ->make(true);
         }
 
@@ -133,6 +135,8 @@ class StockOpnameController extends Controller
 
             DB::beginTransaction();
 
+            $userId = Auth::user()->id;
+
             $stock_opname = TStockOpname::create([
                 'id_product'   => $request->id_product,
                 'id_warehouse' => $request->id_warehouse,
@@ -140,10 +144,10 @@ class StockOpnameController extends Controller
                 'qty_out'      => $request->qty_out,
                 'qty_last'     => $request->qty_last,
                 'tgl_opname'   => $request->tgl_opname,
+                'created_by'   => $userId,
             ]);
 
             $id_stock_opn = TStockOpname::select('id')->latest()->first()->id;
-            $userId       = Auth::user()->id;
             $date         = date('Y-m-d');
 
             HStockOpname::create([
@@ -206,7 +210,7 @@ class StockOpnameController extends Controller
             abort(403, 'Akses ditolak. Hanya Owner yang dapat mengedit Stock Opname.');
         }
 
-        $stock_opname = TStockOpname::with('product')->findOrFail($id);
+        $stock_opname = TStockOpname::with(['product', 'creator', 'updater'])->findOrFail($id);
         $warehouse    = MWarehouse::get();
         $product      = Mproduct::get();
 
@@ -252,10 +256,13 @@ class StockOpnameController extends Controller
 
             DB::beginTransaction();
 
+            $userId = Auth::user()->id;
+            $date   = date('Y-m-d');
+
+            $validatedData['updated_by'] = $userId;
+
             TStockOpname::whereId($id)->update($validatedData);
 
-            $userId       = Auth::user()->id;
-            $date         = date('Y-m-d');
             $id_stock_opn = TStockOpname::select('id')->whereId($id)->latest()->first()->id;
 
             HStockOpname::create([
@@ -268,6 +275,7 @@ class StockOpnameController extends Controller
                 'tgl_opname'      => $request->tgl_opname,
                 'created_by'      => $userId,
                 'created_at'      => $date,
+                'updated_by'      => $userId,
             ]);
 
             MproductStock::updateOrCreate(

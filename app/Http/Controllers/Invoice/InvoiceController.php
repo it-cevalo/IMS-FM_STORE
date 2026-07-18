@@ -281,8 +281,9 @@ class InvoiceController extends Controller
                                         ])->first();
 
                                         $stock_opm = $sopn->update([
-                                            'qty_out'   => $request->qty[$key],
-                                            'qty_last'  => $qty_last_opn - $request->qty[$key],
+                                            'qty_out'    => $request->qty[$key],
+                                            'qty_last'   => $qty_last_opn - $request->qty[$key],
+                                            'updated_by' => Auth::user()->id,
                                         ]);
                                         if($stock_opm){
                                             $user = Auth::user()->id;

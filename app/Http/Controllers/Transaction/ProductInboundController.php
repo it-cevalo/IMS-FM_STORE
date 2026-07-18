@@ -340,6 +340,7 @@ class ProductInboundController extends Controller
                             'qty_in'     => DB::raw("qty_in + {$qty_in}"),
                             'qty_last'   => DB::raw("qty_last + {$qty_in}"),
                             'updated_at' => now(),
+                            'updated_by' => Auth::user()->id,
                         ]);
                 } else {
                     DB::table('t_stock_opname')->insert([
@@ -350,6 +351,7 @@ class ProductInboundController extends Controller
                         'qty_out'      => 0,
                         'tgl_opname'   => now()->toDateString(),
                         'created_at'   => now(),
+                        'created_by'   => Auth::user()->id,
                     ]);
                 }
 

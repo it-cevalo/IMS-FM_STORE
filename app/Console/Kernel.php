@@ -24,7 +24,11 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Snapshot stok tersedia — hari terakhir tiap bulan, 23:59 (timezone app: Asia/Jakarta)
+        $schedule->command('stock:snapshot')
+                 ->lastDayOfMonth('23:59')
+                 ->withoutOverlapping()
+                 ->appendOutputTo(storage_path('logs/schedule_stock_snapshot.log'));
     }
 
     /**

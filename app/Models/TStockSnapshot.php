@@ -5,13 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class TStockOpname extends Model
+class TStockSnapshot extends Model
 {
     use HasFactory;
-    
-    protected $table   = 't_stock_opname';
+
+    protected $table   = 't_stock_snapshot';
     protected $guarded = [];
-    
+
     public function warehouse()
     {
     	return $this->hasOne('App\Models\MWarehouse', 'id', 'id_warehouse');
@@ -20,15 +20,5 @@ class TStockOpname extends Model
     public function product()
     {
     	return $this->hasOne('App\Models\Mproduct', 'id', 'id_product');
-    }
-
-    public function creator()
-    {
-    	return $this->belongsTo('App\Models\User', 'created_by');
-    }
-
-    public function updater()
-    {
-    	return $this->belongsTo('App\Models\User', 'updated_by');
     }
 }
